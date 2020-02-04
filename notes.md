@@ -107,5 +107,22 @@ import("./hello_world").then(module => {
 
 
 
+- Problème avec webpack-cli, solution : `npm uninstall webpack-cli`
+
+
+
+## Mardi 04 Février 2019
+
+### Matin
+
+- Etude de la documentation de Sophia
+
+### Après-midi
+
+
+
+
+
+
 
 

@@ -12,6 +12,11 @@ Sujet : *Raisonnement portable en Web Assembly*
 
 ## Liens utiles
 
+- Spécification attendue pour une librairie JS : https://rdf.js.org
+    - https://rdf.js.org/data-model-spec/
+    - https://rdf.js.org/dataset-spec/
+    - https://rdf.js.org/stream-spec/
+
 
 ### En lien avec le sujet / les ressources de base
 
@@ -31,6 +36,7 @@ Sujet : *Raisonnement portable en Web Assembly*
 - Un tutoriel qui marche pour commencer : https://dev.to/sendilkumarn/rust-and-webassembly-for-the-masses-wasm-bindgen-57fl
 
 - Documentation de wasm-bindgen : https://rustwasm.github.io/docs/wasm-bindgen/
+
 
 
 
