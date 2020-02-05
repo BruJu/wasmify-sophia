@@ -119,6 +119,62 @@ import("./hello_world").then(module => {
 
 ### Après-midi
 
+- Etude de la documentation de rdf.js.org et de wasm_bindgen afin d'anticiper
+les difficultés à la conception d'une librarie
+
+
+**Objectif : Créer des adapteurs de classe de Rust pour proposer une interface
+se conformant à la spec JS**
+
+
+*Literal*
+
+Dans Sophia : `Literal(T, LiteralKind<T>)`
+
+> If the literal has a language, its datatype has the IRI "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString".
+> Otherwise, if no datatype is explicitly specified, the datatype has the IRI "http://www.w3.org/2001/XMLSchema#string". 
+
+
+
+*DefaultGraph*
+
+Est const et doit être assigné si dans le quad (ou si c'est un triplet),
+g matche Option::None
+
+
+
+
+## Mercredi 05 Février 2019
+
+### Matin
+
+- Continuation de l'essai de prototyper Term
+
+### Après-midi
+
+- Reflexion sur les Box / Arc / Rc pour accéder à leurs string
+
+```cpp
+#[wasm_bindgen]
+pub fn azaf() -> String {
+    let lama = Box::new(String::from("Lama"));
+    let z = String::from(lama.as_str());
+    print_type(lama); // Lama still exists
+    print_type(z);
+    z
+}
+```
+
+- Thomas : "Pourquoi tu utilises Webpack ?" -> c'est vrai que dans mon
+contexte ça ne sert à rien.
+
+
+
+
+
+
+
+
 
 
 

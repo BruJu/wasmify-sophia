@@ -12,10 +12,20 @@ Sujet : *Raisonnement portable en Web Assembly*
 
 ## Liens utiles
 
+- https://play.rust-lang.org/
+
+- https://github.com/pchampin/rust-iut/ ( https://github.com/pchampin/rust-iut/ )
+
+### Sophia vers une librairie répondant à la norme de rdf.js.org
+
+
 - Spécification attendue pour une librairie JS : https://rdf.js.org
     - https://rdf.js.org/data-model-spec/
     - https://rdf.js.org/dataset-spec/
     - https://rdf.js.org/stream-spec/
+
+
+- https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/getter-and-setter.html
 
 
 ### En lien avec le sujet / les ressources de base
@@ -37,6 +47,10 @@ Sujet : *Raisonnement portable en Web Assembly*
 
 - Documentation de wasm-bindgen : https://rustwasm.github.io/docs/wasm-bindgen/
 
+
+### Misc
+
+- http://iswc2011.semanticweb.org/fileadmin/iswc/Papers/Workshops/SSWS/Emmons-et-all-SSWS2011.pdf
 
 
 
