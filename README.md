@@ -33,6 +33,9 @@ Sujet : *Raisonnement portable en Web Assembly*
 - Sujet du stage : https://projet.liris.cnrs.fr/repid/2019/stage-raisonnement-portable/fr/
 
 - HyLAR : https://github.com/ucbl/HyLAR-Reasoner#readme
+    - https://hal.archives-ouvertes.fr/hal-01154549/file/hylar.pdf
+    - https://hal.archives-ouvertes.fr/hal-01276558/file/Demo_www2016.pdf
+    - http://mmrissa.perso.univ-pau.fr/pub/Accepted-papers/2018-TheWebConf-RoD.pdf
 
 - Sophia :
     - Master : https://github.com/pchampin/sophia_rs

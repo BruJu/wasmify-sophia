@@ -169,6 +169,16 @@ pub fn azaf() -> String {
 contexte ça ne sert à rien.
 
 
+## Jeudi 06 Février 2019
+
+### Matin
+
+- Nouvelle idée : utiliser des closures pour donner accés aux membres
+
+Mais je n'arrive pas à mettre des boxed closure ni des boxed attributs
+
+
+- Lecture des papiers de HyLAR
 
 
 
