@@ -4,6 +4,8 @@ Ce dépôt recense mes notes lors de mon stage au LIRIS dans l'équipe TWEAK.
 
 Sujet : *Raisonnement portable en Web Assembly*
 
+https://projet.liris.cnrs.fr/repid/
+
 
 ## Autres fichiers
 
@@ -61,6 +63,13 @@ Sujet : *Raisonnement portable en Web Assembly*
 - Un tutoriel qui marche pour commencer : https://dev.to/sendilkumarn/rust-and-webassembly-for-the-masses-wasm-bindgen-57fl
 
 - Documentation de wasm-bindgen : https://rustwasm.github.io/docs/wasm-bindgen/
+
+
+### Support de Web Assembly par OxyGraph
+
+- https://github.com/Tpt/oxigraph/issues/16
+
+- https://github.com/Tpt/oxigraph/pull/22
 
 
 ### Misc

@@ -210,6 +210,56 @@ fn main() {
 
 
 
+## Vendredi 07 Février 2019
+
+### Matin
+
+- Support de Web Assembly par Oxygraphe :
+
+> Thomas : "OxyGraphe a l'air de supporter le wasm"
+
+    - https://github.com/Tpt/oxigraph/issues/16
+
+    - https://github.com/Tpt/oxigraph/pull/22
+    
+Pas de support de l'API standard rdf.js mais support avec js-sys (connecte des
+objets WebAssembly avec des objets Rust
+
+- Clarification du sujet -> "Proposer une interface rdf-js-like basée sur Sophia
+ne collant pas spécifiquement à la documentation"
+
+- "C'est le projet REPID"
+
+- Réunion d'équipe : KATIE (Beatrice Fuchs) -> concepts intéressant pour
+nettoyer les données d'un de mes projets personnels (mais HS avec ce stage
+à priori)
+
+### Après-midi
+
+- On se fixe défintivement sur le choix de faire une interface pour RcTerm.
+
+- PoC de la classe Term.
+
+
+### Bilan de la semaine
+
+- Principalement de la lecture de documentation pour essayer de se rendre compte
+de ce qu'il est possible de faire avec rust, sophia, wasm_bindgen et la spec
+de rdfjs.
+
+- Objectif pour la fin de la semaine prochaine : finir d'avoir une api RDFJS
+pour le DataModel et le DatasetModel + avoir bien déblayé le Stream Interface.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
