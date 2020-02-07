@@ -16,6 +16,15 @@ Sujet : *Raisonnement portable en Web Assembly*
 
 - https://github.com/pchampin/rust-iut/ ( https://github.com/pchampin/rust-iut/ )
 
+
+### Spécification RDF
+
+- - https://www.w3.org/TeamSubmission/turtle/
+
+
+
+
+
 ### Sophia vers une librairie répondant à la norme de rdf.js.org
 
 
@@ -42,6 +51,9 @@ Sujet : *Raisonnement portable en Web Assembly*
     - Clone : https://github.com/bruju/sophia_rs
 
 - wasm_example : https://github.com/davidavzP/wasm_example
+
+- rflib.js : http://linkeddata.github.io/rdflib.js/doc/
+
 
 
 ### Web Assembly - Rust

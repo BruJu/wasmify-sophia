@@ -181,6 +181,56 @@ Mais je n'arrive pas à mettre des boxed closure ni des boxed attributs
 - Lecture des papiers de HyLAR
 
 
+- Tentative d'étudierl a structure de rdflib js, infructueuse
+
+
+### Après midi
+
+
+- Implémenttion basique de la spec rdf js pour des Box<str>
+
+
+```rust
+use std::rc::Rc;
+
+fn main() {
+    let heyyy = String::from("Heyyyyy");
+    let rced_heyyy: Rc<String> = heyyy.into();
+
+    println!("{} !", &rced_heyyy);
+}
+
+```
+
+- Les IriData<T> ne sont pas mutables. Les Term ne sont pas mutables non plus
+
+- Une piste pour muter les enum : https://users.rust-lang.org/t/mutate-enum-in-place/18785/3
+
+- Début d'implémentation des termes pour RcTerm
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
