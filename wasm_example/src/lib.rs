@@ -228,6 +228,24 @@ impl RustToJsNamedNode {
 // ====
 
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_name = Term)]
+    pub type JssTerm;
+
+    #[wasm_bindgen(method, getter = termType)]
+    pub fn term_type(this: &JssTerm) -> String;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn value(this: &JssTerm) -> String;
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_value(this: &JssTerm, value: String);
+
+    #[wasm_bindgen(js_name=equals)]
+    pub fn equals(this: &JssTerm, other_term: &JssTerm);
+}
+
 
 #[wasm_bindgen(js_name="Term")]
 pub struct BJTerm {
@@ -256,15 +274,6 @@ impl BJTerm {
     #[wasm_bindgen(getter = value)]
     pub fn value(&self) -> String {
         self.term.value()
-        /*
-        <=> (this means equivalence, not spaceship operator)
-        match &self.term {
-            RcTerm::Iri(iri_data) => iri_data.to_string(), // clone() is done by to_string()
-            RcTerm::BNode(node_id) => node_id.to_string(), // same
-            RcTerm::Literal(content, _) => content.to_string(),
-            RcTerm::Variable(name) => name.to_string()
-        }
-        */
     }
 
     #[wasm_bindgen(setter = value)]
@@ -282,17 +291,28 @@ impl BJTerm {
     }
 
     #[wasm_bindgen(js_name = equals)]
-    pub fn equals(&self, other: *const &BJTerm) -> bool {
-        if other.is_null() {
-            false
-        } else {
-            unsafe { // Actually safe because we just checked if null
-                (*other).term == self.term
+    pub fn equals(&self, other: Option<JssTerm>) -> bool {
+        match other {
+            None => false,
+            Some(x) => {
+                let other_term_type = x.term_type();
+                match &self.term {
+                    Iri(_) => {
+                        other_term_type == "NamedNode" && x.value() == self.term.value()
+                    },
+                    BNode(_) => {
+                        other_term_type == "BlankNode" && x.value() == self.term.value()
+                    },
+                    Literal(_1, _2) => {
+                        other_term_type == "Literal"
+                    },
+                    Variable(_) => {
+                        other_term_type == "Variable" && x.value() == self.term.value()
+                    }
+                }
             }
         }
     }
-
-    
 }
 
 

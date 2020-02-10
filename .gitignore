@@ -1,0 +1,9 @@
+cmd/
+hacksmozilla/
+oxigraph/
+rust_misc_experiments/
+sophia-test/
+sophia_rs/
+sophia_wasm/
+wasmbindinggenbook/
+
