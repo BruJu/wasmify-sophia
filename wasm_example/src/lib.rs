@@ -244,6 +244,19 @@ extern "C" {
 
     #[wasm_bindgen(js_name=equals)]
     pub fn equals(this: &JssTerm, other_term: &JssTerm);
+
+    #[wasm_bindgen(method, getter)]
+    pub fn language(this: &JssTerm) -> String;
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_language(this: &JssTerm, value: String);
+
+    #[wasm_bindgen(method, getter)]
+    pub fn datatype(this: &JssTerm) -> JssTerm;
+    // Returning a copy of a Jssterm is acceptable by RDFJS standard
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_datatype(this: &JssTerm, named_node: &JssTerm);
 }
 
 
@@ -252,7 +265,7 @@ pub struct BJTerm {
     term: RcTerm
 }
 
-// Do not export
+// These functions are not exported into the Javascript interface
 impl BJTerm {   
     pub fn new(term: &RcTerm) -> BJTerm {
         BJTerm { term: term.clone() }
@@ -290,34 +303,92 @@ impl BJTerm {
         }
     }
 
+    #[wasm_bindgen(getter = language)]
+    pub fn language(&self) -> String {
+        match &self.term {
+            Literal(_, Lang(language)) => language.to_string(),
+            _ => String::from("")
+        }
+    }
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_language(&mut self, language: String) {
+        // In this implementation, if we set the language of a literal, it will be automatically
+        // converted to the datatype langString regardless of its previous datatype.
+        // Setting the language of any other term has no effect.
+        if let Literal(old_value, _) = &self.term {
+            let language: Rc<str> = language.as_str().into();
+            self.term = RcTerm::new_literal_lang(old_value.to_string(), language).unwrap();
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn datatype(&self) -> Option<BJTerm> {
+        match &self.term {
+            Literal(_1, Lang(_2)) =>
+                Option::Some(BJTerm {
+                    term: RcTerm::new_iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#langString").unwrap()
+                }),
+            // TODO : check if iri always has a type (especially for string)
+            Literal(_1, Datatype(iri)) =>
+                Option::Some(BJTerm {
+                    term: RcTerm::new_iri(iri.to_string()).unwrap()
+                }),
+            _ => Option::None
+        }
+    }
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_datatype(&mut self, named_node: &JssTerm) {
+        if let Literal(_, literal_kind) = &self.term {
+            if let Lang(_) = literal_kind {
+                if named_node.value() == "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" {
+                    // Do not change datatype to langString of literals that are already langString
+                    return
+                }
+            }
+            let new_node_value = self.value();
+            let literal_type: RcTerm = RcTerm::new_iri(named_node.value().as_str()).unwrap();
+            self.term = RcTerm::new_literal_dt(new_node_value, literal_type).unwrap();
+        }
+    }
+
     #[wasm_bindgen(js_name = equals)]
     pub fn equals(&self, other: Option<JssTerm>) -> bool {
         match other {
             None => false,
             Some(x) => {
+                // We don't use the implementation of term_type / value to have better performances.
                 let other_term_type = x.term_type();
                 match &self.term {
-                    Iri(_) => {
-                        other_term_type == "NamedNode" && x.value() == self.term.value()
-                    },
-                    BNode(_) => {
-                        other_term_type == "BlankNode" && x.value() == self.term.value()
-                    },
-                    Literal(_1, _2) => {
-                        other_term_type == "Literal"
-                    },
-                    Variable(_) => {
-                        other_term_type == "Variable" && x.value() == self.term.value()
-                    }
+                    Iri(_) => other_term_type == "NamedNode" && x.value() == self.term.value(),
+                    BNode(_) => other_term_type == "BlankNode" && x.value() == self.term.value(),
+                    Variable(_) => other_term_type == "Variable" && x.value() == self.term.value(),
+                    Literal(_1, literal_kind) => 
+                        other_term_type == "Literal" && x.value() == self.term.value()
+                            && BJTerm::equals_to_literal(literal_kind, &x)
                 }
             }
+        }
+    }
+
+    fn equals_to_literal(literal_kind: &LiteralKind<Rc<str>>, other : &JssTerm) -> bool {
+        // The standard ensures us that other has the language and datatype attributes
+        
+        // Documentation questionning :
+        // Otherwise, if no datatype is explicitly specified, the datatype has the IRI
+        // "http://www.w3.org/2001/XMLSchema#string". -> ????
+        match literal_kind {
+            Lang(language) => language.to_string() == other.language()
+                && "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" == other.datatype().value(),
+            Datatype(iri) => other.language() == "" && other.datatype().value() == iri.to_string()
         }
     }
 }
 
 
 #[wasm_bindgen]
-impl JSDataset{
+impl JSDataset {
     #[wasm_bindgen(js_name="getABJTerm")]
     pub fn get_a_bj_term(&self, id: usize) -> Option<BJTerm> {
         log_i32(id as i32);
