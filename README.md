@@ -14,9 +14,16 @@ https://projet.liris.cnrs.fr/repid/
 
 ## Liens utiles
 
-- https://play.rust-lang.org/
 
-- https://github.com/pchampin/rust-iut/ ( https://github.com/pchampin/rust-iut/ )
+### Rust
+
+- https://play.rust-lang.org/ (n'offre pas de suggestion -> c'est nul)
+
+- https://learnxinyminutes.com/docs/rust/
+
+- https://doc.rust-lang.org/std/keyword.struct.html
+
+- https://github.com/pchampin/rust-iut/
 
 
 ### Spécification RDF

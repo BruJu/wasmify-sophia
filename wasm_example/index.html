@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="text/html; charset=UTF-8; X-Content-Type-Options=nosniff" http-equiv="Content-Type" />
+    <title>Rust Wasm Example</title>
+</head>
+
+<body>
+
+    <script src="wasm_example.js"></script>
+
+
+
+    <script>
+        var graph;
+        var d;
+        var list_of_terms = [];
+        async function run(){
+            await wasm_bindgen('wasm_example_bg.wasm');
+            /*
+            graph = '<http://www.franz.com/simple#person1> <http://www.franz.com/simple#first-name> "Joseph" . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#middle-initial> "Patrick" . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#last-name> "Kennedy" . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#suffix> "none" . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#alma-mater> <http://www.franz.com/simple#Harvard> . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#birth-year> "1888" . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#death-year> "1969" . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#sex> <http://www.franz.com/simple#male> . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#spouse> <http://www.franz.com/simple#person2> . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#has-child> <http://www.franz.com/simple#person3> . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#profession> <http://www.franz.com/simple#banker> . \
+    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#birth-place> <http://www.franz.com/simple#place5> . \
+    <http://www.franz.com/simple#person1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.franz.com/simple#person> .';
+*/
+            
+            graph = 
+                '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> . ' +
+                '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . ' +
+                '@base <http://bruy.at/rdf/> . ' +
+                '<personnes/#Julian> a <#stagiaire> . ' +
+                '<personnes/#Thomas> a <#stagiaire> . ' +
+                '<personnes/#Julian> <concept/#prenom> "Julian" . ' +
+                '_:blanknode <concept/#idk> <personnes/#Julian> . ' +
+                '_:blanknode <concept/#idk> _:anotherblanknode . ' +
+                '_:anotherblanknode <concept/#aaa> 5 . ' +
+                '_:anotherblanknode <concept/#abc> 6.24 . ' +
+                '<concept/#conceptuel> <concept/#conceptuel> "Chat"@fr . ' +
+                '<concept/#conceptuel> <concept/#conceptuel> "Cat"@en . ';
+                
+
+            d = new wasm_bindgen.JSDataset();
+            d.load(graph);
+           
+            let i = 0;
+            while (true) {
+                let local_term = d.getTerm(i);
+
+                if (local_term == undefined) {
+                    break;
+                } else {
+                    console.log("ID: " + i + " ; " + local_term.toString());
+                    list_of_terms.push(local_term);
+                }
+
+                ++i;
+            }
+
+            console.log("=====")
+            for (let i = 0 ; i != 20 ; ++i) {
+                let local_term = d.getTerm(0);
+                console.log(local_term.toString());
+            }
+            // let g = wasm_bindgen.make_graph();
+            // let resp = await fetch(my_url);
+            // g.load(resp.content);
+
+            let total_same_equals = 0;
+            let total_same_inequals = 0;
+
+            for (let term_a of list_of_terms) {
+                for (let term_b of list_of_terms) {
+                    let n3_eq = term_a.toString() == term_b.toString();
+                    let eq = term_a.equals(term_b);
+
+                    if (n3_eq && eq) {
+                        total_same_equals++;
+                    } else if (!n3_eq && !eq) {
+                        total_same_equals++;
+                    } else {
+                        total_same_inequals++;
+                        console.log(term_a.n3() + " and " + term_b.n3() + " are strange");
+                    }
+                }
+            }
+
+            console.log("= " + total_same_equals + " / " + total_same_inequals);
+        }
+
+        run();
+        //do not put anything after run()!!!!!!!!
+    </script>
+
+    <!-- <script>
+        let g;
+        wasm_bindgen('wasm_example_bg.wasm').then(()=>{
+            console.log(wasm_bindgen.run_alert);
+            wasm_bindgen.run_alert("JavaScript");
+            g = wasm_bindgen.make_graph();
+            return fetch(my_url);
+        }).then((reesp) => {
+            g.load(resp.content)
+        })
+        //do not put anything after run()!!!!!!!!
+
+    </script> -->
+
+    <!--<script src="./src/index.js"></script>-->
+</body>
+
+</html>

@@ -2,17 +2,15 @@
 extern crate wasm_bindgen;
 
 use std::any;
-use std::vec::*;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use sophia::dataset::Dataset;
 use sophia::dataset::inmem::FastDataset;
-use sophia::graph::inmem::FastGraph;
-use sophia::parser::{nt, nq};
-use sophia::triple::stream::*;
+use sophia::quad::stream::QuadSource;
+use sophia::graph::inmem::LightGraph;
+use sophia::parser::trig;
 use sophia::term::*;
-use sophia::quad::{*, stream::*};
-
+use sophia::triple::stream::TripleSource;
 
 
 #[wasm_bindgen]
@@ -42,51 +40,6 @@ fn print_type<T>(_: T) {
     log(any::type_name::<T>())
 }
 
-//Example of a Struct
-#[wasm_bindgen]
-pub struct Foo {
-    internal: i32,
-}
-
-#[wasm_bindgen]
-impl Foo {
-    #[wasm_bindgen(constructor)]
-    pub fn new(val: i32) -> Foo {
-        Foo { internal: val}
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn someattribute(&self) -> i32 {
-        self.internal
-    }
-
-    #[wasm_bindgen(setter)]
-    pub fn set_someattribute(&mut self, val: i32){
-        self.internal = val * 100;
-    }
-    
-    pub fn display(&mut self){
-        log("Foo interal ->");
-        log_i32(self.internal);
-    }
-}
-
-//JavaScript Functions in Rust
-#[wasm_bindgen]
-pub fn run_alert(item: &str){
-    alert(&format!("This is WASM and {}", item));
-}
-
-//First Attempt at Loading Sophia FastGraph
-#[wasm_bindgen]
-pub fn load_graph(graph: &str){
-    let NT_DOC: &str = graph;
-    let mut g = FastGraph::new();
-    let inserted = nt::parse_str(NT_DOC).in_graph(&mut g);
-    let num_inserted: u32 = inserted.unwrap() as u32;
-    log("N-Triples Inserted ->");
-    log_u32(num_inserted);
-}
 
 ///////////////////////////////
 /// A sample JSTerm to be used in the RDF/JS interface
@@ -94,135 +47,26 @@ pub fn load_graph(graph: &str){
 /// Pierre-Antoine Champin
 ///////////////////////////////
 
-//Term String
 #[wasm_bindgen]
-#[derive(Clone)]
-pub struct JSTerm (Term<Rc<str>>);
-
-
-#[wasm_bindgen]
-impl JSTerm{
-    #[wasm_bindgen(constructor)]
-    pub fn new(term: String) -> JSTerm {
-        let term: &str = term.as_str();
-        let term = Rc::from(term);
-        let term = Term::new_iri(term).unwrap();
-        return JSTerm(term);
-    }
-
-    pub fn n3(&self) -> String {
-        self.0.n3()
-    }
+pub struct JSDataset {
+    dataset: FastDataset
 }
-
-impl From <&'_ RcTerm> for JSTerm{
-    fn from(other: &RcTerm) -> JSTerm{
-        JSTerm(other.clone())
-    } 
-}
-
-#[wasm_bindgen]
-pub struct JSQuad ([JSTerm; 3], Option<JSTerm>);
-
-#[wasm_bindgen]
-impl JSQuad{
-
-    #[wasm_bindgen(getter)]
-    pub fn s(&self) -> JSTerm{
-        self.0[0].clone()
-    }
-
-}
-
-#[wasm_bindgen]
-pub struct JSDataset (FastDataset);
-
-use js_sys::Array;
 
 #[wasm_bindgen]
 impl JSDataset{
     #[wasm_bindgen(constructor)]
     pub fn new() -> JSDataset {
-        JSDataset(FastDataset::new())
+        JSDataset{ dataset: FastDataset::new() }
     }
 
-    pub fn load(&mut self, nquads: &str) -> usize {
-        nq::parse_str(nquads).in_dataset(&mut self.0).unwrap()
-    }
-
-    pub fn first_subject(&self) -> JSTerm {
-        self.0
-            .subjects()
-            .unwrap()
-            .into_iter()
-            .map(|term| JSTerm(term.clone()))
-            .next()
-            .unwrap()
-    }
-
-    pub fn quads(&self) -> Array {
-       self.0.quads().into_iter().map(|quad| {
-            let quad = quad.unwrap();
-            JSQuad([quad.s().into(), quad.p().into(), quad.o().into()], quad.g().map(JSTerm::from))
-       }).map(JsValue::from).collect()
+    pub fn load(&mut self, content: &str) {
+        let r = sophia::parser::trig::parse_str(&content).in_dataset(&mut self.dataset);
+        match r {
+            Ok(_) => {},
+            Err(error) => log(error.to_string().as_str())
+        }
     }
 }
-
-// ============================================================================
-// ==== ADAPTERS
-
-/*
-#[wasm_bindgen(js_name = Term)]
-pub struct WasmToJsTerm {
-
-}
-
-#[wasm_bindgen(js_class = Term)]
-impl WasmToJsTerm {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> WasmToJsTerm {
-        WasmToJsTerm { }
-    }
-
-    #[wasm_bindgen(getter = termType)]
-    pub fn term_type(&self) -> String {
-        String::from("????")
-    }
-}
-*/
-
-
-/*
-pub trait RustToJsTerm {
-    // #[wasm_bindgen(getter = termType)]
-    fn term_type(&self) -> String;
-}
-
-
-#[wasm_bindgen(js_name="NamedNode")]
-pub struct RustToJsNamedNode {
-    iri: IriData<Rc<str>>
-}
-
-#[wasm_bindgen(js_class="NamedNode")]
-impl RustToJsNamedNode {
-    #[wasm_bindgen(getter = termType)]
-    pub fn term_type(&self) -> String {
-        "NamedNode".into()
-    }
-
-    #[wasm_bindgen(getter = value)]
-    pub fn value(&self) -> String {
-        self.iri.to_string()
-    }
-
-    #[wasm_bindgen(setter = value)]
-    pub fn set_value(&mut self, s: String) {
-        self.iri
-    }
-}
-
-*/
 
 // ============================================================================
 // ====
@@ -384,19 +228,26 @@ impl BJTerm {
             Datatype(iri) => other.language() == "" && other.datatype().value() == iri.to_string()
         }
     }
-}
 
+    #[wasm_bindgen(js_name = toString)]
+    pub fn to_string(&self) -> String {
+        self.term.n3()
+    }
+}
 
 #[wasm_bindgen]
 impl JSDataset {
-    #[wasm_bindgen(js_name="getABJTerm")]
-    pub fn get_a_bj_term(&self, id: usize) -> Option<BJTerm> {
-        log_i32(id as i32);
-        let mut iter = self.0
-            .subjects()
-            .unwrap()
-            .into_iter()
-            .map(|term| BJTerm::new(&term));
+    #[wasm_bindgen(js_name="getTerm")]
+    pub fn get_term(&self, id: usize) -> Option<BJTerm> {
+        // TODO : return a set of every terms instead of picking an id
+        let iter_subject = self.dataset.subjects().unwrap().into_iter();
+        let iter_predicate = self.dataset.predicates().unwrap().into_iter();
+        let iter_object = self.dataset.objects().unwrap().into_iter();
+
+        let chained_iterator = iter_subject.chain(iter_predicate)
+                                           .chain(iter_object);
+        
+        let mut iter = chained_iterator.map(|term| BJTerm::new(&term));
 
         let mut i: usize = 0;
 
