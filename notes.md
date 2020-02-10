@@ -1,5 +1,8 @@
 # Notes
 
+
+# Semaine 1
+
 ## Lundi 03 Février 2019
 
 ### Matin
@@ -250,6 +253,32 @@ de rdfjs.
 - Objectif pour la fin de la semaine prochaine : finir d'avoir une api RDFJS
 pour le DataModel et le DatasetModel + avoir bien déblayé le Stream Interface.
 
+
+# Semaine 2
+
+## Lundi 10 Février 2020
+
+### Matin
+
+- Réunion :
+    - Le choix de faire des triplets a été fait pour coller à la spec RDF (il
+    serait trop éloigné de définir les dataframe comme un semble de quads, et de
+    définir la notion de triplets et de graphe à partir de quad et dataframe
+    sachant que la spec fait totalement l'inverse)
+
+    - Pour un utilisateur javascript, il n'y a pas de raison de manipuler des
+    triplets et des graphes car la spec RDFJS ne mentionne pas ces types : pas
+    besoin de manipuler les adapteurs de triplets. Surtout que PAC a confirmé
+    que face au coût de manipulation des objets JS, l'optimisation mémoire
+    apportée par les triplets est mineure.
+
+
+- Continuation de l'implémentation de term; en particulier sur l'importation
+de termes issus de Javascript
+
+### Après-midi
+
+- Fin implémentation des BJTerm / JSTerm
 
 
 
