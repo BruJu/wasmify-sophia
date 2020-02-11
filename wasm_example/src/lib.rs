@@ -97,7 +97,7 @@ impl JSDataset{
 extern "C" {
     #[wasm_bindgen(js_name = Term)]
     pub type JssTerm;
-
+    
     #[wasm_bindgen(method, getter = termType)]
     pub fn term_type(this: &JssTerm) -> String;
 
@@ -106,9 +106,6 @@ extern "C" {
 
     #[wasm_bindgen(method, setter)]
     pub fn set_value(this: &JssTerm, value: String);
-
-    #[wasm_bindgen(js_name=equals)]
-    pub fn equals(this: &JssTerm, other_term: &JssTerm);
 
     #[wasm_bindgen(method, getter)]
     pub fn language(this: &JssTerm) -> String;
@@ -122,7 +119,36 @@ extern "C" {
 
     #[wasm_bindgen(method, setter)]
     pub fn set_datatype(this: &JssTerm, named_node: &JssTerm);
+
+    #[wasm_bindgen(js_name=equals)]
+    pub fn terms_equals(this: &JssTerm, other_term: &JssTerm);
 }
+
+fn build_rcterm_from_jss_term(term: &JssTerm) -> Option<RcTerm> {
+    let determine = |result_term : Result<RcTerm>| Some(result_term.unwrap());
+    // TODO : check if defining build_literal here can cause performances issues
+    let build_literal = |term: &JssTerm| {
+        let value = term.value();
+        let language = term.language();
+        if language != "" { // Lang
+            RcTerm::new_literal_lang(value, language)
+        } else {
+            let datatype = term.datatype();
+            RcTerm::new_literal_dt(value, build_rcterm_from_jss_term(&datatype).unwrap())
+        }
+    };
+
+    match term.term_type().as_str() {
+        "NamedNode" => determine(RcTerm::new_iri(term.value())),
+        "BlankNode" => determine(RcTerm::new_bnode(term.value())),
+        "Literal" => determine(build_literal(term)),
+        "Variable" => determine(RcTerm::new_variable(term.value())),
+        "DefaultGraph" => None,
+        _ => None
+    }
+}
+
+
 
 // Exportation of rust terms using an adapter that owns the term
 
@@ -283,12 +309,39 @@ impl BJTerm {
 // ============================================================================
 // ==== RDF JS Quad
 
-// Importation of Javascript Quad (JssQuad)
+// Importation of Javascript Quad (JsImpQuad)
 
+#[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(js_name = Quad)]
+    pub type JsImpQuad;
+    
+    #[wasm_bindgen(method, getter)]
+    pub fn subject(this: &JsImpQuad) -> JssTerm;
 
+    #[wasm_bindgen(method, setter)]
+    pub fn set_subject(this: &JsImpQuad, value: &JssTerm);
 
+    #[wasm_bindgen(method, getter)]
+    pub fn object(this: &JsImpQuad) -> JssTerm;
 
+    #[wasm_bindgen(method, setter)]
+    pub fn set_object(this: &JsImpQuad, value: &JssTerm);
+
+    #[wasm_bindgen(method, getter)]
+    pub fn predicate(this: &JsImpQuad) -> JssTerm;
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_predicate(this: &JsImpQuad, value: &JssTerm);
+
+    #[wasm_bindgen(method, getter)]
+    pub fn graph(this: &JsImpQuad) -> JssTerm;
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_graph(this: &JsImpQuad, value: &JssTerm);
+
+    #[wasm_bindgen(js_name=equals)]
+    pub fn quads_equals(this: &JsImpQuad, other_quad: &JsImpQuad);
     
 }
 
@@ -313,7 +366,7 @@ impl JSDataset {
 
 // A BJQuad owns its data. I did not find an already existing of this kind of quads.
 
-#[wasm_bindgen(js_name="Quad")]
+#[wasm_bindgen(js_name = Quad)]
 pub struct BJQuad {
     _subject: RcTerm,
     _predicate: RcTerm,
@@ -349,28 +402,28 @@ impl BJQuad {
     }
 }
 
-#[wasm_bindgen(js_class="Quad")]
+#[wasm_bindgen(js_class = Quad)]
 impl BJQuad {
     pub fn is_connected_to_rust(&self) -> bool {
         true
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(method, getter)]
     pub fn subject(&self) -> BJTerm {
         BJTerm::new(&self._subject)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(method, getter)]
     pub fn predicate(&self) -> BJTerm {
         BJTerm::new(&self._predicate)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(method, getter)]
     pub fn object(&self) -> BJTerm {
         BJTerm::new(&self._object)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(method, getter)]
     pub fn graph(&self) -> BJTerm {
         match &self._graph {
             None => BJTerm::default_graph(),
@@ -388,29 +441,38 @@ impl BJQuad {
         }
     }
 
-    /*
     #[wasm_bindgen(js_name = equals)]
-    pub fn equals(&self, other: Option<JssQuad>) -> bool {
-
+    pub fn equals(&self, other: Option<JsImpQuad>) -> bool {
+        match &other {
+            None => false,
+            Some(other_quad) =>
+                // TODO : Make a BJTerm that don't clone the items to reuse code without destroying performances
+                // or use a cache mechanic (but it is worst)
+                self.subject().equals(Some(other_quad.subject()))
+                && self.predicate().equals(Some(other_quad.predicate()))
+                && self.object().equals(Some(other_quad.object()))
+                && self.graph().equals(Some(other_quad.graph()))
+        }
     }
-    */
 
-    // TODO LIST :
-    // set subject
-    // set predicate
-    // set object
-    // set graph
-    // equals
+    #[wasm_bindgen(method, setter)]
+    pub fn set_subject(&mut self, other: &JssTerm) {
+        self._subject = build_rcterm_from_jss_term(other).unwrap();
+    }
+    
+    #[wasm_bindgen(method, setter)]
+    pub fn set_predicate(&mut self, other: &JssTerm) {
+        self._predicate = build_rcterm_from_jss_term(other).unwrap();
+    }
+
+    #[wasm_bindgen(method, setter)]
+    pub fn set_object(&mut self, other: &JssTerm) {
+        self._object = build_rcterm_from_jss_term(other).unwrap();
+    }
+    
+    #[wasm_bindgen(method, setter)]
+    pub fn set_graph(&mut self, other: &JssTerm) {
+        self._graph = build_rcterm_from_jss_term(other);
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
 
