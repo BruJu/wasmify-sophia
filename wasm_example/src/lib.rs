@@ -237,35 +237,21 @@ impl BJTerm {
 
 #[wasm_bindgen]
 impl JSDataset {
-    #[wasm_bindgen(js_name="getTerm")]
-    pub fn get_term(&self, id: usize) -> Option<BJTerm> {
-        // TODO : return a set of every terms instead of picking an id
-        let iter_subject = self.dataset.subjects().unwrap().into_iter();
-        let iter_predicate = self.dataset.predicates().unwrap().into_iter();
-        let iter_object = self.dataset.objects().unwrap().into_iter();
+    #[wasm_bindgen(js_name="getTerms")]
+    pub fn get_terms(&self) -> js_sys::Array {
+        let subjects = self.dataset.subjects().unwrap();
+        let predicates = self.dataset.predicates().unwrap();
+        let objects = self.dataset.objects().unwrap();
 
-        let chained_iterator = iter_subject.chain(iter_predicate)
-                                           .chain(iter_object);
-        
-        let mut iter = chained_iterator.map(|term| BJTerm::new(&term));
+        let mut all_terms = subjects;
+        all_terms.extend(predicates);
+        all_terms.extend(objects);
 
-        let mut i: usize = 0;
-
-        while i <= id {
-            let s = iter.next();
-
-            if let Option::None = s {
-                return Option::None;
-            } else if i == id {
-                return s;
-            }
-
-            i += 1;
-        };
-
-        Option::None
+        all_terms.into_iter()
+                 .map(|term| BJTerm::new(&term.clone()))
+                 .map(JsValue::from)
+                 .collect()
     }
-
 }
 
 

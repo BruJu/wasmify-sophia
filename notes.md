@@ -280,6 +280,14 @@ de termes issus de Javascript
 
 - Fin implémentation des BJTerm / JSTerm
 
+- Début de test
+
+- Utilisation de Fastdataset au lieu de graphes
+
+
+## Mardi 11 Février 2020
+
+
 
 
 

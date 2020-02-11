@@ -48,55 +48,48 @@
                 '_:anotherblanknode <concept/#aaa> 5 . ' +
                 '_:anotherblanknode <concept/#abc> 6.24 . ' +
                 '<concept/#conceptuel> <concept/#conceptuel> "Chat"@fr . ' +
-                '<concept/#conceptuel> <concept/#conceptuel> "Cat"@en . ';
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Chat"@fr . ' +
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat"' +        // string != langString
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat"@en . ' +
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@es . ' + // Test same name in different languages
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@pt . ';
                 
-
+                
             d = new wasm_bindgen.JSDataset();
             d.load(graph);
-           
-            let i = 0;
-            while (true) {
-                let local_term = d.getTerm(i);
 
-                if (local_term == undefined) {
-                    break;
-                } else {
-                    console.log("ID: " + i + " ; " + local_term.toString());
-                    list_of_terms.push(local_term);
+            let list_of_terms = d.getTerms();
+
+            {
+                let txt = "List of terms : ";
+                for (let i in list_of_terms) {
+                    txt += "\n" + i + " : " + list_of_terms[i].toString();
                 }
-
-                ++i;
+                console.log(txt);
             }
 
-            console.log("=====")
-            for (let i = 0 ; i != 20 ; ++i) {
-                let local_term = d.getTerm(0);
-                console.log(local_term.toString());
-            }
-            // let g = wasm_bindgen.make_graph();
-            // let resp = await fetch(my_url);
-            // g.load(resp.content);
+            {
+                let total_same_equals = 0;
+                let total_same_inequals = 0;
 
-            let total_same_equals = 0;
-            let total_same_inequals = 0;
+                for (let term_a of list_of_terms) {
+                    for (let term_b of list_of_terms) {
+                        let n3_eq = term_a.toString() == term_b.toString();
+                        let eq = term_a.equals(term_b);
 
-            for (let term_a of list_of_terms) {
-                for (let term_b of list_of_terms) {
-                    let n3_eq = term_a.toString() == term_b.toString();
-                    let eq = term_a.equals(term_b);
-
-                    if (n3_eq && eq) {
-                        total_same_equals++;
-                    } else if (!n3_eq && !eq) {
-                        total_same_equals++;
-                    } else {
-                        total_same_inequals++;
-                        console.log(term_a.n3() + " and " + term_b.n3() + " are strange");
+                        if (n3_eq && eq) {
+                            total_same_equals++;
+                        } else if (!n3_eq && !eq) {
+                            total_same_equals++;
+                        } else {
+                            total_same_inequals++;
+                            console.log(term_a.n3() + " and " + term_b.n3() + " are strange");
+                        }
                     }
                 }
-            }
 
-            console.log("= " + total_same_equals + " / " + total_same_inequals);
+                console.log("Testing : " + total_same_equals + " n3==equals / " + total_same_inequals + " n3!=equals");
+            }
         }
 
         run();
