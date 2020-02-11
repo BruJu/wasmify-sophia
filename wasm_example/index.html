@@ -31,6 +31,7 @@
         var graph;
         var d;
         var list_of_terms;
+        var quads;
 
         function escapeHtml(unsafe) {
             // Author of this function :  bjornd - https://stackoverflow.com/a/6234804
@@ -111,6 +112,8 @@
 
                 document.getElementById("equal_state").innerText = message;
             }
+
+            quads = d.quads();
         }
 
         run();

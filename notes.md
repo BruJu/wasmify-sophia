@@ -287,7 +287,34 @@ de termes issus de Javascript
 
 ## Mardi 11 Février 2020
 
+### Matin
 
+- Liste de termes
+
+- SUPER affichage dans une page html au lieu de la console JS
+
+- Default Graph
+
+- Début quads
+
+### Après-midi
+
+
+- Question : comment implémenter ça ?
+
+```rust
+impl BJQuad {
+    pub fn new<T>(cloned_quad: &T) -> BJQuad 
+    where T: T::TermData == RcTerm {
+        BJQuad {
+            subject: cloned_quad.s().clone(),
+            predicate: cloned_quad.p().clone(),
+            object: cloned_quad.o().clone(),
+            graph: cloned_quad.g().clone(),
+        }
+    }
+}
+```
 
 
 

@@ -1,6 +1,9 @@
-
+#![allow(unused_imports)]
 extern crate wasm_bindgen;
 
+// TODO : remove unused imports when finished
+
+use sophia::quad::Quad;
 use std::any;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -35,7 +38,7 @@ extern "C" {
     fn log_many(a: &str, b: &str);
 }
 
-
+#[allow(dead_code)]
 fn print_type<T>(_: T) {
     log(any::type_name::<T>())
 }
@@ -66,12 +69,28 @@ impl JSDataset{
             Err(error) => log(error.to_string().as_str())
         }
     }
+    
+    #[wasm_bindgen(js_name="getTerms")]
+    pub fn get_terms(&self) -> js_sys::Array {
+        let subjects = self.dataset.subjects().unwrap();
+        let predicates = self.dataset.predicates().unwrap();
+        let objects = self.dataset.objects().unwrap();
+
+        let mut all_terms = subjects;
+        all_terms.extend(predicates);
+        all_terms.extend(objects);
+
+        all_terms.into_iter()
+                 .map(|term| BJTerm::new(&term.clone()))
+                 .map(JsValue::from)
+                 .collect()
+    }
 }
 
 // ============================================================================
-// ====
+// ==== RDF JS Term
 
-
+// Importation of Javascript Term (JssTerm)
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_name = Term)]
@@ -103,21 +122,30 @@ extern "C" {
     pub fn set_datatype(this: &JssTerm, named_node: &JssTerm);
 }
 
+// Exportation of rust terms using an adapter that owns the term
 
 #[wasm_bindgen(js_name="Term")]
 pub struct BJTerm {
     term: RcTerm
 }
 
-// These functions are not exported into the Javascript interface
+// The new function is not exported into the Javascript interface
 impl BJTerm {   
     pub fn new(term: &RcTerm) -> BJTerm {
         BJTerm { term: term.clone() }
     }
 }
 
+// Implementation of the RDF JS specification
+// https://rdf.js.org/data-model-spec/#term-interface
+// Every term type is implemented as a BJTerm except DefaultGraph
 #[wasm_bindgen(js_class="Term")]
 impl BJTerm {
+    #[wasm_bindgen]
+    pub fn is_connected_to_rust(&self) -> bool {
+        true
+    }
+
     #[wasm_bindgen(getter = termType)]
     pub fn term_type(&self) -> String {
         match &self.term {
@@ -235,26 +263,131 @@ impl BJTerm {
     }
 }
 
-#[wasm_bindgen]
-impl JSDataset {
-    #[wasm_bindgen(js_name="getTerms")]
-    pub fn get_terms(&self) -> js_sys::Array {
-        let subjects = self.dataset.subjects().unwrap();
-        let predicates = self.dataset.predicates().unwrap();
-        let objects = self.dataset.objects().unwrap();
+// Default graph implementation
+#[wasm_bindgen(js_name="DefaultGraph")]
+pub struct BJDefaultGraph {}
 
-        let mut all_terms = subjects;
-        all_terms.extend(predicates);
-        all_terms.extend(objects);
+#[wasm_bindgen(js_class="DefaultGraph")]
+impl BJDefaultGraph {
+    #[wasm_bindgen(getter = termType)]
+    pub fn term_type(&self) -> String {
+        String::from("DefaultGraph")
+    }
 
-        all_terms.into_iter()
-                 .map(|term| BJTerm::new(&term.clone()))
-                 .map(JsValue::from)
-                 .collect()
+    #[wasm_bindgen(getter = value)]
+    pub fn value(&self) -> String {
+        String::from("")
+    }
+
+    #[wasm_bindgen()]
+    pub fn equals(&self, other: Option<JssTerm>) -> bool {
+        match other {
+            None => false,
+            Some(term) => term.term_type() == "DefaultGraph"
+            // We don't check value as all RDFJS compliant terms have an empty value
+        }
     }
 }
 
+// ============================================================================
+// ==== RDF JS Quad
 
+#[wasm_bindgen]
+impl JSDataset {
+    pub fn quads(&self) -> js_sys::Array {
+        self.dataset
+            .quads()
+            .into_iter()
+            .map(|quad| {
+                let quad = quad.unwrap();
+                BJQuad::new(quad.s(), quad.p(), quad.o(), quad.g())
+            })
+            .map(JsValue::from)
+            .collect()
+    }
+}
+
+// A BJQuad owns its data. I did not find an already existing of this kind of quads.
+
+#[wasm_bindgen(js_name="Quad")]
+pub struct BJQuad {
+    _subject: RcTerm,
+    _predicate: RcTerm,
+    _object: RcTerm,
+    _graph: Option<RcTerm>
+}
+
+impl sophia::quad::Quad for BJQuad {
+    type TermData = Rc<str>;
+
+    fn s(&self) -> &RcTerm { &self._subject }
+    fn p(&self) -> &RcTerm { &self._predicate }
+    fn o(&self) -> &RcTerm { &self._object }
+    fn g(&self) -> Option<&RcTerm> {
+        match &self._graph {
+            None => None,
+            Some(some_graph) => Some(some_graph)
+        }
+    }
+}
+
+impl BJQuad {
+    pub fn new(s: &RcTerm, p: &RcTerm, o: &RcTerm, g: Option<&RcTerm>) -> BJQuad {
+        BJQuad {
+            _subject: s.clone(),
+            _predicate: p.clone(),
+            _object: o.clone(),
+            _graph: match g {
+                None => None,
+                Some(iri) => Some(iri.clone())
+            }
+        }
+    }
+}
+
+#[wasm_bindgen(js_class="Quad")]
+impl BJQuad {
+    pub fn is_connected_to_rust(&self) -> bool {
+        true
+    }
+
+    #[wasm_bindgen]
+    pub fn subject(&self) -> BJTerm {
+        BJTerm::new(&self._subject)
+    }
+
+    #[wasm_bindgen]
+    pub fn predicate(&self) -> BJTerm {
+        BJTerm::new(&self._predicate)
+    }
+
+    #[wasm_bindgen]
+    pub fn object(&self) -> BJTerm {
+        BJTerm::new(&self._object)
+    }
+
+    /*
+    #[wasm_bindgen]
+    pub fn graph(&self) -> BJDefaultGraph { // oops
+        match self.graph() {
+            None => BJDefaultGraph{},
+            Some(iri) => BJTerm::new(iri)
+        }
+    }
+    */
+
+    // TODO LIST :
+    // get subject
+    // set subject
+    // get predicate
+    // set predicate
+    // get object
+    // set object
+    // set graph
+    // get graph
+    // equals
+    // toString()
+}
 
 
 
