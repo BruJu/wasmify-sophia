@@ -489,11 +489,16 @@ impl BJQuad {
 // ============================================================================
 // ==== RDF JS DataFactory
 
-#[wasm_bindgen(js_name="DataFactory")]
+#[wasm_bindgen(js_name=DataFactory)]
 pub struct BJDataFactory { }
 
-#[wasm_bindgen(js_class="DataFactory")]
+#[wasm_bindgen(js_class=DataFactory)]
 impl BJDataFactory {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> BJDataFactory {
+        BJDataFactory{ }
+    }
+
     #[wasm_bindgen(js_name="namedNode")]
     pub fn named_node(&self, value: String) -> BJTerm {
         BJTerm { term: Some(RcTerm::new_iri(value.to_string()).unwrap()) }
@@ -505,7 +510,6 @@ impl BJDataFactory {
         // TODO : "If the value parameter is undefined a new identifier for the blank node is generated for each call."
         BJTerm { term: Some(RcTerm::new_bnode(value.unwrap().to_string()).unwrap()) }
     }
-
 
     // Literal literal(string value, optional (string or NamedNode) languageOrDatatype);
 
