@@ -6,69 +6,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta content="text/html; charset=UTF-8; X-Content-Type-Options=nosniff" http-equiv="Content-Type" />
     <title>Rust Wasm Example</title>
+    <style>
+        #loaded_graph {
+            font-family: Consolas, monaco, monospace;
+            font-size: 0.7em;
+        }
+    </style>
 </head>
 
 <body>
+    <h1>Sophia in the browser</h1>
 
+    <h2>Loaded graph</h2>
+    <p id="loaded_graph">None</p>
+
+    <h2>Detected terms</h2>
+    <ul id="detected_terms"></ul>
+
+    <p id="equal_state"></p>
+    
     <script src="wasm_example.js"></script>
-
-
-
     <script>
+        // We define these as global variables to let the user test with the console
         var graph;
         var d;
-        var list_of_terms = [];
+        var list_of_terms;
+
+        function escapeHtml(unsafe) {
+            // Author of this function :  bjornd - https://stackoverflow.com/a/6234804
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // wasm binding
         async function run(){
             await wasm_bindgen('wasm_example_bg.wasm');
-            /*
-            graph = '<http://www.franz.com/simple#person1> <http://www.franz.com/simple#first-name> "Joseph" . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#middle-initial> "Patrick" . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#last-name> "Kennedy" . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#suffix> "none" . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#alma-mater> <http://www.franz.com/simple#Harvard> . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#birth-year> "1888" . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#death-year> "1969" . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#sex> <http://www.franz.com/simple#male> . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#spouse> <http://www.franz.com/simple#person2> . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#has-child> <http://www.franz.com/simple#person3> . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#profession> <http://www.franz.com/simple#banker> . \
-    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#birth-place> <http://www.franz.com/simple#place5> . \
-    <http://www.franz.com/simple#person1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.franz.com/simple#person> .';
-*/
             
             graph = 
-                '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> . ' +
-                '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . ' +
-                '@base <http://bruy.at/rdf/> . ' +
-                '<personnes/#Julian> a <#stagiaire> . ' +
-                '<personnes/#Thomas> a <#stagiaire> . ' +
-                '<personnes/#Julian> <concept/#prenom> "Julian" . ' +
-                '_:blanknode <concept/#idk> <personnes/#Julian> . ' +
-                '_:blanknode <concept/#idk> _:anotherblanknode . ' +
-                '_:anotherblanknode <concept/#aaa> 5 . ' +
-                '_:anotherblanknode <concept/#abc> 6.24 . ' +
-                '<concept/#conceptuel> <concept/#conceptuel> "Chat"@fr . ' +
-                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Chat"@fr . ' +
-                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat"' +        // string != langString
-                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat"@en . ' +
-                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@es . ' + // Test same name in different languages
-                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@pt . ';
-                
-                
+                '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> . \n' +
+                '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . \n' +
+                '@base <http://bruy.at/rdf/> . \n\n' +
+                '<personnes/#Julian> a <#stagiaire> . \n' +
+                '<personnes/#Thomas> a <#stagiaire> . \n' +
+                '<personnes/#Julian> <concept/#prenom> "Julian" . \n' +
+                '_:blanknode <concept/#idk> <personnes/#Julian> . \n' +
+                '_:blanknode <concept/#idk> _:anotherblanknode . \n' +
+                '_:anotherblanknode <concept/#aaa> 5 . \n' +
+                '_:anotherblanknode <concept/#abc> 6.24 . \n' +
+                '<concept/#conceptuel> <concept/#conceptuel> "Chat"@fr . \n' +
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Chat"@fr . \n' +
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat" . \n' +        // string != langString
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat"@en . \n' +
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@es . \n' + // Test same name in different languages
+                '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@pt . \n';
+
+            document.getElementById("loaded_graph").innerText = graph;
+            
             d = new wasm_bindgen.JSDataset();
             d.load(graph);
 
-            let list_of_terms = d.getTerms();
+            list_of_terms = d.getTerms();
 
-            {
-                let txt = "List of terms : ";
+            { // Display list of terms
+                let rawHtml = "";
                 for (let i in list_of_terms) {
-                    txt += "\n" + i + " : " + list_of_terms[i].toString();
+                    let str = list_of_terms[i].toString();
+                    rawHtml += "<li>" + escapeHtml(str) + "</li>"
                 }
-                console.log(txt);
+                document.getElementById("detected_terms").innerHTML = rawHtml;
             }
 
-            {
+            { // Equality test
                 let total_same_equals = 0;
                 let total_same_inequals = 0;
 
@@ -88,7 +100,16 @@
                     }
                 }
 
-                console.log("Testing : " + total_same_equals + " n3==equals / " + total_same_inequals + " n3!=equals");
+                let message;
+
+                if (total_same_inequals != 0) {
+                    message = "Equality check : " + total_same_equals + " n3==equals / " + total_same_inequals + " n3!=equals";
+                    console.log(message);
+                } else {
+                    message = "Equality check passed.";
+                }
+
+                document.getElementById("equal_state").innerText = message;
             }
         }
 
