@@ -317,15 +317,50 @@ impl BJQuad {
 ```
 
 
+- Fin classe Quad avec un adapteur pour créer des BJTerm à partir de JssTerm
 
+- Début BJDataFactory (il manque juste les litéraux en fait)
 
+- Comme Rust est un langage orienté expression on peut refactor de cette
+manière :
 
+```rust
+    pub fn quad(&self, subject: JssTerm, predicate: JssTerm, object: JssTerm, graph: Option<JssTerm>) -> BJQuad {
+        match graph {
+            None => BJQuad::new_by_move(
+                build_rcterm_from_jss_term(&subject).unwrap(),
+                build_rcterm_from_jss_term(&predicate).unwrap(),
+                build_rcterm_from_jss_term(&object).unwrap(),
+                None
+            ),
+            Some(g) => BJQuad::new_by_move(
+                build_rcterm_from_jss_term(&subject).unwrap(),
+                build_rcterm_from_jss_term(&predicate).unwrap(),
+                build_rcterm_from_jss_term(&object).unwrap(),
+                build_rcterm_from_jss_term(&graph));
+            )
+        }
+    }
+```
 
+en
 
+```rust
+    pub fn quad(&self, subject: JssTerm, predicate: JssTerm, object: JssTerm, graph: Option<JssTerm>) -> BJQuad {
+        BJQuad::new_by_move(
+            build_rcterm_from_jss_term(&subject).unwrap(),
+            build_rcterm_from_jss_term(&predicate).unwrap(),
+            build_rcterm_from_jss_term(&object).unwrap(),
+            match graph {
+                None => None,
+                Some(g) => build_rcterm_from_jss_term(&g)
+            }
+        )
+    }
+```
 
-
-
-
+- Comme je n'avais pas vu qu'il n'y avait pas que les termes dans le data model
+il semble compliqué d'avoir finir le Dataset spec à la fin de la semaine.
 
 
 

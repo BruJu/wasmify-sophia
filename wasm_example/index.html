@@ -32,6 +32,7 @@
         var d;
         var list_of_terms;
         var quads;
+        var datafactory;
 
         function escapeHtml(unsafe) {
             // Author of this function :  bjornd - https://stackoverflow.com/a/6234804
@@ -114,6 +115,8 @@
             }
 
             quads = d.quads();
+
+            datafactory = new wasm_bindgen.DataFactory();
         }
 
         run();

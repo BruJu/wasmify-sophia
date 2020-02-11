@@ -400,6 +400,15 @@ impl BJQuad {
             }
         }
     }
+
+    pub fn new_by_move(s: RcTerm, p: RcTerm, o: RcTerm, g: Option<RcTerm>) -> BJQuad {
+        BJQuad {
+            _subject: s,
+            _predicate: p,
+            _object: o,
+            _graph: g
+        }
+    }
 }
 
 #[wasm_bindgen(js_class = Quad)]
@@ -475,4 +484,72 @@ impl BJQuad {
         self._graph = build_rcterm_from_jss_term(other);
     }
 }
+
+
+// ============================================================================
+// ==== RDF JS DataFactory
+
+#[wasm_bindgen(js_name="DataFactory")]
+pub struct BJDataFactory { }
+
+#[wasm_bindgen(js_class="DataFactory")]
+impl BJDataFactory {
+    #[wasm_bindgen(js_name="namedNode")]
+    pub fn named_node(&self, value: String) -> BJTerm {
+        BJTerm { term: Some(RcTerm::new_iri(value.to_string()).unwrap()) }
+    }
+
+    #[wasm_bindgen(js_name="blankNode")]
+    pub fn blank_node(&self, value: Option<String>) -> BJTerm {
+        // TODO : support optionnal
+        // TODO : "If the value parameter is undefined a new identifier for the blank node is generated for each call."
+        BJTerm { term: Some(RcTerm::new_bnode(value.unwrap().to_string()).unwrap()) }
+    }
+
+
+    // Literal literal(string value, optional (string or NamedNode) languageOrDatatype);
+
+    #[wasm_bindgen(js_name="variable")]
+    pub fn variable(&self, value: String) -> BJTerm {
+        BJTerm { term: Some(RcTerm::new_variable(value.to_string()).unwrap()) }
+    }
+
+    #[wasm_bindgen(js_name="defaultGraph")]
+    pub fn default_graph(&self) -> BJTerm {
+        BJTerm { term: None }
+    }
+
+    #[wasm_bindgen(js_name="quad")]
+    pub fn quad(&self, subject: JssTerm, predicate: JssTerm, object: JssTerm, graph: Option<JssTerm>) -> BJQuad {
+        BJQuad::new_by_move(
+            build_rcterm_from_jss_term(&subject).unwrap(),
+            build_rcterm_from_jss_term(&predicate).unwrap(),
+            build_rcterm_from_jss_term(&object).unwrap(),
+            match graph {
+                None => None,
+                Some(g) => build_rcterm_from_jss_term(&g)
+            }
+        )
+    }
+
+    #[wasm_bindgen(js_name="fromTerm")]
+    pub fn from_term(&self, original: JssTerm) -> BJTerm {
+        if original.term_type().as_str() == "DefaultGraph" {
+            self.default_graph()
+        } else {
+            BJTerm { term: build_rcterm_from_jss_term(&original) }
+        }
+    }
+
+    #[wasm_bindgen(js_name="fromQuad")]
+    pub fn from_quad(&self, original: JsImpQuad) -> BJQuad {
+        self.quad(
+            original.subject(),
+            original.predicate(),
+            original.object(),
+            Some(original.graph())
+        )
+    }
+}
+
 
