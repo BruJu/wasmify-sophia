@@ -16,6 +16,14 @@ use sophia::term::*;
 use sophia::triple::stream::TripleSource;
 
 
+pub fn cri(_: String) {
+    log("Maou");
+}
+
+pub fn cri(_: u32) {
+    log("Wouf");
+}
+
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);

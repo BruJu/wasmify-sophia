@@ -362,7 +362,13 @@ en
 - Comme je n'avais pas vu qu'il n'y avait pas que les termes dans le data model
 il semble compliqué d'avoir finir le Dataset spec à la fin de la semaine.
 
-
+- Problème pour les litéraux : la spec veut que l'on puisse passer un string ou
+un named node. C'est pas possible par défaut. Quelques pistes à explorer :
+    - Générer du code typescript https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/typescript_custom_section.html
+    - Faire de la reflexion / introspection https://docs.rs/js-sys/0.3.35/js_sys/Reflect/index.html
+    
+En particulier est-ce que toutes les string auraient un type string commun sur
+lequel on pourrait se baser ?
 
 
 

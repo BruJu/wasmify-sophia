@@ -71,6 +71,12 @@ https://projet.liris.cnrs.fr/repid/
 
 - Documentation de wasm-bindgen : https://rustwasm.github.io/docs/wasm-bindgen/
 
+    - Mesure de performances
+    
+        - https://rustwasm.github.io/wasm-bindgen/reference/arbitrary-data-with-serde.html
+    
+        - https://rustwasm.github.io/wasm-bindgen/reference/arbitrary-data-with-serde.html
+
 
 ### Support de Web Assembly par OxyGraph
 
