@@ -390,6 +390,20 @@ un polymorphisme qui est déterminé par Javascript.
     - J'ai plus ou moins espoir qu'un jour, wasm_bindgen puisse proposer de faire du polymorphisme.
     
 
+- Je me suis fais la remarque qu'à cause de l'interopérabilité des api rdf js,
+et du fait que je n'ai pour le moment aucune spécification des termes maniés,
+je perd surement en performance en considérant que mes BJTerm (adaptés des
+termes Sophia) sont des JssTerm (idem pour les quads) et donc le fait que je
+n'utilise pas les références / etc Rust.
+
+
+### Après-midi
+
+- JSDataset intègre les fonctionnalités de DatasetCore
+
+- Une idée : changer de type de dataset (entre fast et "slow") selon si il y a
+beaucoup d'insertions ou de match selon
+
 
 
 

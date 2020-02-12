@@ -36,11 +36,14 @@ https://projet.liris.cnrs.fr/repid/
 
 ### Sophia vers une librairie répondant à la norme de rdf.js.org
 
-
 - Spécification attendue pour une librairie JS : https://rdf.js.org
-    - https://rdf.js.org/data-model-spec/
-    - https://rdf.js.org/dataset-spec/
-    - https://rdf.js.org/stream-spec/
+
+|   Titre    |            Spécification            |       Implémentation basique en TS       |
+| ---------- | ----------------------------------- | ---------------------------------------- |
+| Data Model | https://rdf.js.org/data-model-spec/ | https://github.com/rdfjs-base/data-model |
+| Dataset    | https://rdf.js.org/dataset-spec/    | https://github.com/rdfjs-base/dataset    |
+| Stream     | https://rdf.js.org/stream-spec/     |                                          |
+
 
 
 - https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/getter-and-setter.html

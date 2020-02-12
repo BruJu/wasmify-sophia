@@ -14,6 +14,7 @@ use sophia::graph::inmem::LightGraph;
 use sophia::parser::trig;
 use sophia::term::*;
 use sophia::triple::stream::TripleSource;
+use sophia::dataset::MutableDataset;
 
 #[wasm_bindgen]
 extern "C" {
@@ -51,14 +52,24 @@ fn print_type<T>(_: T) {
 
 #[wasm_bindgen]
 pub struct JSDataset {
-    dataset: FastDataset
+    dataset: FastDataset,
+    datafactory: BJDataFactory
+}
+
+impl JSDataset {
+    pub fn convert_to_bj_quad(&self, js_quad: JsImpQuad) -> BJQuad {
+        self.datafactory.from_quad(js_quad)
+    }
 }
 
 #[wasm_bindgen]
 impl JSDataset{
     #[wasm_bindgen(constructor)]
     pub fn new() -> JSDataset {
-        JSDataset{ dataset: FastDataset::new() }
+        JSDataset{
+            dataset: FastDataset::new(),
+            datafactory: BJDataFactory::new()
+        }
     }
 
     pub fn load(&mut self, content: &str) {
@@ -86,6 +97,91 @@ impl JSDataset{
                  .map(JsValue::from)
                  .collect()
     }
+
+    #[wasm_bindgen(js_name="add")]
+    pub fn add(&mut self, quad: JsImpQuad) {
+        // As we use RcTerms, copy should be cheap and simple enough to not
+        // have too much performances issues
+        let sophia_quad = self.convert_to_bj_quad(quad);
+        self.dataset.insert(
+            &sophia_quad._subject,
+            &sophia_quad._predicate,
+            &sophia_quad._object,
+            match &sophia_quad._graph {
+                None => None,
+                Some(x) => Some(x)
+            }
+        ).unwrap();
+
+        // TOOD : return this
+    }
+
+    #[wasm_bindgen(js_name="delete")]
+    pub fn delete(&mut self, quad: JsImpQuad) {
+        // Fastdataset implements the trait SetDataset so this function removes
+        // every occurrences of the passed quad
+        let sophia_quad = self.convert_to_bj_quad(quad);
+        self.dataset.remove(
+            &sophia_quad._subject,
+            &sophia_quad._predicate,
+            &sophia_quad._object,
+            match &sophia_quad._graph {
+                None => None,
+                Some(x) => Some(x)
+            }
+        ).unwrap();
+    }
+    
+    #[wasm_bindgen(js_name="has")]
+    pub fn has_quad(&self, quad: JsImpQuad) -> bool {
+        let sophia_quad = self.convert_to_bj_quad(quad);
+        self.dataset.contains(
+            &sophia_quad._subject,
+            &sophia_quad._predicate,
+            &sophia_quad._object,
+            match &sophia_quad._graph {
+                None => None,
+                Some(x) => Some(x)
+            }
+        ).unwrap()
+    }
+
+    #[wasm_bindgen(js_name="match")]
+    pub fn match_quad(&self, subject: Option<JssTerm>, predicate: Option<JssTerm>,
+        object: Option<JssTerm>, graph: Option<JssTerm>) -> JSDataset {
+            let mut dataset = FastDataset::new();
+
+            let subject = subject.as_ref().map(|x| { build_rcterm_from_jss_term(x).unwrap() });
+            let predicate = predicate.as_ref().map(|x| { build_rcterm_from_jss_term(x).unwrap() });
+            let object = object.as_ref().map(|x| { build_rcterm_from_jss_term(x).unwrap() });
+            let graph = graph.as_ref().map(|x| { build_rcterm_from_jss_term(x) });
+
+            let mut quads_iter = match (&subject, &predicate, &object, graph.as_ref()) {
+                (None   , None   , None   , None   ) => self.dataset.quads(),
+                (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(o),
+                (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(p),
+                (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(p, o),
+                (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(s),
+                (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(s, o),
+                (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(s, p),
+                (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(s, p, o),
+                (None   , None   , None   , Some(g)) => self.dataset.quads_with_g(g.as_ref()),
+                (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(o, g.as_ref()),
+                (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(p, g.as_ref()),
+                (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(p, o, g.as_ref()),
+                (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(s, g.as_ref()),
+                (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(s, o, g.as_ref()),
+                (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(s, p, g.as_ref()),
+                (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(s, p, o, g.as_ref())
+            };
+
+            quads_iter.in_dataset(&mut dataset).unwrap();
+
+            JSDataset{
+                dataset: dataset,
+                datafactory: BJDataFactory::new()
+            }
+        }
 }
 
 // ============================================================================
@@ -491,6 +587,9 @@ impl BJQuad {
 #[wasm_bindgen(js_name=DataFactory)]
 pub struct BJDataFactory { }
 
+// TODO : Determine if for dataset, the factory used should be the factory tied
+// to the dataset instead of this factory
+
 #[wasm_bindgen(js_class=DataFactory)]
 impl BJDataFactory {
     #[wasm_bindgen(constructor)]
@@ -535,7 +634,7 @@ impl BJDataFactory {
             return this.literalFromNamedNode(value, languageOrDatatype);
         }
     }
-    
+
     */
 
     #[wasm_bindgen(js_name="literalFromString")]
