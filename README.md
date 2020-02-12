@@ -78,6 +78,16 @@ https://projet.liris.cnrs.fr/repid/
         - https://rustwasm.github.io/wasm-bindgen/reference/arbitrary-data-with-serde.html
 
 
+#### Wasm bind gen
+
+Normalement on est pas censé utiliser la commande `wasm-bindgen`
+
+- https://rustwasm.github.io/wasm-bindgen/reference/cli.html
+    
+- https://github.com/rustwasm/wasm-pack
+
+
+
 ### Support de Web Assembly par OxyGraph
 
 - https://github.com/Tpt/oxigraph/issues/16

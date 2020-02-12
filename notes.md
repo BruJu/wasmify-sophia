@@ -370,8 +370,25 @@ un named node. C'est pas possible par défaut. Quelques pistes à explorer :
 En particulier est-ce que toutes les string auraient un type string commun sur
 lequel on pourrait se baser ?
 
+## Mercredi 12 Février 2020
 
+### Matin
 
+- Implémentation de DataFactory::literal. Pour cela j'ai fait le choix de faire
+un polymorphisme qui est déterminé par Javascript.
+
+    - Avantages :
+            - ça marche
+            - Code JS simple à comprendre (une fonction en plus de 5 lignes écrite en javascript)
+            
+    - Défaut :
+            - Solution non portable
+            - Ne s'intègre pas au workflow offert par Cargo
+            - Obligation d'avoir python (le script actuel utilise python pour injecter le code)
+            - La solution choisie n'est pas forcément claire
+
+    - J'ai plus ou moins espoir qu'un jour, wasm_bindgen puisse proposer de faire du polymorphisme.
+    
 
 
 

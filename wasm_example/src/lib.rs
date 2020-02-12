@@ -15,15 +15,6 @@ use sophia::parser::trig;
 use sophia::term::*;
 use sophia::triple::stream::TripleSource;
 
-
-pub fn cri(_: String) {
-    log("Maou");
-}
-
-pub fn cri(_: u32) {
-    log("Wouf");
-}
-
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
@@ -520,6 +511,45 @@ impl BJDataFactory {
     }
 
     // Literal literal(string value, optional (string or NamedNode) languageOrDatatype);
+
+    /*
+    #[wasm_bindgen(js_name="literal")]
+    pub fn literal(&self, value: String, languageOrDatatype: std::variant<String, JssTerm>) -> BJTerm {
+        match languageOrDatatype {
+            String(lang) => self.literal_from_string(value, lang),
+            JssTerm(js_term) => self.literal_from_named_node(value, js_term)
+        }
+    }
+
+    But it is not possible as we can't export enum from Rust to wasm with wasm_bindgen
+
+    Corresponding javascript :
+
+
+    DataFactory.prototype.literal = function(value, languageOrDatatype) {
+        if (languageOrDatatype === null || languageOrDatatype === undefined) {
+            return undefined;
+        } else if (Object.prototype.toString.call(languageOrDatatype) === "[object String]") {
+            return this.literalFromString(value, languageOrDatatype);
+        } else {
+            return this.literalFromNamedNode(value, languageOrDatatype);
+        }
+    }
+    
+    */
+
+    #[wasm_bindgen(js_name="literalFromString")]
+    pub fn literal_from_string(&self, value: String, language: String) -> BJTerm {
+        BJTerm {
+            term: Some(RcTerm::new_literal_lang(value, language).unwrap())
+        }
+    }
+
+    #[wasm_bindgen(js_name="literalFromNamedNode")]
+    pub fn literal_from_named_node(&self, value: String, named_node: JssTerm) -> BJTerm {
+        let rcterm = build_rcterm_from_jss_term(&named_node);
+        BJTerm { term: Some(RcTerm::new_literal_dt(value, rcterm.unwrap()).unwrap()) }
+    }
 
     #[wasm_bindgen(js_name="variable")]
     pub fn variable(&self, value: String) -> BJTerm {
