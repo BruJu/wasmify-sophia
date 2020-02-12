@@ -50,3 +50,9 @@ div.main>div>h2 {
     resize: none;
 }
 
+/* TERMS */
+
+#select_terms, #terms_new_term_name {
+    width: 80%;
+}
+

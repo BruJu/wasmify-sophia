@@ -24,16 +24,20 @@
                         <input type="button" value="Cancel" onclick="action_graph_cancel()"></p>
                 </div>
             </div>
-            <div id="div_terms">
+            <div id="div_terms" class="center">
                 <h2>Terms</h2>
                 <p>
-                    <select id="select_terms" size="2">
+                    <select id="select_terms" size="20">
                     </select>
-                    <br><input type="button" value="Remove unused terms">
                 </p>
                 <p>
-                    <input type="text" placeholder="New term name">
-                    <br> <input type="button" value="Add">
+                    <input type="button" value="Remove unused terms" onclick="action_terms_clear()">
+                </p>
+                <p>
+                    <input id="terms_new_term_name" type="text" placeholder="New term name">
+                </p>
+                <p>
+                    <input type="button" value="Add">
                 </p>
             </div>
             <div>
@@ -83,8 +87,35 @@
                     this.rustGraph = new wasm_bindgen.JSDataset();
                     this.rustGraph.load(grapheToLoad);
                     this.is_activ = true;
-                    
+                    if (this.rustGraph.getTerms === undefined) {
+                        this.list_of_terms = [];
+                        alert("Could not load terms : you are probably not using Sophia as the RDF JS backend");
+                    } else {
+                        this.list_of_terms = this.rustGraph.getTerms();
+                        this.sort_terms();
+                    }
                     this.updateHTML("LOAD_GRAPH", grapheToLoad);
+                }
+
+                sort_terms() {
+                    let strCmp = (a, b) => {
+                        if (a < b) {
+                            return -1;
+                        } else if (a > b) {
+                            return 1;
+                        } else {
+                            return 0;
+                        }
+                    }
+
+                    this.list_of_terms.sort((t1, t2) => {
+                        let r = strCmp(t1.termType, t2.termType);
+                        if (r != 0) {
+                            return r;
+                        }
+
+                        return strCmp(t1.value, t2.value);
+                    });
                 }
             
                 get_turtle_file() {
@@ -97,6 +128,17 @@
                         console.log(extra_str);
                         $('#graph_text').text(extra_str);
                         $('#graph_content').val(extra_str);
+                        this.updateHTML("MODIFY_TERMS");
+                    } else if (event == "MODIFY_TERMS") {
+                        let select_terms = $('#select_terms');
+                        select_terms.empty();
+
+                        for (let i in this.list_of_terms) {
+                            let term_in_string = this.list_of_terms[i].toString();
+                            let html = `<option value="${i}">${escapeHtml(term_in_string)}</option>`;
+                            console.log(html);
+                            select_terms.append(html);
+                        }
                     }
                 }
             };
@@ -125,6 +167,11 @@
             function action_graph_cancel() {
                 $('#div_graph_static').css('display', 'block');
                 $('#div_graph_textarea').css('display', 'none');
+            }
+
+            function action_terms_clear() {
+                // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                alert("Not yet implemented");
             }
 
             var context = new Context();

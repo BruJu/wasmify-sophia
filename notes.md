@@ -404,7 +404,10 @@ n'utilise pas les références / etc Rust.
 - Une idée : changer de type de dataset (entre fast et "slow") selon si il y a
 beaucoup d'insertions ou de match selon
 
+- Pour match, j'ai hésité entre renvoyer un FastDataset ou renvoyer autre chose
 
+- Début d'une interface web pour que l'on puisse tester Sophia via un
+navigateur.
 
 
 
