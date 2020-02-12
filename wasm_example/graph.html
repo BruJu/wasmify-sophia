@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Sophia in the Browser - Graph Manipulation</title>
+        <meta content="text/html; charset=UTF-8"></meta>
+        <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
+    <body>
+        <header>
+            <h1>Sophia in the Browser</h1>
+        </header>
+        <div class="main">
+            <div id="div_graph">
+                <h2>Graph</h2>
+                <div id="div_graph_static">
+                    <p id="graph_text">No graph loaded</p>
+                    <p class="center">
+                        <input type="button" value="Modify" onclick="action_graph_modify()">
+                    </p>
+                </div>
+                <div id="div_graph_textarea">
+                    <p class="graph_content_container"><textarea id="graph_content" rows="20"></textarea></p>
+                    <p class="center"><input type="button" value="Send" onclick="action_graph_send()">
+                        <input type="button" value="Cancel" onclick="action_graph_cancel()"></p>
+                </div>
+            </div>
+            <div id="div_terms">
+                <h2>Terms</h2>
+                <p>
+                    <select id="select_terms" size="2">
+                    </select>
+                    <br><input type="button" value="Remove unused terms">
+                </p>
+                <p>
+                    <input type="text" placeholder="New term name">
+                    <br> <input type="button" value="Add">
+                </p>
+            </div>
+            <div>
+                <h2>Query</h2>
+                <p>
+                    <select id="query_s">
+                    </select>
+                    <select id="query_p">
+                    </select>
+                    <select id="query_o">
+                    </select>
+                    <select id="query_g">
+                        <option>Default Graph<option>
+                    </select>
+                    <br><input type="button" value="Add"> <input type="button" value="Remove"> <input type="button" value="Match"> <input type="button" value="Has">
+                </p>
+                <h3>Query Answer</h3>
+                <p>
+                    <select id="select_query_answer" size="2">
+                    </select>
+                </p>
+            </div>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js" crossorigin="anonymous"></script>
+        <script src="wasm_example.js"></script>
+        <script>
+            function escapeHtml(unsafe) {
+                // Author of this function :  bjornd - https://stackoverflow.com/a/6234804
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            // TODO : is_activ -> is_active
+
+            class Context {
+                constructor() {
+                    this.is_activ = false;
+                    this.has_been_modified_seen_last_update = false;
+                }
+
+                loadGraphe(grapheToLoad) {
+                    this.rustGraph = new wasm_bindgen.JSDataset();
+                    this.rustGraph.load(grapheToLoad);
+                    this.is_activ = true;
+                    
+                    this.updateHTML("LOAD_GRAPH", grapheToLoad);
+                }
+            
+                get_turtle_file() {
+                    this.has_been_modified_seen_last_update = false;
+                    return "NOT YET IMPLEMENTED";
+                }
+            
+                updateHTML(event, extra_str) {
+                    if (event == "LOAD_GRAPH") {
+                        console.log(extra_str);
+                        $('#graph_text').text(extra_str);
+                        $('#graph_content').val(extra_str);
+                    }
+                }
+            };
+
+            function action_graph_modify() {
+                $('#div_graph_static').css('display', 'none');
+                $('#div_graph_textarea').css('display', 'block');
+
+                if (!context.is_activ) {
+                    return;
+                }
+
+                if (context.has_been_modified_seen_last_update) {
+                    $('graph_content').val(context.get_turtle_file());
+                }
+            }
+
+            function action_graph_send() {
+                $('#div_graph_static').css('display', 'block');
+                $('#div_graph_textarea').css('display', 'none');
+
+                const new_graph = $('#graph_content').val();
+                context.loadGraphe(new_graph);
+            }
+
+            function action_graph_cancel() {
+                $('#div_graph_static').css('display', 'block');
+                $('#div_graph_textarea').css('display', 'none');
+            }
+
+            var context = new Context();
+
+            $(document).ready(function() {
+                async function run() {
+                    await wasm_bindgen('wasm_example_bg.wasm');
+
+                    const firstGraphe =
+                        '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> . \n' +
+                        '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . \n' +
+                        '@base <http://bruy.at/rdf/> . \n\n' +
+                        '<personnes/#Julian> a <#stagiaire> . \n' +
+                        '<personnes/#Thomas> a <#stagiaire> . \n' +
+                        '<personnes/#Julian> <concept/#prenom> "Julian" . \n' +
+                        '_:blanknode <concept/#idk> <personnes/#Julian> . \n' +
+                        '_:blanknode <concept/#idk> _:anotherblanknode . \n' +
+                        '_:anotherblanknode <concept/#aaa> 5 . \n' +
+                        '_:anotherblanknode <concept/#abc> 6.24 . \n' +
+                        '<concept/#conceptuel> <concept/#conceptuel> "Chat"@fr . \n' +
+                        '<http://dbpedia.org/resource/Cat> <concept/#nom> "Chat"@fr . \n' +
+                        '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat" . \n' +        // string != langString
+                        '<http://dbpedia.org/resource/Cat> <concept/#nom> "Cat"@en . \n' +
+                        '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@es . \n' + // Test same name in different languages
+                        '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@pt . \n';
+
+                    context.loadGraphe(firstGraphe);
+                }
+                    
+                run();
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,52 @@
+h1 {
+    text-align: center;
+    color: darkblue;
+}
+
+#graph_text {
+    font-family: Consolas, monaco, monospace;
+    font-size: 0.7em;
+    white-space: pre-line;
+}
+
+div.main {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+div.main>div {
+    display: table-cell;
+    width: 33%;
+    background-color: rgb(240, 240, 240);
+    border: 2px black solid;
+}
+
+div.main>div>h2 {
+    text-align: center;
+    background-color: rgb(224, 224, 224); 
+    margin-top: 0px;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+}
+
+.center {
+    text-align: center;
+    width: 100%;
+}
+
+#div_graph_textarea {
+    display: none;
+}
+
+.graph_content_container {
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+}
+
+#graph_content {
+    width: 100%;
+    max-width: 100%;
+    resize: none;
+}
+
