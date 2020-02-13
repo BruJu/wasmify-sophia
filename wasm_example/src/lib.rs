@@ -72,6 +72,11 @@ impl JSDataset{
         }
     }
 
+    #[wasm_bindgen(js_name="cloneFactory")]
+    pub fn clone_factory(&self) -> BJDataFactory {
+        self.datafactory.clone()
+    }
+
     pub fn load(&mut self, content: &str) {
         let r = sophia::parser::trig::parse_str(&content).in_dataset(&mut self.dataset);
         match r {
@@ -589,6 +594,12 @@ pub struct BJDataFactory { }
 
 // TODO : Determine if for dataset, the factory used should be the factory tied
 // to the dataset instead of this factory
+
+impl Clone for BJDataFactory {
+    fn clone(&self) -> BJDataFactory {
+        BJDataFactory{ }
+    }
+}
 
 #[wasm_bindgen(js_class=DataFactory)]
 impl BJDataFactory {

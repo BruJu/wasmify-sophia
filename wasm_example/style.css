@@ -52,7 +52,19 @@ div.main>div>h2 {
 
 /* TERMS */
 
-#select_terms, #terms_new_term_name {
+#select_terms {
     width: 80%;
+}
+
+#terms_new_term_name {
+    width: 30%;
+}
+
+#terms_new_term_lang {
+    width: 10%;
+}
+
+#terms_new_term_datatype {
+    width: 30%;
 }
 
