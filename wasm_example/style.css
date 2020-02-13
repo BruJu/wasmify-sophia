@@ -9,20 +9,26 @@ h1 {
     white-space: pre-line;
 }
 
-div.main {
+div.main>div {
     display: table;
     width: 100%;
     border-collapse: collapse;
 }
 
-div.main>div {
+div.main>div>div {
     display: table-cell;
-    width: 33%;
+    width: 50%;
     background-color: rgb(240, 240, 240);
     border: 2px black solid;
 }
 
-div.main>div>h2 {
+div.main>div#div_query {
+    width: 100%;
+    display: table;
+    border: 2px black solid;
+}
+
+h2 {
     text-align: center;
     background-color: rgb(224, 224, 224); 
     margin-top: 0px;
@@ -66,5 +72,21 @@ div.main>div>h2 {
 
 #terms_new_term_datatype {
     width: 30%;
+}
+
+#div_query>p.query_build>label {
+    display: inline-block;
+    width: 7em;
+    text-align: right;
+}
+
+.query_select {
+    /* TODO : fix display (zooming is glitched */
+    width: 90%;
+}
+
+#select_query_answer {
+    width: 98%;
+
 }
 

@@ -135,6 +135,8 @@ impl JSDataset{
                 Some(x) => Some(x)
             }
         ).unwrap();
+
+        // TODO : return this
     }
     
     #[wasm_bindgen(js_name="has")]
