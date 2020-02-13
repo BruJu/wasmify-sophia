@@ -364,7 +364,7 @@
                     context.rustGraph.add(quad);
                     action_query_make_match();
                 } else if (request_kind == 'Remove') {
-                    context.rustGraph.remove(quad);
+                    context.rustGraph.delete(quad);
                     action_query_make_match();
                 } else if (request_kind == 'Has') {
                     let answer = context.rustGraph.has(quad);

@@ -1,0 +1,13 @@
+[package]
+name = "wasm_example"
+version = "0.1.0"
+authors = ["David Pojunas <davidapojunas@gmail.com>", "Julian Bruyat <julian@bruy.at>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2.55"
+sophia = { git = "https://github.com/bruju/sophia_rs" }
+js-sys = "0.3.32"
