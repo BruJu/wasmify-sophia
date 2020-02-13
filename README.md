@@ -9,6 +9,8 @@ permettre de faire du raisonnement RDF en Javascript se reposant sur
 https://projet.liris.cnrs.fr/repid/
 
 
+- Start a web server that resorts to the Sophia backend : `./wasm_example/run_server.sh`
+
 
 ## Liens utiles
 
