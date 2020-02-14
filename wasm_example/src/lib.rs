@@ -605,23 +605,6 @@ impl Clone for BJDataFactory {
 
 #[wasm_bindgen(js_class=DataFactory)]
 impl BJDataFactory {
-
-    #[wasm_bindgen(js_name="literal")]
-    pub fn literal(&self, value: String, language_or_datatype: JsValue) -> BJTerm {
-        if language_or_datatype.is_null() || language_or_datatype.is_undefined() {
-            self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string".into())
-        } else {
-            match language_or_datatype.as_string() {
-                Some(language) => self.literal_from_string(value, language),
-                None => self.literal_from_named_node(value, language_or_datatype.into())
-            }
-        }
-    }
-}
-
-
-#[wasm_bindgen(js_class=DataFactory)]
-impl BJDataFactory {
     #[wasm_bindgen(constructor)]
     pub fn new() -> BJDataFactory {
         BJDataFactory{ }
@@ -639,37 +622,17 @@ impl BJDataFactory {
         BJTerm { term: Some(RcTerm::new_bnode(value.unwrap().to_string()).unwrap()) }
     }
 
-    // #[wasm_bindgen(js_name="literal")]
-
-
-
-    // Literal literal(string value, optional (string or NamedNode) languageOrDatatype);
-
-    /*
     #[wasm_bindgen(js_name="literal")]
-    pub fn literal(&self, value: String, languageOrDatatype: std::variant<String, JssTerm>) -> BJTerm {
-        match languageOrDatatype {
-            String(lang) => self.literal_from_string(value, lang),
-            JssTerm(js_term) => self.literal_from_named_node(value, js_term)
-        }
-    }
-
-    But it is not possible as we can't export enum from Rust to wasm with wasm_bindgen
-
-    Corresponding javascript :
-
-
-    DataFactory.prototype.literal = function(value, languageOrDatatype) {
-        if (languageOrDatatype === null || languageOrDatatype === undefined) {
-            return undefined;
-        } else if (Object.prototype.toString.call(languageOrDatatype) === "[object String]") {
-            return this.literalFromString(value, languageOrDatatype);
+    pub fn literal(&self, value: String, language_or_datatype: JsValue) -> BJTerm {
+        if language_or_datatype.is_null() || language_or_datatype.is_undefined() {
+            self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string".into())
         } else {
-            return this.literalFromNamedNode(value, languageOrDatatype);
+            match language_or_datatype.as_string() {
+                Some(language) => self.literal_from_string(value, language),
+                None => self.literal_from_named_node(value, language_or_datatype.into())
+            }
         }
     }
-
-    */
 
     #[wasm_bindgen(js_name="literalFromString")]
     pub fn literal_from_string(&self, value: String, language: String) -> BJTerm {

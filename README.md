@@ -1,10 +1,10 @@
 # Raisonnement portable en Web Assembly
 
 Ce dépôt est actuellement un vrac de mes expérimentations dans le cadre de mon
-stage au [https://liris.cnrs.fr/](LIRIS) au sein de l'équipe
-[https://liris.cnrs.fr/equipe/tweak](TWEAK). L'objectif de ce stage est de
+stage au [LIRIS](https://liris.cnrs.fr/) au sein de l'équipe
+[TWEAK](https://liris.cnrs.fr/equipe/tweak). L'objectif de ce stage est de
 permettre de faire du raisonnement RDF en Javascript se reposant sur
-[https://github.com/pchampin/sophia_rs](Sophia).
+[Sophia](https://github.com/pchampin/sophia_rs).
 
 https://projet.liris.cnrs.fr/repid/
 
@@ -170,7 +170,7 @@ en
 > Problème pour les litéraux : la spec veut que l'on puisse passer un string ou
 un named node. C'est pas possible par défaut.
 
-Quelques pistes à explorer :
+~~Quelques pistes à explorer :
 
 - Générer du code typescript https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/typescript_custom_section.html
 - Faire de la reflexion / introspection https://docs.rs/js-sys/0.3.35/js_sys/Reflect/index.html
@@ -181,6 +181,10 @@ Quelques pistes à explorer :
 
 Pour le moment j'ajoute une fonction javascript à la main dans le code généré
 qui fait la vérification et appelle la bonne fonction wasm
+~~
+
+*Solution* : `JsValue`
+
 
 > J'aimerais bien avoir des versions optimisées des opérations sur les
 adapteurs si il renvoie un adapteur (au lieu de devoir supposer que les seules
