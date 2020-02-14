@@ -302,7 +302,7 @@ impl BJTerm {
     }
 
     #[wasm_bindgen(setter = value)]
-    pub fn set_value(&mut self, new_value: String) {
+    pub fn set_value(&mut self, new_value: &str) {
         match &self.term {
             None => { /* can't reassign a Default Graph */ },
             Some(real_term) => self.term = Some(match real_term {
@@ -325,12 +325,12 @@ impl BJTerm {
     }
 
     #[wasm_bindgen(method, setter)]
-    pub fn set_language(&mut self, language: String) {
+    pub fn set_language(&mut self, language: &str) {
         // In this implementation, if we set the language of a literal, it will be automatically
         // converted to the datatype langString regardless of its previous datatype.
         // Setting the language of any other term has no effect.
         if let Some(Literal(old_value, _)) = &self.term {
-            let language: Rc<str> = language.as_str().into();
+            let language: Rc<str> = language.into();
             self.term = Some(RcTerm::new_literal_lang(old_value.to_string(), language).unwrap());
         }
     }
@@ -611,8 +611,8 @@ impl BJDataFactory {
     }
 
     #[wasm_bindgen(js_name="namedNode")]
-    pub fn named_node(&self, value: String) -> BJTerm {
-        BJTerm { term: Some(RcTerm::new_iri(value.to_string()).unwrap()) }
+    pub fn named_node(&self, value: &str) -> BJTerm {
+        BJTerm { term: Some(RcTerm::new_iri(value).unwrap()) }
     }
 
     #[wasm_bindgen(js_name="blankNode")]
@@ -623,33 +623,33 @@ impl BJDataFactory {
     }
 
     #[wasm_bindgen(js_name="literal")]
-    pub fn literal(&self, value: String, language_or_datatype: JsValue) -> BJTerm {
+    pub fn literal(&self, value: &str, language_or_datatype: JsValue) -> BJTerm {
         if language_or_datatype.is_null() || language_or_datatype.is_undefined() {
-            self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string".into())
+            self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string")
         } else {
             match language_or_datatype.as_string() {
-                Some(language) => self.literal_from_string(value, language),
+                Some(language) => self.literal_from_string(value, language.as_str()),
                 None => self.literal_from_named_node(value, language_or_datatype.into())
             }
         }
     }
 
     #[wasm_bindgen(js_name="literalFromString")]
-    pub fn literal_from_string(&self, value: String, language: String) -> BJTerm {
+    pub fn literal_from_string(&self, value: &str, language: &str) -> BJTerm {
         BJTerm {
             term: Some(RcTerm::new_literal_lang(value, language).unwrap())
         }
     }
 
     #[wasm_bindgen(js_name="literalFromNamedNode")]
-    pub fn literal_from_named_node(&self, value: String, named_node: JssTerm) -> BJTerm {
+    pub fn literal_from_named_node(&self, value: &str, named_node: JssTerm) -> BJTerm {
         let rcterm = build_rcterm_from_jss_term(&named_node);
         BJTerm { term: Some(RcTerm::new_literal_dt(value, rcterm.unwrap()).unwrap()) }
     }
 
     #[wasm_bindgen(js_name="variable")]
-    pub fn variable(&self, value: String) -> BJTerm {
-        BJTerm { term: Some(RcTerm::new_variable(value.to_string()).unwrap()) }
+    pub fn variable(&self, value: &str) -> BJTerm {
+        BJTerm { term: Some(RcTerm::new_variable(value).unwrap()) }
     }
 
     #[wasm_bindgen(js_name="defaultGraph")]
