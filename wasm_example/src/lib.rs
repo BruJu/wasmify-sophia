@@ -607,16 +607,13 @@ impl Clone for BJDataFactory {
 impl BJDataFactory {
 
     #[wasm_bindgen(js_name="literal")]
-    pub fn literal(&self, value: String, language_or_datatype: Option<JsValue>) -> BJTerm {
-        let placeholder = self.literal_from_string(value.clone(), "http://www.w3.org/2001/XMLSchema#string".into());
-
-        match language_or_datatype {
-            None => self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string".into()),
-            Some(js_value) => {
-                match js_value.as_string() {
-                    Some(language) => self.literal_from_string(value, language),
-                    None => self.literal_from_named_node(value, js_value.into())
-                }
+    pub fn literal(&self, value: String, language_or_datatype: JsValue) -> BJTerm {
+        if language_or_datatype.is_null() || language_or_datatype.is_undefined() {
+            self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string".into())
+        } else {
+            match language_or_datatype.as_string() {
+                Some(language) => self.literal_from_string(value, language),
+                None => self.literal_from_named_node(value, language_or_datatype.into())
             }
         }
     }
