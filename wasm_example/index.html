@@ -104,7 +104,7 @@
                 }
 
                 loadGraphe(grapheToLoad) {
-                    this.rustGraph = new wasm_bindgen.JSDataset();
+                    this.rustGraph = new wasm_bindgen.DatasetCore();
                     this.rustGraph.load(grapheToLoad);
                     this.datafactory = this.rustGraph.cloneFactory();
                     this.is_activ = true;

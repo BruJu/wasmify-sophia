@@ -68,7 +68,7 @@
 
             document.getElementById("loaded_graph").innerText = graph;
             
-            d = new wasm_bindgen.JSDataset();
+            d = new wasm_bindgen.DatasetCore();
             d.load(graph);
 
             list_of_terms = d.getTerms();
