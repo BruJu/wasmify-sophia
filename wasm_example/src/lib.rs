@@ -118,7 +118,7 @@ impl JSDataset{
             }
         ).unwrap();
 
-        // TOOD : return this
+        // TODO : return this
     }
 
     #[wasm_bindgen(js_name="delete")]
@@ -274,7 +274,7 @@ impl BJTerm {
 
 // Implementation of the RDF JS specification
 // https://rdf.js.org/data-model-spec/#term-interface
-// Every term type is implemented as a BJTerm except DefaultGraph
+// Every term type is implemented as a BJTerm
 #[wasm_bindgen(js_class="Term")]
 impl BJTerm {
     #[wasm_bindgen]
@@ -605,6 +605,23 @@ impl Clone for BJDataFactory {
 
 #[wasm_bindgen(js_class=DataFactory)]
 impl BJDataFactory {
+
+    #[wasm_bindgen(js_name="literal")]
+    pub fn literal(&self, value: String, language_or_datatype: JsValue) -> BJTerm {
+        if language_or_datatype.is_null() || language_or_datatype.is_undefined() {
+            self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string".into())
+        } else {
+            match language_or_datatype.as_string() {
+                Some(language) => self.literal_from_string(value, language),
+                None => self.literal_from_named_node(value, language_or_datatype.into())
+            }
+        }
+    }
+}
+
+
+#[wasm_bindgen(js_class=DataFactory)]
+impl BJDataFactory {
     #[wasm_bindgen(constructor)]
     pub fn new() -> BJDataFactory {
         BJDataFactory{ }
@@ -621,6 +638,10 @@ impl BJDataFactory {
         // TODO : "If the value parameter is undefined a new identifier for the blank node is generated for each call."
         BJTerm { term: Some(RcTerm::new_bnode(value.unwrap().to_string()).unwrap()) }
     }
+
+    // #[wasm_bindgen(js_name="literal")]
+
+
 
     // Literal literal(string value, optional (string or NamedNode) languageOrDatatype);
 

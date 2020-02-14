@@ -12,6 +12,7 @@ https://projet.liris.cnrs.fr/repid/
 - Start a web server that resorts to the Sophia backend : `./wasm_example/run_server.sh`
 
 
+
 ## Liens utiles
 
 
@@ -91,6 +92,14 @@ Normalement on est pas censé utiliser la commande `wasm-bindgen`
 
 
 
+### Test suite pour RDF JS
+
+Community group RDF JS
+
+- Faire une test suite : https://github.com/rubensworks/jest-rdf
+
+- https://www.w3.org/community/rdfjs/
+
 
 
 ### Misc
@@ -165,6 +174,10 @@ Quelques pistes à explorer :
 
 - Générer du code typescript https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/typescript_custom_section.html
 - Faire de la reflexion / introspection https://docs.rs/js-sys/0.3.35/js_sys/Reflect/index.html
+    - Creuser la piste de l'introspection
+
+
+    - https://github.com/rustwasm/wasm-bindgen/issues/1906
 
 Pour le moment j'ajoute une fonction javascript à la main dans le code généré
 qui fait la vérification et appelle la bonne fonction wasm
@@ -180,6 +193,10 @@ dataset plus adapté selon si l'utilisateur vient de faire beaucoup de match ou
 beaucoup de modifications du graphe (sans que l'utilisateur ne s'en rende
 compte)
 
+> Retourner this
+
+    - La piste du script Python est bof (autant ajouter à la main lors d'une
+    release les quelques lignes à générer)
 
 
 
