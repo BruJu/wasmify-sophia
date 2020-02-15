@@ -29,7 +29,7 @@ https://projet.liris.cnrs.fr/repid/
 
 ### Spécification RDF
 
-- - https://www.w3.org/TeamSubmission/turtle/
+- https://www.w3.org/TeamSubmission/turtle/
 
 
 
