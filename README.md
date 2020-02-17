@@ -1,52 +1,99 @@
-# Raisonnement portable en Web Assembly
+# Portable Reasoning in Web Assembly
 
-Ce dépôt est actuellement un vrac de mes expérimentations dans le cadre de mon
-stage au [LIRIS](https://liris.cnrs.fr/) au sein de l'équipe
-[TWEAK](https://liris.cnrs.fr/equipe/tweak). L'objectif de ce stage est de
-permettre de faire du raisonnement RDF en Javascript se reposant sur
-[Sophia](https://github.com/pchampin/sophia_rs).
+This repository is currently a compilation of my experiments from my internship
+at [LIRIS](https://liris.cnrs.fr/) in the team
+[TWEAK](https://liris.cnrs.fr/equipe/tweak).
 
-https://projet.liris.cnrs.fr/repid/
+The project I'm working on is to reasoning using a RDF API in Javascript
+that resorts to
+[the Sophia library written in Rust](https://github.com/pchampin/sophia_rs).
 
+See [Project REPID](https://projet.liris.cnrs.fr/repid/).
 
-- Start a web server that resorts to the Sophia backend : `./wasm_example/run_server.sh`
+As I am still exploring Rust / Web Assembly / tryining to learn web
+technologies, this repository does not currently expose a clear tool with a
+proper README.
 
+## Sophia interface that matches rdF.js.org specification
 
-## Tests
+The first goal is to enable javascript users to use *Sophia* as a backend.
 
-Actuellement, le dépot est dans une phase d'intégrations des tests unitaires.
+### How to "use"
 
+*Normally*
+
+- To start a web server that resorts to the Sophia backend :
+`./wasm_example/run_server.sh`
+
+*Unit Testing*
+
+I am currently working on integrating Unit Tests
 
 - `npm i @rdfjs/namespace`
 
+- `npm run test`
 
-## Liens utiles
+---
 
+## Temporary1 link heap
 
-### Rust
+1 This word is often a lie
 
-- https://play.rust-lang.org/ (n'offre pas de suggestion -> c'est nul)
+### Iterators / Symbol.Iterator
 
-- https://learnxinyminutes.com/docs/rust/
+- https://github.com/rustwasm/wasm-bindgen/issues/1036
 
-- https://doc.rust-lang.org/std/keyword.struct.html
-
-- https://github.com/pchampin/rust-iut/
-
-
-### Spécification RDF
-
-- https://www.w3.org/TeamSubmission/turtle/
+- https://rustwasm.github.io/wasm-bindgen/api/js_sys/struct.Iterator.html
 
 
 
+---
+
+## Links that might be useful or not
+
+### Rust / Web Assembly
+
+#### Official Documentation / Links I should stop losing
+
+| Link    | Description |
+| ------- | ----------- |
+| https://doc.rust-lang.org/book/ | Rust book |
+| https://doc.rust-lang.org/std/ | `std` intensifies |
+| https://rustwasm.github.io/docs/wasm-bindgen/ | wasm_bindgen |
 
 
-### Sophia vers une librairie répondant à la norme de rdf.js.org
 
-- Spécification attendue pour une librairie JS : https://rdf.js.org
+#### Wasm bindgen
 
-|   Titre    |            Spécification            |       Implémentation basique en TS       |
+| Link    | Description |
+| ------- | ----------- |
+| https://dev.to/sendilkumarn/rust-and-webassembly-for-the-masses-wasm-bindgen-57fl | A basic tutorial on wasm_bindgen |
+| https://rustwasm.github.io/wasm-bindgen/reference/arbitrary-data-with-serde.html | A potential way to make the code faster |
+| https://rustwasm.github.io/wasm-bi:bindgen/reference/cli.html | We are actually not supposed to use the command wasm_bindgen but wasm-pack |
+| https://github.com/rustwasm/wasm-pack | wasm pack repository |
+
+#### Other documentation
+
+| Link    | Description |
+| ------- | ----------- |
+| https://play.rust-lang.org/ | Rust Online Compiler. Doesn't offer suggestion |
+| https://learnxinyminutes.com/docs/rust/ | Could be used as a quick cheatsheet but I prefer using the documentation with the search feature |
+| https://github.com/pchampin/rust-iut/ | A Rust course teached to 2 years students. |
+
+
+
+### RDF
+
+
+| Link    | Description |
+| ------- | ----------- |
+| https://www.w3.org/TeamSubmission/turtle/ | Turtle Spec |
+
+
+### RDF JS interface
+
+
+|   Title    |            Specification            |           Basic implementation           |
 | ---------- | ----------------------------------- | ---------------------------------------- |
 | Data Model | https://rdf.js.org/data-model-spec/ | https://github.com/rdfjs-base/data-model |
 | Dataset    | https://rdf.js.org/dataset-spec/    | https://github.com/rdfjs-base/dataset    |
@@ -54,11 +101,9 @@ Actuellement, le dépot est dans une phase d'intégrations des tests unitaires.
 
 
 
+### Internship
 
-
-### En lien avec le sujet / les ressources de base
-
-- Sujet du stage : https://projet.liris.cnrs.fr/repid/2019/stage-raisonnement-portable/fr/
+- https://projet.liris.cnrs.fr/repid/2019/stage-raisonnement-portable/fr/
 
 - HyLAR : https://github.com/ucbl/HyLAR-Reasoner#readme
     - https://hal.archives-ouvertes.fr/hal-01154549/file/hylar.pdf
@@ -74,35 +119,9 @@ Actuellement, le dépot est dans une phase d'intégrations des tests unitaires.
 - rflib.js : http://linkeddata.github.io/rdflib.js/doc/
 
 
+===
 
-### Web Assembly - Rust
-
-- Un tutoriel qui marche pour commencer : https://dev.to/sendilkumarn/rust-and-webassembly-for-the-masses-wasm-bindgen-57fl
-
-- Documentation de wasm-bindgen : https://rustwasm.github.io/docs/wasm-bindgen/
-
-    - Mesure de performances
-    
-        - https://rustwasm.github.io/wasm-bindgen/reference/arbitrary-data-with-serde.html
-
-
-#### Wasm bind gen
-
-
-- https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/getter-and-setter.html
-
-Normalement on est pas censé utiliser la commande `wasm-bindgen`
-
-- https://rustwasm.github.io/wasm-bi:bindgen/reference/cli.html
-    
-- https://github.com/rustwasm/wasm-pack
-
-
-
-- https://github.com/rustwasm/wasm-bindgen/issues/1036
-
-    - https://rustwasm.github.io/wasm-bindgen/api/js_sys/struct.Iterator.html
-
+## Content I should clean / translate
 
 ### Test suite pour RDF JS:
 
@@ -143,10 +162,11 @@ impl BJQuad {
 }
 ```
 
-fn toto (<T>(...) where
+```rust
+fn toto<T>(...) where
 T : Graph + foo,
-<T as Graph>::TermData
-)
+  <T as Graph>::TermData
+```
 
 > Comme Rust est un langage orienté expression on peut refactor de cette
 manière 
