@@ -148,36 +148,43 @@ impl SophiaExportDataset{
     #[wasm_bindgen(js_name="match")]
     pub fn match_quad(&self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> SophiaExportDataset {
-            let mut dataset = FastDataset::new();
+        let mut dataset = FastDataset::new();
 
-            let subject = subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-            let predicate = predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-            let object = object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-            let graph = graph.as_ref().map(|x| build_rcterm_from_js_import_term(x));
+        let subject = subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
+        let predicate = predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
+        let object = object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
+        let graph = graph.as_ref().map(|x| build_rcterm_from_js_import_term(x));
 
-            let mut quads_iter = match (&subject, &predicate, &object, graph.as_ref()) {
-                (None   , None   , None   , None   ) => self.dataset.quads(),
-                (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(o),
-                (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(p),
-                (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(p, o),
-                (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(s),
-                (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(s, o),
-                (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(s, p),
-                (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(s, p, o),
-                (None   , None   , None   , Some(g)) => self.dataset.quads_with_g(g.as_ref()),
-                (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(o, g.as_ref()),
-                (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(p, g.as_ref()),
-                (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(p, o, g.as_ref()),
-                (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(s, g.as_ref()),
-                (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(s, o, g.as_ref()),
-                (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(s, p, g.as_ref()),
-                (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(s, p, o, g.as_ref())
-            };
+        let mut quads_iter = match (&subject, &predicate, &object, graph.as_ref()) {
+            (None   , None   , None   , None   ) => self.dataset.quads(),
+            (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(o),
+            (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(p),
+            (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(p, o),
+            (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(s),
+            (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(s, o),
+            (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(s, p),
+            (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(s, p, o),
+            (None   , None   , None   , Some(g)) => self.dataset.quads_with_g(g.as_ref()),
+            (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(o, g.as_ref()),
+            (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(p, g.as_ref()),
+            (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(p, o, g.as_ref()),
+            (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(s, g.as_ref()),
+            (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(s, o, g.as_ref()),
+            (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(s, p, g.as_ref()),
+            (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(s, p, o, g.as_ref())
+        };
 
-            quads_iter.in_dataset(&mut dataset).unwrap();
+        quads_iter.in_dataset(&mut dataset).unwrap();
 
-            SophiaExportDataset{ dataset: dataset }
-        }
+        SophiaExportDataset{ dataset: dataset }
+    }
+
+    #[wasm_bindgen(getter = size)]
+    pub fn get_size(&self) -> u32 {
+        0
+    }
+
+
 }
 
 
@@ -572,15 +579,6 @@ impl SophiaExportQuad {
 #[wasm_bindgen(js_name=DataFactory)]
 pub struct SophiaExportDataFactory { }
 
-// TODO : Determine if for dataset, the factory used should be the factory tied
-// to the dataset instead of this factory
-
-impl Clone for SophiaExportDataFactory {
-    fn clone(&self) -> SophiaExportDataFactory {
-        SophiaExportDataFactory{ }
-    }
-}
-
 #[wasm_bindgen(js_class=DataFactory)]
 impl SophiaExportDataFactory {
     #[wasm_bindgen(constructor)]
@@ -689,6 +687,25 @@ impl SophiaExportDataFactory {
             original.object(),
             Some(original.graph())
         )
+    }
+
+    #[wasm_bindgen(js_name="dataset")]
+    pub fn dataset(parameter: JsValue) -> SophiaExportDataset {
+        let mut ds = SophiaExportDataset::new();
+
+        if !parameter.is_null() && !parameter.is_undefined() {
+            // TODO : Error Management - Do we want to crash if the parameter is not an array ?
+            // TODO : Manage every iterable (js_array::Array probably only manager javascript arrays)
+            let js_array: js_sys::Array = parameter.into();
+
+            js_array.iter().for_each(|js_value| {
+                // TODO : Error Management - What if the cast from JsValue to JsImportQuad fails ?
+                let js_quad: JsImportQuad = js_value.into();
+                ds.add(js_quad);
+            });
+        }
+
+        ds
     }
 }
 
