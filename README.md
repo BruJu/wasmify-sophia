@@ -86,15 +86,14 @@ https://projet.liris.cnrs.fr/repid/
 
 Normalement on est pas censé utiliser la commande `wasm-bindgen`
 
-- https://rustwasm.github.io/wasm-bindgen/reference/cli.html
+- https://rustwasm.github.io/wasm-bi:bindgen/reference/cli.html
     
 - https://github.com/rustwasm/wasm-pack
 
 
+### Test suite pour RDF JS:
 
-### Test suite pour RDF JS
-
-Community group RDF JS
+Community group RDF JS:
 
 - Faire une test suite : https://github.com/rubensworks/jest-rdf
 
@@ -118,7 +117,7 @@ Community group RDF JS
 ```rust
 impl BJQuad {
     pub fn new<T>(cloned_quad: &T) -> BJQuad 
-    where T: T::TermData == RcTerm {
+    where T: Graph<TermData = RcTerm> {
         BJQuad {
             subject: cloned_quad.s().clone(),
             predicate: cloned_quad.p().clone(),
@@ -128,6 +127,11 @@ impl BJQuad {
     }
 }
 ```
+
+fn toto (<T>(...) where
+T : Graph + foo,
+<T as Graph>::TermData
+)
 
 > Comme Rust est un langage orienté expression on peut refactor de cette
 manière 

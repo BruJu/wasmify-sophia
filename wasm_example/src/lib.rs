@@ -53,13 +53,12 @@ fn print_type<T>(_: T) {
 
 #[wasm_bindgen(js_name="DatasetCore")]
 pub struct SophiaExportDataset {
-    dataset: FastDataset,
-    datafactory: SophiaExportDataFactory
+    dataset: FastDataset
 }
 
 impl SophiaExportDataset {
     pub fn convert_to_sophia_export_quad(&self, js_quad: JsImportQuad) -> SophiaExportQuad {
-        self.datafactory.from_quad(js_quad)
+        SophiaExportDataFactory::from_quad(js_quad)
     }
 }
 
@@ -67,15 +66,7 @@ impl SophiaExportDataset {
 impl SophiaExportDataset{
     #[wasm_bindgen(constructor)]
     pub fn new() -> SophiaExportDataset {
-        SophiaExportDataset{
-            dataset: FastDataset::new(),
-            datafactory: SophiaExportDataFactory::new()
-        }
-    }
-
-    #[wasm_bindgen(js_name="cloneFactory")]
-    pub fn clone_factory(&self) -> SophiaExportDataFactory {
-        self.datafactory.clone()
+        SophiaExportDataset{ dataset: FastDataset::new() }
     }
 
     pub fn load(&mut self, content: &str) {
@@ -185,10 +176,7 @@ impl SophiaExportDataset{
 
             quads_iter.in_dataset(&mut dataset).unwrap();
 
-            SophiaExportDataset{
-                dataset: dataset,
-                datafactory: SophiaExportDataFactory::new()
-            }
+            SophiaExportDataset{ dataset: dataset }
         }
 }
 
@@ -601,12 +589,12 @@ impl SophiaExportDataFactory {
     }
 
     #[wasm_bindgen(js_name="namedNode")]
-    pub fn named_node(&self, value: &str) -> SophiaExportTerm {
+    pub fn named_node(value: &str) -> SophiaExportTerm {
         SophiaExportTerm { term: Some(RcTerm::new_iri(value).unwrap()) }
     }
 
     #[wasm_bindgen(js_name="blankNode")]
-    pub fn blank_node(&self, value: Option<String>) -> SophiaExportTerm {
+    pub fn blank_node(value: Option<String>) -> SophiaExportTerm {
         let blank_node_name = match value {
             Some(determined_name) => determined_name.to_string(),
             None => Uuid::new_v4().to_hyphenated().to_string()
@@ -616,42 +604,53 @@ impl SophiaExportDataFactory {
     }
 
     #[wasm_bindgen(js_name="literal")]
-    pub fn literal(&self, value: &str, language_or_datatype: JsValue) -> SophiaExportTerm {
+    pub fn literal(value_string: Option<String>, language_or_datatype: JsValue) -> SophiaExportTerm {
+        let value = match value_string.as_ref() {
+            None => "",
+            Some(contained_value) => contained_value.as_str()
+        };
+
         if language_or_datatype.is_null() || language_or_datatype.is_undefined() {
-            self.literal_from_string(value, "http://www.w3.org/2001/XMLSchema#string")
+            let string_term = RcTerm::new_iri("http://www.w3.org/2001/XMLSchema#string").unwrap();
+            SophiaExportTerm { term: Some(RcTerm::new_literal_dt(value, string_term).unwrap()) }
         } else {
             match language_or_datatype.as_string() {
-                Some(language) => self.literal_from_string(value, language.as_str()),
-                None => self.literal_from_named_node(value, language_or_datatype.into())
+                Some(language) => Self::literal_from_string(value, language.as_str()),
+                None => Self::literal_from_named_node(value, language_or_datatype.into())
             }
         }
     }
 
     #[wasm_bindgen(js_name="literalFromString")]
-    pub fn literal_from_string(&self, value: &str, language: &str) -> SophiaExportTerm {
+    pub fn literal_from_string(value: &str, language: &str) -> SophiaExportTerm {
         SophiaExportTerm {
             term: Some(RcTerm::new_literal_lang(value, language).unwrap())
         }
     }
 
     #[wasm_bindgen(js_name="literalFromNamedNode")]
-    pub fn literal_from_named_node(&self, value: &str, named_node: JsImportTerm) -> SophiaExportTerm {
+    pub fn literal_from_named_node(value: &str, named_node: JsImportTerm) -> SophiaExportTerm {
         let rcterm = build_rcterm_from_js_import_term(&named_node);
         SophiaExportTerm { term: Some(RcTerm::new_literal_dt(value, rcterm.unwrap()).unwrap()) }
     }
 
     #[wasm_bindgen(js_name="variable")]
-    pub fn variable(&self, value: &str) -> SophiaExportTerm {
+    pub fn variable(optional_value: Option<String>) -> SophiaExportTerm {
+        let value = match optional_value.as_ref() {
+            None => "__NoVariableName__",
+            Some(contained_value) => contained_value.as_str()
+        };
+
         SophiaExportTerm { term: Some(RcTerm::new_variable(value).unwrap()) }
     }
 
     #[wasm_bindgen(js_name="defaultGraph")]
-    pub fn default_graph(&self) -> SophiaExportTerm {
+    pub fn default_graph() -> SophiaExportTerm {
         SophiaExportTerm { term: None }
     }
 
     #[wasm_bindgen(js_name="quad")]
-    pub fn quad(&self, subject: JsImportTerm, predicate: JsImportTerm, object: JsImportTerm, graph: Option<JsImportTerm>) -> SophiaExportQuad {
+    pub fn quad(subject: JsImportTerm, predicate: JsImportTerm, object: JsImportTerm, graph: Option<JsImportTerm>) -> SophiaExportQuad {
         SophiaExportQuad::new_by_move(
             build_rcterm_from_js_import_term(&subject).unwrap(),
             build_rcterm_from_js_import_term(&predicate).unwrap(),
@@ -663,18 +662,28 @@ impl SophiaExportDataFactory {
         )
     }
 
+    #[wasm_bindgen(js_name="triple")]
+    pub fn triple(subject: JsImportTerm, predicate: JsImportTerm, object: JsImportTerm) -> SophiaExportQuad {
+        SophiaExportQuad::new_by_move(
+            build_rcterm_from_js_import_term(&subject).unwrap(),
+            build_rcterm_from_js_import_term(&predicate).unwrap(),
+            build_rcterm_from_js_import_term(&object).unwrap(),
+            None
+        )
+    }
+
     #[wasm_bindgen(js_name="fromTerm")]
-    pub fn from_term(&self, original: JsImportTerm) -> SophiaExportTerm {
+    pub fn from_term(original: JsImportTerm) -> SophiaExportTerm {
         if original.term_type().as_str() == "DefaultGraph" {
-            self.default_graph()
+            SophiaExportDataFactory::default_graph()
         } else {
             SophiaExportTerm { term: build_rcterm_from_js_import_term(&original) }
         }
     }
 
     #[wasm_bindgen(js_name="fromQuad")]
-    pub fn from_quad(&self, original: JsImportQuad) -> SophiaExportQuad {
-        self.quad(
+    pub fn from_quad(original: JsImportQuad) -> SophiaExportQuad {
+        Self::quad(
             original.subject(),
             original.predicate(),
             original.object(),
