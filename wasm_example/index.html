@@ -95,11 +95,9 @@
                     .replace(/'/g, "&#039;");
             }
 
-            // TODO : is_activ -> is_active
-
             class Context {
                 constructor() {
-                    this.is_activ = false;
+                    this.is_active = false;
                     this.has_been_modified_seen_last_update = false;
                 }
 
@@ -107,7 +105,7 @@
                     this.rustGraph = new wasm_bindgen.DatasetCore();
                     this.rustGraph.load(grapheToLoad);
                     this.datafactory = this.rustGraph.cloneFactory();
-                    this.is_activ = true;
+                    this.is_active = true;
                     if (this.rustGraph.getTerms === undefined) {
                         this.list_of_terms = [];
                         alert("Could not load terms : you are probably not using Sophia as the RDF JS backend");
@@ -270,7 +268,7 @@
                 $('#div_graph_static').css('display', 'none');
                 $('#div_graph_textarea').css('display', 'block');
 
-                if (!context.is_activ) {
+                if (!context.is_active) {
                     return;
                 }
 
@@ -293,7 +291,7 @@
             }
 
             function action_terms_clear() {
-                if (!context.is_activ) {
+                if (!context.is_active) {
                     return;
                 }
 
@@ -316,7 +314,7 @@
             }
 
             function action_terms_add(term_kind) {
-                if (!context.is_activ) {
+                if (!context.is_active) {
                     return;
                 }
 
@@ -336,7 +334,7 @@
             }
 
             function action_query_make_quad(request_kind) {
-                if (!context.is_activ) {
+                if (!context.is_active) {
                     return;
                 }
 
@@ -377,7 +375,7 @@
             }
 
             function action_query_make_match() {
-                if (!context.is_activ) {
+                if (!context.is_active) {
                     return;
                 }
 
