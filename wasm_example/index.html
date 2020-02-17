@@ -232,7 +232,11 @@
                     if (nodeType === "NamedNode") {
                         newNode = this.datafactory.namedNode(nodeContent['value']);
                     } else if (nodeType === "BlankNode") {
-                        newNode = this.datafactory.blankNode(nodeContent['value']);
+                        if (nodeContent['value'] == "") {
+                            newNode = this.datafactory.blankNode();
+                        } else {
+                            newNode = this.datafactory.blankNode(nodeContent['value']);
+                        }
                     } else if (nodeType === "Variable") {
                         newNode = this.datafactory.variable(nodeContent['value']);
                     } else if (nodeType === "Literal") {

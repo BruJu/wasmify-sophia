@@ -3,18 +3,19 @@ extern crate wasm_bindgen;
 
 // TODO : remove unused imports when finished
 
-use sophia::quad::Quad;
 use std::any;
 use std::rc::Rc;
-use wasm_bindgen::prelude::*;
+use uuid::Uuid;
 use sophia::dataset::Dataset;
 use sophia::dataset::inmem::FastDataset;
+use sophia::quad::Quad;
 use sophia::quad::stream::QuadSource;
 use sophia::graph::inmem::LightGraph;
 use sophia::parser::trig;
 use sophia::term::*;
 use sophia::triple::stream::TripleSource;
 use sophia::dataset::MutableDataset;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
@@ -483,12 +484,7 @@ impl sophia::quad::Quad for SophiaExportQuad {
     fn s(&self) -> &RcTerm { &self._subject }
     fn p(&self) -> &RcTerm { &self._predicate }
     fn o(&self) -> &RcTerm { &self._object }
-    fn g(&self) -> Option<&RcTerm> {
-        match &self._graph {
-            None => None,
-            Some(some_graph) => Some(some_graph)
-        }
-    }
+    fn g(&self) -> Option<&RcTerm> { self._graph.as_ref() }
 }
 
 impl SophiaExportQuad {
@@ -497,10 +493,7 @@ impl SophiaExportQuad {
             _subject: s.clone(),
             _predicate: p.clone(),
             _object: o.clone(),
-            _graph: match g {
-                None => None,
-                Some(iri) => Some(iri.clone())
-            }
+            _graph: g.cloned()
         }
     }
 
@@ -614,9 +607,12 @@ impl SophiaExportDataFactory {
 
     #[wasm_bindgen(js_name="blankNode")]
     pub fn blank_node(&self, value: Option<String>) -> SophiaExportTerm {
-        // TODO : support optionnal
-        // TODO : "If the value parameter is undefined a new identifier for the blank node is generated for each call."
-        SophiaExportTerm { term: Some(RcTerm::new_bnode(value.unwrap().to_string()).unwrap()) }
+        let blank_node_name = match value {
+            Some(determined_name) => determined_name.to_string(),
+            None => Uuid::new_v4().to_hyphenated().to_string()
+        };
+
+        SophiaExportTerm { term: Some(RcTerm::new_bnode(blank_node_name).unwrap()) }
     }
 
     #[wasm_bindgen(js_name="literal")]
