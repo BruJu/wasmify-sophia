@@ -180,8 +180,8 @@ impl SophiaExportDataset{
     }
 
     #[wasm_bindgen(getter = size)]
-    pub fn get_size(&self) -> u32 {
-        0
+    pub fn get_size(&self) -> usize {
+        self.dataset.quads().into_iter().count()
     }
 
 

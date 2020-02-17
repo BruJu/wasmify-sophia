@@ -12,6 +12,13 @@ https://projet.liris.cnrs.fr/repid/
 - Start a web server that resorts to the Sophia backend : `./wasm_example/run_server.sh`
 
 
+## Tests
+
+Actuellement, le dépot est dans une phase d'intégrations des tests unitaires.
+
+
+- `npm i @rdfjs/namespace`
+
 
 ## Liens utiles
 
@@ -91,6 +98,12 @@ Normalement on est pas censé utiliser la commande `wasm-bindgen`
 - https://github.com/rustwasm/wasm-pack
 
 
+
+- https://github.com/rustwasm/wasm-bindgen/issues/1036
+
+    - https://rustwasm.github.io/wasm-bindgen/api/js_sys/struct.Iterator.html
+
+
 ### Test suite pour RDF JS:
 
 Community group RDF JS:
@@ -107,6 +120,8 @@ Community group RDF JS:
 
 
 - https://github.com/Tpt/oxigraph/
+
+- https://karthikkaranth.me/blog/my-experience-with-rust-plus-wasm/
 
 
 ## Vrac de notes et de remarques à moi-même
