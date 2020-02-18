@@ -5,6 +5,7 @@ extern crate wasm_bindgen;
 
 use std::any;
 use std::rc::Rc;
+use std::iter;
 use uuid::Uuid;
 use sophia::dataset::Dataset;
 use sophia::dataset::inmem::FastDataset;
@@ -183,8 +184,6 @@ impl SophiaExportDataset{
     pub fn get_size(&self) -> usize {
         self.dataset.quads().into_iter().count()
     }
-
-
 }
 
 
