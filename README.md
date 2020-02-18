@@ -88,7 +88,9 @@ I am currently working on integrating Unit Tests
 | Link    | Description |
 | ------- | ----------- |
 | https://www.w3.org/TeamSubmission/turtle/ | Turtle Spec |
-
+| https://github.com/rubensworks/jest-rdf   | How to build a Jest test suite for RDF |
+| https://www.w3.org/community/rdfjs/       | RDF JS Work group |
+| http://iswc2011.semanticweb.org/fileadmin/iswc/Papers/Workshops/SSWS/Emmons-et-all-SSWS2011.pdf | Article on RDF Literal Data Types |
 
 ### RDF JS interface
 
@@ -118,58 +120,42 @@ I am currently working on integrating Unit Tests
 
 - rflib.js : http://linkeddata.github.io/rdflib.js/doc/
 
-
-===
-
-## Content I should clean / translate
-
-### Test suite pour RDF JS:
-
-Community group RDF JS:
-
-- Faire une test suite : https://github.com/rubensworks/jest-rdf
-
-- https://www.w3.org/community/rdfjs/
+### Other people that do related things
 
 
+| Link | Description |
+| ---- | ----------- |
+| https://github.com/Tpt/oxigraph/ | Another rdf implementation in rust : Oxygraph |
+| https://karthikkaranth.me/blog/my-experience-with-rust-plus-wasm/ | A feedback on rust + wasm |
 
-### Misc
+---
 
-- http://iswc2011.semanticweb.org/fileadmin/iswc/Papers/Workshops/SSWS/Emmons-et-all-SSWS2011.pdf
-
-
-- https://github.com/Tpt/oxigraph/
-
-- https://karthikkaranth.me/blog/my-experience-with-rust-plus-wasm/
-
-
-## Vrac de notes et de remarques à moi-même
+## Rust snippets / Observations
 
 
-> comment implémenter ça ?
+> Condition on genetic terms
 
 ```rust
 impl BJQuad {
     pub fn new<T>(cloned_quad: &T) -> BJQuad 
     where T: Graph<TermData = RcTerm> {
-        BJQuad {
-            subject: cloned_quad.s().clone(),
-            predicate: cloned_quad.p().clone(),
-            object: cloned_quad.o().clone(),
-            graph: cloned_quad.g().clone(),
-        }
+        /* blabla */
     }
 }
 ```
 
+or
+
 ```rust
 fn toto<T>(...) where
-T : Graph + foo,
+T : Graph + Foo,
   <T as Graph>::TermData
 ```
 
-> Comme Rust est un langage orienté expression on peut refactor de cette
-manière 
+To answer the question "where does TermData comes from ?"
+
+
+> As Rust is expression oriented, we can always refactor code like this
 
 ```rust
     pub fn quad(&self, subject: JssTerm, predicate: JssTerm, object: JssTerm, graph: Option<JssTerm>) -> BJQuad {
@@ -190,7 +176,7 @@ manière
     }
 ```
 
-en
+into
 
 ```rust
     pub fn quad(&self, subject: JssTerm, predicate: JssTerm, object: JssTerm, graph: Option<JssTerm>) -> BJQuad {
@@ -206,25 +192,6 @@ en
     }
 ```
 
-> Problème pour les litéraux : la spec veut que l'on puisse passer un string ou
-un named node. C'est pas possible par défaut.
-
-~~Quelques pistes à explorer :
-
-- Générer du code typescript https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/typescript_custom_section.html
-- Faire de la reflexion / introspection https://docs.rs/js-sys/0.3.35/js_sys/Reflect/index.html
-    - Creuser la piste de l'introspection
-
-
-    - https://github.com/rustwasm/wasm-bindgen/issues/1906
-
-Pour le moment j'ajoute une fonction javascript à la main dans le code généré
-qui fait la vérification et appelle la bonne fonction wasm
-~~
-
-*Solution* : `JsValue`
-
-
 > J'aimerais bien avoir des versions optimisées des opérations sur les
 adapteurs si il renvoie un adapteur (au lieu de devoir supposer que les seules
 hypothèses que l'on peut faire est qu'on a reçu un truc répondant à la norme
@@ -236,10 +203,19 @@ dataset plus adapté selon si l'utilisateur vient de faire beaucoup de match ou
 beaucoup de modifications du graphe (sans que l'utilisateur ne s'en rende
 compte)
 
-> Retourner this
+> In some function, I'd like to return self to let the user chain its call
 
-    - La piste du script Python est bof (autant ajouter à la main lors d'une
-    release les quelques lignes à générer)
+*Problem* : wasm_bindgen can't return references.
 
+*Doesn't work* :
 
+- `pub fn add(self) -> MyClass { self }` because if we don't assign we lose
+the instance
 
+- `pub fn add(self) -> *MyClass { *self }` returns a number that have no
+sense for the user and that he can't use.
+
+*Bad* ;
+
+- Python script that modifies the generated javascript code : we can just
+manually add the `return this;` in the ~4 functions that requires it
