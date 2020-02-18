@@ -192,16 +192,11 @@ into
     }
 ```
 
-> J'aimerais bien avoir des versions optimisées des opérations sur les
-adapteurs si il renvoie un adapteur (au lieu de devoir supposer que les seules
-hypothèses que l'on peut faire est qu'on a reçu un truc répondant à la norme
-RDFJS)
+> I would like to optimize the operations on JsImport if the received object is
+a RustExport
 
-
-> Une idée que j'ai serait de pouvoir manier soit un FastDataset, soit un
-dataset plus adapté selon si l'utilisateur vient de faire beaucoup de match ou
-beaucoup de modifications du graphe (sans que l'utilisateur ne s'en rende
-compte)
+> We could also change the type of dataset depending on if we are currently
+are doing a lot of adds or a lot of matches
 
 > In some function, I'd like to return self to let the user chain its call
 
