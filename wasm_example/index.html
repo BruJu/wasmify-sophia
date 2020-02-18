@@ -354,7 +354,7 @@
                     terms[term_id] = term;
                 }
 
-                let quad = context.datafactory.quad(terms[0], terms[1], terms[2], terms[3]);
+                let quad = DataFactory.quad(terms[0], terms[1], terms[2], terms[3]);
                 if (quad == null) {
                     inflate_query_answer("Could not build the quad");
                     return;

@@ -71,6 +71,11 @@ impl SophiaExportDataset{
         SophiaExportDataset{ dataset: FastDataset::new() }
     }
 
+    pub fn get_iterator(&self) -> js_sys::Iterator {
+        let a: js_sys::Array = self.quads();
+        a.values()
+    }    
+
     pub fn load(&mut self, content: &str) {
         let r = sophia::parser::trig::parse_str(&content).in_dataset(&mut self.dataset);
         match r {
