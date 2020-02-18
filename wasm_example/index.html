@@ -84,6 +84,7 @@
         <script src="wasm_example.js"></script>
         <script>
             var last_match_request;
+            var DataFactory;
 
             function escapeHtml(unsafe) {
                 // Author of this function :  bjornd - https://stackoverflow.com/a/6234804
@@ -104,7 +105,7 @@
                 loadGraphe(grapheToLoad) {
                     this.rustGraph = new wasm_bindgen.DatasetCore();
                     this.rustGraph.load(grapheToLoad);
-                    this.datafactory = this.rustGraph.cloneFactory();
+                    
                     this.is_active = true;
                     if (this.rustGraph.getTerms === undefined) {
                         this.list_of_terms = [];
@@ -196,7 +197,7 @@
                         };
 
                         add_term_to_lists(null, true, true, true, true);
-                        add_term_to_lists(this.datafactory.defaultGraph(), false, false, false, true);
+                        add_term_to_lists(wasm_bindgen.DataFactory.defaultGraph(), false, false, false, true);
 
                         for (const term of this.list_of_terms) {
                             if (term.termType == "DefaultGraph") {
@@ -228,29 +229,29 @@
                 addNewTermByText(nodeContent, nodeType) {
                     let newNode = null;
                     if (nodeType === "NamedNode") {
-                        newNode = this.datafactory.namedNode(nodeContent['value']);
+                        newNode = DataFactory.namedNode(nodeContent['value']);
                     } else if (nodeType === "BlankNode") {
                         if (nodeContent['value'] == "") {
-                            newNode = this.datafactory.blankNode();
+                            newNode = DataFactory.blankNode();
                         } else {
-                            newNode = this.datafactory.blankNode(nodeContent['value']);
+                            newNode = DataFactory.blankNode(nodeContent['value']);
                         }
                     } else if (nodeType === "Variable") {
-                        newNode = this.datafactory.variable(nodeContent['value']);
+                        newNode = DataFactory.variable(nodeContent['value']);
                     } else if (nodeType === "Literal") {
                         if (nodeContent['lang'] !== "") {
-                            newNode = this.datafactory.literal(nodeContent['value'], nodeContent['lang']);
+                            newNode = DataFactory.literal(nodeContent['value'], nodeContent['lang']);
                         } else {
                             if (nodeContent['type'] === "") {
                                 nodeContent['type'] = "http://www.w3.org/2001/XMLSchema#string";
                             }
 
-                            newNode = this.datafactory.namedNode(nodeContent['type']);
+                            newNode = DataFactory.namedNode(nodeContent['type']);
                             if (newNode === null) {
                                 return false;
                             }
 
-                            newNode = this.datafactory.literal(nodeContent['value'], newNode);
+                            newNode = DataFactory.literal(nodeContent['value'], newNode);
                         }
                     }
 
@@ -437,6 +438,7 @@
                         '<http://dbpedia.org/resource/Cat> <concept/#nom> "Gato"@pt . \n';
 
                     context.loadGraphe(firstGraphe);
+                    DataFactory = wasm_bindgen.DataFactory;
                 }
                     
                 run();

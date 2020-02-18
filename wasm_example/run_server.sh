@@ -1,19 +1,27 @@
-# This script compiles the wasm_example files and launch a simple server
-# to test the implementation.
+# ./run_server -> starts a server with a sophia backend
+# ./run_server test -> starts unit tests
 
 set -e
 
-# TODO : if test
+pre_compile() {
+  cargo +nightly build --target wasm32-unknown-unknown
+  wasm-bindgen target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
+  wasm-bindgen target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
+}
 
 
-cargo +nightly build --target wasm32-unknown-unknown
-wasm-bindgen target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
-wasm-bindgen --target nodejs target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
-mocha
-
-# TODO : if nothing
-
-# cargo +nightly build --target wasm32-unknown-unknown
-# wasm-bindgen target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
-# wasm-bindgen --target no-modules target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
-# npm run serve
+if [ $# -ne 0  ]
+then
+  if [ $1 == "test" ]
+  then
+    pre_compile
+    wasm-bindgen --target nodejs target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
+    mocha
+  else
+    echo "Unknown argument"
+  fi
+else
+  pre_compile
+  wasm-bindgen --target no-modules target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
+  npm run serve
+fi
