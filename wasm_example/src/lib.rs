@@ -64,17 +64,74 @@ impl SophiaExportDataset {
     }
 }
 
+/* DatasetIterator are implemented as earlier versions of NodeJs do not support js_sys::Array::values() */
+
+// The iterator we provide is an iterator on the elements that are contained when we create the iterator
+// New and deleted elements in the dataset do not change the state of the iterator
+
+#[wasm_bindgen(js_name="DatasetCoreIterator")]
+pub struct SophiaExportDatasetIterator {
+    quads_array: js_sys::Array
+}
+
+impl SophiaExportDatasetIterator {
+    pub fn new(quads_array: js_sys::Array) -> SophiaExportDatasetIterator {
+        // We reverse in place so we can think our iterator as a list of quads we have not iterated on yet
+        quads_array.reverse();
+        SophiaExportDatasetIterator { quads_array }
+    }
+}
+
+#[wasm_bindgen(js_class="DatasetCoreIterator")]
+impl SophiaExportDatasetIterator {
+    #[wasm_bindgen]
+    pub fn next(&mut self) -> SophiaExportDatasetIteratorNext {
+        if self.quads_array.length() != 0 {
+            SophiaExportDatasetIteratorNext{ current_element: Some(self.quads_array.pop()) }
+        } else {
+            SophiaExportDatasetIteratorNext{ current_element: None }
+        }
+    }
+}
+
+#[wasm_bindgen(js_name="DatasetCoreIteratorNext")]
+pub struct SophiaExportDatasetIteratorNext {
+    #[wasm_bindgen(skip)]
+    pub current_element: Option<JsValue>
+}
+
+#[wasm_bindgen(js_class="DatasetCoreIteratorNext")]
+impl SophiaExportDatasetIteratorNext {
+    #[wasm_bindgen(getter)]
+    pub fn done(&self) -> bool {
+        self.current_element.is_none()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn value(&self) -> JsValue {
+        match self.current_element.as_ref() {
+            None => JsValue::undefined(),
+            Some(real_value) => real_value.clone()
+        }
+    }
+}
+
+
+/* Dataset export */
+
 #[wasm_bindgen(js_class="DatasetCore")]
-impl SophiaExportDataset{
+impl SophiaExportDataset {
     #[wasm_bindgen(constructor)]
     pub fn new() -> SophiaExportDataset {
         SophiaExportDataset{ dataset: FastDataset::new() }
     }
 
-    pub fn get_iterator(&self) -> js_sys::Iterator {
-        let a: js_sys::Array = self.quads();
-        a.values()
-    }    
+    #[wasm_bindgen(js_name="getIterator")]
+    pub fn get_iterator(&self) -> SophiaExportDatasetIterator {
+        // TODO : bind this function call to this[Symbol.iterator]
+        // a.values() is not supported by every version of nodejs so we are forced to design our own iterator
+        SophiaExportDatasetIterator::new(self.quads())
+    }
 
     pub fn load(&mut self, content: &str) {
         let r = sophia::parser::trig::parse_str(&content).in_dataset(&mut self.dataset);
@@ -258,6 +315,7 @@ fn build_rcterm_from_js_import_term(term: &JsImportTerm) -> Option<RcTerm> {
 
 #[wasm_bindgen(js_name="Term")]
 pub struct SophiaExportTerm {
+    /// The encapsulated Sophia Term. If None, this term describes the default graph.
     term: Option<RcTerm>
 }
 

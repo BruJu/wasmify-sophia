@@ -201,7 +201,7 @@ function runTests (rdf) {
       it('should be a function', () => {
         const dataset = rdf.dataset()
         // const iterator = dataset[Symbol.iterator]
-        const iterator = dataset.get_iterator
+        const iterator = dataset.getIterator
 
         assert.strictEqual(typeof iterator, 'function')
       })
@@ -210,13 +210,9 @@ function runTests (rdf) {
         const quad1 = rdf.quad(ex.subject1, ex.predicate, ex.object)
         const quad2 = rdf.quad(ex.subject2, ex.predicate, ex.object)
         const dataset = rdf.dataset([quad1, quad2])
-
-        console.log(dataset.get_iterator)
         
-        const iterator = dataset.get_iterator()
-
-
-        console.log(iterator)
+        // const iterator = dataset[Symbol.iterator]()
+        const iterator = dataset.getIterator()
 
         assert.strictEqual(typeof iterator.next, 'function')
         assert.strictEqual(typeof iterator.next().value, 'object')
@@ -227,7 +223,8 @@ function runTests (rdf) {
         const quad2 = rdf.quad(ex.subject2, ex.predicate, ex.object)
         const dataset = rdf.dataset([quad1, quad2])
 
-        const iterator = dataset.get_iterator()
+        // const iterator = dataset[Symbol.iterator]()
+        const iterator = dataset.getIterator()
 
         const output = rdf.dataset()
 
