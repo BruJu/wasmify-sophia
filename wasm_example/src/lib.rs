@@ -456,7 +456,7 @@ impl SophiaExportTerm {
     pub fn to_string(&self) -> String {
         match &self.term {
             Some(t) => t.n3(),
-            None => "(DefaultGraph)".into()
+            None => String::from("(DefaultGraph)")
         }
     }
 }
@@ -498,6 +498,8 @@ extern "C" {
     #[wasm_bindgen(js_name=equals)]
     pub fn quads_equals(this: &JsImportQuad, other_quad: &JsImportQuad);
     
+    #[wasm_bindgen(method, getter=getRustPtr)]
+    pub fn quads_get_rust_ptr(this: &JsImportQuad) -> *mut SophiaExportQuad;
 }
 
 
@@ -597,13 +599,29 @@ impl SophiaExportQuad {
     pub fn equals(&self, other: Option<JsImportQuad>) -> bool {
         match &other {
             None => false,
-            Some(other_quad) =>
+            Some(other_quad) => {
+                let ptr = &other_quad.quads_get_rust_ptr();
+                if ptr.is_null() {
+                    self.subject().equals(Some(other_quad.subject()))
+                    && self.predicate().equals(Some(other_quad.predicate()))
+                    && self.object().equals(Some(other_quad.object()))
+                    && self.graph().equals(Some(other_quad.graph()))
+                } else {
+                    unsafe {
+                        if let Some(exported_rust_quad) = ptr.as_ref() {
+                            self._subject == exported_rust_quad._subject
+                            && self._predicate == exported_rust_quad._predicate
+                            && self._object == exported_rust_quad._object
+                            && self._graph == exported_rust_quad._graph
+                        } else {
+                            false
+                        }
+                    }
+                }
+
                 // TODO : Make a SophiaExportTerm that don't clone the items to reuse code without destroying performances
                 // or use a cache mechanic (but it is worst)
-                self.subject().equals(Some(other_quad.subject()))
-                && self.predicate().equals(Some(other_quad.predicate()))
-                && self.object().equals(Some(other_quad.object()))
-                && self.graph().equals(Some(other_quad.graph()))
+            }
         }
     }
 
@@ -625,6 +643,11 @@ impl SophiaExportQuad {
     #[wasm_bindgen(method, setter)]
     pub fn set_graph(&mut self, other: &JsImportTerm) {
         self._graph = build_rcterm_from_js_import_term(other);
+    }
+
+    #[wasm_bindgen(method, getter=getRustPtr)]
+    pub fn quads_get_rust_ptr(&mut self) -> *mut SophiaExportQuad {
+        self
     }
 }
 
@@ -767,11 +790,11 @@ impl SophiaExportDataFactory {
 
 /* ======= */
 /* THE LAB */
-/*
 
+/*
 #[wasm_bindgen]
 pub struct Animal {
-    pub name: String
+    pub name: u32
 }
 
 #[wasm_bindgen]
@@ -786,16 +809,31 @@ impl Animal {
 }
 
 
+#[wasm_bindgen]
+pub fn animalog(js_value: JsValue) {
+    let animalust = Animal::try_from(&js_value);
+
+    if let Ok(a) = animalust {
+        a.common();
+        a.export_only();
+    } else {
+        let animals = AnimalImport::try_from(&js_value);
+
+        if let Ok(a) = animals {
+            a.common();
+            a.import_only();
+        } else {
+            log("c'est nul :(");
+        }
+    }
+
+
+}
+
 
 #[wasm_bindgen]
 extern "C" {
     pub type AnimalImport;
-
-    #[wasm_bindgen(method, getter = name)]
-    pub fn animal_get_name(this: &AnimalImport);
-
-    #[wasm_bindgen(method, setter = name)]
-    pub fn animal_set_name(this: &AnimalImport, value: String);
 
     #[wasm_bindgen]
     pub fn common(this: &AnimalImport);
@@ -803,6 +841,5 @@ extern "C" {
     #[wasm_bindgen]
     pub fn import_only(this: &AnimalImport);
 }
-
 
 */
