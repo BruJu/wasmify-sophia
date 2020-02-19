@@ -58,12 +58,6 @@ pub struct SophiaExportDataset {
     dataset: FastDataset
 }
 
-impl SophiaExportDataset {
-    pub fn convert_to_sophia_export_quad(&self, js_quad: JsImportQuad) -> SophiaExportQuad {
-        SophiaExportDataFactory::from_quad(js_quad)
-    }
-}
-
 /* DatasetIterator are implemented as earlier versions of NodeJs do not support js_sys::Array::values() */
 
 // The iterator we provide is an iterator on the elements that are contained when we create the iterator
@@ -163,7 +157,7 @@ impl SophiaExportDataset {
     pub fn add(&mut self, quad: JsImportQuad) {
         // As we use RcTerms, copy should be cheap and simple enough to not
         // have too much performances issues
-        let sophia_quad = self.convert_to_sophia_export_quad(quad);
+        let sophia_quad = SophiaExportDataFactory::from_quad(quad);
         self.dataset.insert(
             &sophia_quad._subject,
             &sophia_quad._predicate,
@@ -181,7 +175,7 @@ impl SophiaExportDataset {
     pub fn delete(&mut self, quad: JsImportQuad) {
         // Fastdataset implements the trait SetDataset so this function removes
         // every occurrences of the passed quad
-        let sophia_quad = self.convert_to_sophia_export_quad(quad);
+        let sophia_quad = SophiaExportDataFactory::from_quad(quad);
         self.dataset.remove(
             &sophia_quad._subject,
             &sophia_quad._predicate,
@@ -197,7 +191,7 @@ impl SophiaExportDataset {
     
     #[wasm_bindgen(js_name="has")]
     pub fn has_quad(&self, quad: JsImportQuad) -> bool {
-        let sophia_quad = self.convert_to_sophia_export_quad(quad);
+        let sophia_quad = SophiaExportDataFactory::from_quad(quad);
         self.dataset.contains(
             &sophia_quad._subject,
             &sophia_quad._predicate,
