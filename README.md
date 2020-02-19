@@ -27,24 +27,26 @@ The first goal is to enable javascript users to use *Sophia* as a backend.
 
 *Unit Testing*
 
-I am currently working on integrating Unit Tests
-
 - `npm i @rdfjs/namespace`
 
-- `npm run test`
+- `./wasm_example/run_server.sh test`
 
+=
 ---
 
 ## Temporary1 link heap
 
 1 This word is often a lie
 
-### Iterators / Symbol.Iterator
 
-- https://github.com/rustwasm/wasm-bindgen/issues/1036
+- https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/inspectable.html
 
-- https://rustwasm.github.io/wasm-bindgen/api/js_sys/struct.Iterator.html
 
+### Blank Node Normalization
+
+https://rdf.js.org/dataset-spec/#datasetcore-interface : "Blank Nodes will be normalized."
+
+- http://json-ld.github.io/normalization/spec/
 
 
 ---
