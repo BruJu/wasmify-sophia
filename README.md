@@ -216,3 +216,57 @@ sense for the user and that he can't use.
 
 - Python script that modifies the generated javascript code : we can just
 manually add the `return this;` in the ~4 functions that requires it
+
+> Polymorphism on import / export types
+
+For certains methods, we would like to have 3 possibles behaviors.
+
+For example :
+
+```rust
+impl SomeExportedStruct {
+    pub fn equals(&self, other: &SomeExportedStruct) {
+        // Some code
+    }
+
+    pub fn equals(&self, other: &SomeImportedStruct) {
+        // Some code that is slower because we have to ask Javascript the fields
+    }
+
+    pub fn equals(&self, other: JsValue) {
+        // Some other thing
+        false
+    }
+}
+```
+
+
+*Concrete snippet*
+
+```rust
+    #[wasm_bindgen(js_name = equals)]
+    pub fn equals(&self, other: JsValue) -> bool {
+        if other.is_null() || other.is_undefined() {
+            return false;
+        }
+
+        if let Some(exported_quad) = other.almost_dyn_ref::<SophiaExportQuad>() {
+            self._subject == exported_quad._subject
+            && self._predicate == exported_quad._predicate
+            && self._object == exported_quad._object
+            && self._graph == exported_quad._graph
+        } else {
+            let other: JsImportQuad = other.into();
+
+            self.subject().equals(Some(other.subject()))
+            && self.predicate().equals(Some(other.predicate()))
+            && self.object().equals(Some(other.object()))
+            && self.graph().equals(Some(other.graph()))
+        }
+    }
+```
+
+Currently, we can simulate this behavior by using pointers and a getter to potentially get a pointer from this rust structure (other implementations will probably return undefined when getting this field which will be casted into 0).
+
+Note that if we have a function that requires an exported type, the one who performs the check if Javascript using (paramter instanceof Class).
+
