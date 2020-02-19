@@ -102,6 +102,26 @@ function runTests (DataFactory) {
 
         assert.equal(quad.equals(null), false)
       })
+
+
+      describe('.equals', function () {
+        it('should be compatible with other RDFJS libs', function () {
+          var subject = DataFactory.namedNode('http://example.org/subject')
+          var predicate = DataFactory.namedNode('http://example.org/predicate')
+          var object = DataFactory.namedNode('http://example.org/object')
+          var graph = DataFactory.namedNode('http://example.org/graph')
+
+          var quad1 = DataFactory.quad(subject, predicate, object, graph)
+          var quad2 = {
+            subject: { termType: 'NamedNode', value: 'http://example.org/subject' },
+            predicate: { termType: 'NamedNode', value: 'http://example.org/predicate' },
+            object: { termType: 'NamedNode', value: 'http://example.org/object' },
+            graph: { termType: 'NamedNode', value: 'http://example.org/graph' },
+          }
+  
+          assert.equal(quad1.equals(quad2), true)
+        })
+      })
     })
   })
 }
