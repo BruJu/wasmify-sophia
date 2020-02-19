@@ -17,11 +17,18 @@ then
     pre_compile
     wasm-bindgen --target nodejs target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
     mocha
+  elif [ $1 == "run" ]
+  then
+    pre_compile
+    wasm-bindgen --target no-modules target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
+    npm run serve
   else
     echo "Unknown argument"
   fi
 else
   pre_compile
+  wasm-bindgen --target nodejs target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
+  mocha
   wasm-bindgen --target no-modules target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
   npm run serve
 fi

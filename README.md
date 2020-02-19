@@ -250,7 +250,7 @@ impl SomeExportedStruct {
             return false;
         }
 
-        if let Some(exported_quad) = other.almost_dyn_ref::<SophiaExportQuad>() {
+        if let Some(exported_quad) = other.dyn_ref::<SophiaExportQuad>() {
             self._subject == exported_quad._subject
             && self._predicate == exported_quad._predicate
             && self._object == exported_quad._object
@@ -268,5 +268,5 @@ impl SomeExportedStruct {
 
 Currently, we can simulate this behavior by using pointers and a getter to potentially get a pointer from this rust structure (other implementations will probably return undefined when getting this field which will be casted into 0).
 
-Note that if we have a function that requires an exported type, the one who performs the check if Javascript using (paramter instanceof Class).
+Note that if we have a function that requires an exported type, the one who performs the check if Javascript using (paramter instanceof Class) and a pointer in passed to wasm.
 

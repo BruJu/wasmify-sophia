@@ -10,6 +10,7 @@ use uuid::Uuid;
 use sophia::dataset::Dataset;
 use sophia::dataset::inmem::FastDataset;
 use sophia::quad::Quad;
+use sophia::quad::stream::QuadSink;
 use sophia::quad::stream::QuadSource;
 use sophia::graph::inmem::LightGraph;
 use sophia::parser::trig;
@@ -240,6 +241,53 @@ impl SophiaExportDataset {
     pub fn get_size(&self) -> usize {
         self.dataset.quads().into_iter().count()
     }
+
+    // this                              addAll ((Dataset or sequence<Quad>) quads);
+    // boolean                           contains (Dataset other);
+    // this                              deleteMatches (optional Term subject, optional Term predicate, optional Term object, optional Term graph);
+    // Dataset                           difference (Dataset other);
+    // boolean                           equals (Dataset other);
+    // boolean                           every (QuadFilterIteratee iteratee);
+    // Dataset                           filter (QuadFilterIteratee iteratee);
+    // void                              forEach (QuadRunIteratee iteratee);
+    // Promise<Dataset>                  import (Stream stream);
+    // Dataset                           intersection (Dataset other);
+    // Dataset                           map (QuadMapIteratee iteratee);
+    // any                               reduce (QuadReduceIteratee iteratee, optional any initialValue);
+    // boolean                           some (QuadFilterIteratee iteratee);
+
+    #[wasm_bindgen(js_name="toArray")]
+    pub fn to_array(&self) -> js_sys::Array {
+        self.quads()
+    }
+
+    // String                            toCanonical ();
+    // Stream                            toStream ();
+
+    #[wasm_bindgen(js_name="toString")]
+    pub fn to_string(&self) -> String {
+        log("🌍");
+
+        self.dataset
+            .quads()
+            .map_quads(|q| 
+                match q.g().as_ref() {
+                    None    => format!("{0} {1} {2} .",     q.s().n3(), q.p().n3(), q.o().n3()),
+                    Some(g) => format!("{0} {1} {2} {3} .", q.s().n3(), q.p().n3(), q.o().n3(), g.n3())
+                }
+            )
+            .into_iter()
+            .collect::<Result<Vec<String>, _>>()
+            .unwrap()
+            .join("\n")
+    }
+    
+    // Dataset                           union (Dataset quads);
+}
+
+impl SophiaExportDataset {
+
+
 }
 
 
