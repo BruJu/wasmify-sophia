@@ -48,6 +48,21 @@ function runTests (rdf) {
             assert(dst.has(quad3))
           })
 
+  
+        it('should add the given dataset', () => {
+            const quad1 = rdf.quad(ex.subject, ex.predicate, ex.object1)
+            const quad2 = rdf.quad(ex.subject, ex.predicate, ex.object2)
+            const quad3 = rdf.quad(ex.subject, ex.predicate, ex.object3)
+  
+            const dst = rdf.dataset([quad1])
+            const src = rdf.dataset([quad2, quad3])
+
+            dst.addAll(src)
+            assert(dst.has(quad1))
+            assert(dst.has(quad2))
+            assert(dst.has(quad3))
+          })
+
         /*
         it('should not add duplicate Quads', () => {
           const quadA = rdf.quad(ex.subject, ex.predicate, ex.object)
@@ -60,6 +75,58 @@ function runTests (rdf) {
           assert.strictEqual(dataset.size, 1)
         })
         */
+      })
+    })
+
+    describe('contains', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.contains, 'function')
+      })
+
+      it('should contains itself', () => {
+        const quad1 = rdf.quad(ex.subject, ex.predicate, ex.object1)
+        const quad2 = rdf.quad(ex.subject, ex.predicate, ex.object2)
+
+        const dst = rdf.dataset([quad1, quad2])
+        const other_graph = rdf.dataset([quad1, quad2])
+
+        assert(dst.contains(other_graph));
+        assert(dst.contains(dst));
+      })
+
+      it('should contain an empty graph', () => {
+        const quad1 = rdf.quad(ex.subject, ex.predicate, ex.object1)
+        const quad2 = rdf.quad(ex.subject, ex.predicate, ex.object2)
+
+        const dst = rdf.dataset([quad1, quad2])
+        const an_empty_graph = rdf.dataset();
+
+        assert(dst.contains(an_empty_graph));
+        assert(!an_empty_graph.contains(dst));
+      })
+
+      it('should contain small graph', () => {
+        const quad1 = rdf.quad(ex.subject, ex.predicate, ex.object1)
+        const quad2 = rdf.quad(ex.subject, ex.predicate, ex.object2)
+
+        const big = rdf.dataset([quad1, quad2])
+        const small = rdf.dataset([quad1])
+
+        assert(big.contains(small));
+        assert(!small.contains(big));
+      })
+
+      it('should not contain a graph that a differente lement', () => {
+        const quad1 = rdf.quad(ex.subject, ex.predicate, ex.object1)
+        const quad2 = rdf.quad(ex.subject, ex.predicate, ex.object2)
+        const quad3 = rdf.quad(ex.subject, ex.predicate, ex.object3)
+
+        const graph12 = rdf.dataset([quad1, quad2])
+        const graph13 = rdf.dataset([quad1, quad3])
+
+        assert(!graph12.contains(graph13));
       })
     })
 }

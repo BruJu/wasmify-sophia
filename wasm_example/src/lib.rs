@@ -141,7 +141,7 @@ impl SophiaExportDataset {
     pub fn contains_dataset(&self, other_dataset: &FastDataset) -> bool {
         other_dataset.quads()
         .into_iter()
-        .any(|element_result| {
+        .all(|element_result| {
             let element = element_result.unwrap();
             self.dataset.contains(
                 element.s(),
