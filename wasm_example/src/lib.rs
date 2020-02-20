@@ -3,6 +3,7 @@ extern crate wasm_bindgen;
 
 // TODO : remove unused imports when finished
 
+use maybe_owned::MaybeOwned;
 use std::any;
 use std::rc::Rc;
 use std::iter;
@@ -135,6 +136,23 @@ pub struct SophiaExportDataset {
     dataset: FastDataset
 }
 
+
+impl SophiaExportDataset {
+    pub fn contains_dataset(&self, other_dataset: &FastDataset) -> bool {
+        other_dataset.quads()
+        .into_iter()
+        .any(|element_result| {
+            let element = element_result.unwrap();
+            self.dataset.contains(
+                element.s(),
+                element.p(),
+                element.o(),
+                element.g()
+            ).unwrap()
+        })
+    }
+}
+
 impl SophiaExportDataset {
     /// Tries to convert a `JsImportDataset` to a `SophiaExportDataset`
     ///
@@ -147,6 +165,17 @@ impl SophiaExportDataset {
             unsafe { ptr.as_ref() }
         } else {
             None
+        }
+    }
+
+    fn extract_dataset<'a>(imported: &'a JsImportDataset) -> MaybeOwned<'a, FastDataset> {
+        let ptr = imported.get_sophia_dataset_ptr();
+
+        if !ptr.is_null() {
+            let ref_ = unsafe { &*ptr };
+            MaybeOwned::Borrowed(&ref_.dataset)
+        } else {
+            panic!("🐄 Conversion from JsImportDataset is not yet implemented");
         }
     }
 }
@@ -336,7 +365,13 @@ impl SophiaExportDataset {
         }
     }
 
-    // boolean                           contains (Dataset other);
+    /// Returns true if imported_dataset is contained by this dataset
+    #[wasm_bindgen(js_name="contains")]
+    pub fn contains(&self, imported_dataset: JsImportDataset) -> bool {
+        let maybe_dataset = SophiaExportDataset::extract_dataset(&imported_dataset);
+        self.contains_dataset(maybe_dataset.as_ref())
+    }
+
     // this                              deleteMatches (optional Term subject, optional Term predicate, optional Term object, optional Term graph);
     // Dataset                           difference (Dataset other);
     // boolean                           equals (Dataset other);

@@ -12,3 +12,4 @@ wasm-bindgen = "0.2.55"
 sophia = { git = "https://github.com/bruju/sophia_rs" }
 js-sys = "0.3.32"
 uuid = { version = "0.8.1", features = ["v4", "wasm-bindgen"] }
+maybe-owned = "0.3.2"
