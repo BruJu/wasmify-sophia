@@ -47,29 +47,22 @@ fn print_type<T>(_: T) {
 }
 
 
-///////////////////////////////
-/// A sample JSTerm to be used in the RDF/JS interface
-/// David Pojunas
-/// Pierre-Antoine Champin
-///////////////////////////////
+// ====================================================================================================================
+// ==== ITERATORS
 
-
-#[wasm_bindgen(js_name="DatasetCore")]
-pub struct SophiaExportDataset {
-    dataset: FastDataset
-}
-
-/* DatasetIterator are implemented as earlier versions of NodeJs do not support js_sys::Array::values() */
-
-// The iterator we provide is an iterator on the elements that are contained when we create the iterator
-// New and deleted elements in the dataset do not change the state of the iterator
-
+/// An iterator on the elements contained by an exported container.
+///
+/// The iterator we provide is an iterator on the elements that are contained when we create the iterator : new and
+/// deleted elements in the origian container do not change the state of the iterator.
+///
+/// This feature is implemented as earlier versions of NodeJs do not support `js_sys::Array::values()`
 #[wasm_bindgen]
 pub struct RustExportIterator {
     array: js_sys::Array
 }
 
 impl RustExportIterator {
+    /// Build an iterator from a `js_sys::Array`
     pub fn new(array: js_sys::Array) -> RustExportIterator {
         // We reverse in place so we can think our iterator as a list of quads we have not iterated on yet
         array.reverse();
@@ -79,6 +72,7 @@ impl RustExportIterator {
 
 #[wasm_bindgen]
 impl RustExportIterator {
+    /// Returns an `RustExportIteratorNext` that contains to the next element
     pub fn next(&mut self) -> RustExportIteratorNext {
         if self.array.length() != 0 {
             RustExportIteratorNext{ current_element: Some(self.array.pop()) }
@@ -88,19 +82,26 @@ impl RustExportIterator {
     }
 }
 
+/// An object that contains an element returned by `RustExportIterator::next`
+///
+/// It follows the Javascript specification, having a `done` attribute that tells if the iterator is empty and a
+/// `value` attribute that contains the eventual value. They are modelized with an optional `JsValue`.
 #[wasm_bindgen]
 pub struct RustExportIteratorNext {
     #[wasm_bindgen(skip)]
+    /// The JsValue contained by this object
     pub current_element: Option<JsValue>
 }
 
 #[wasm_bindgen]
 impl RustExportIteratorNext {
+    /// Return true if the iterator is empty
     #[wasm_bindgen(getter)]
     pub fn done(&self) -> bool {
         self.current_element.is_none()
     }
 
+    /// Return the possessed `JsValue`
     #[wasm_bindgen(getter)]
     pub fn value(&self) -> JsValue {
         match self.current_element.as_ref() {
@@ -111,15 +112,27 @@ impl RustExportIteratorNext {
 }
 
 
-/* Dataset export */
+
+// ====================================================================================================================
+// ==== DATASET
+
+
+/// A Sophia `FastDataset` adapter that can be exported to an object that is almost compliant to a
+/// [RDF.JS dataset](https://rdf.js.org/dataset-spec/#dataset-interface)
+#[wasm_bindgen(js_name="DatasetCore")]
+pub struct SophiaExportDataset {
+    dataset: FastDataset
+}
 
 #[wasm_bindgen(js_class="DatasetCore")]
 impl SophiaExportDataset {
+    /// Constructs an empty `FastDataset` that have a RDF.JS interface.
     #[wasm_bindgen(constructor)]
     pub fn new() -> SophiaExportDataset {
         SophiaExportDataset{ dataset: FastDataset::new() }
     }
 
+    /// Returns a javascript style iterator on every quads on this dataset.
     #[wasm_bindgen(js_name="getIterator")]
     pub fn get_iterator(&self) -> RustExportIterator {
         // TODO : bind this function call to this[Symbol.iterator]
@@ -127,6 +140,15 @@ impl SophiaExportDataset {
         RustExportIterator::new(self.quads())
     }
 
+    /// Returns a pointer on this object.
+    /// 
+    /// It is used as a way to detect if a javascript object that we received is an exported object by this library.
+    #[wasm_bindgen(method, getter=getSophiaDatasetPtr)]
+    pub fn as_mutable_ptr(&mut self) -> *mut SophiaExportDataset {
+        self
+    }
+
+    /// Loads the content of a rdf graph formatted following the [TriG syntax](https://www.w3.org/TR/trig/)
     pub fn load(&mut self, content: &str) {
         let r = sophia::parser::trig::parse_str(&content).in_dataset(&mut self.dataset);
         match r {
@@ -135,6 +157,7 @@ impl SophiaExportDataset {
         }
     }
     
+    /// Returns every term contained by the dataset
     #[wasm_bindgen(js_name="getTerms")]
     pub fn get_terms(&self) -> js_sys::Array {
         let subjects = self.dataset.subjects().unwrap();
@@ -153,6 +176,7 @@ impl SophiaExportDataset {
                  .collect()
     }
 
+    /// Adds the given quad to this dataset
     #[wasm_bindgen(js_name="add")]
     pub fn add(&mut self, quad: JsImportQuad) {
         // As we use RcTerms, copy should be cheap and simple enough to not
@@ -171,6 +195,7 @@ impl SophiaExportDataset {
         // TODO : return this
     }
 
+    /// Deletes the passed quad from this dataset
     #[wasm_bindgen(js_name="delete")]
     pub fn delete(&mut self, quad: JsImportQuad) {
         // Fastdataset implements the trait SetDataset so this function removes
@@ -189,6 +214,7 @@ impl SophiaExportDataset {
         // TODO : return this
     }
     
+    /// Returns `true` if this dataset have the passed quad
     #[wasm_bindgen(js_name="has")]
     pub fn has_quad(&self, quad: JsImportQuad) -> bool {
         let sophia_quad = SophiaExportDataFactory::from_quad(quad);
@@ -203,6 +229,7 @@ impl SophiaExportDataset {
         ).unwrap()
     }
 
+    /// Returns a new dataset that contains every quad that matches the passed arguments.
     #[wasm_bindgen(js_name="match")]
     pub fn match_quad(&self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> SophiaExportDataset {
@@ -237,12 +264,19 @@ impl SophiaExportDataset {
         SophiaExportDataset{ dataset: dataset }
     }
 
+    /// Returns the number of quads contained by this dataset
     #[wasm_bindgen(getter = size)]
     pub fn get_size(&self) -> usize {
         self.dataset.quads().into_iter().count()
     }
 
-    // this                              addAll ((Dataset or sequence<Quad>) quads);
+    #[wasm_bindgen(js_name="addAll")]
+    pub fn add_all(&self, quads: JsValue) {
+        // this addAll ((Dataset or sequence<Quad>) quads);
+
+
+    }
+
     // boolean                           contains (Dataset other);
     // this                              deleteMatches (optional Term subject, optional Term predicate, optional Term object, optional Term graph);
     // Dataset                           difference (Dataset other);
@@ -256,6 +290,7 @@ impl SophiaExportDataset {
     // any                               reduce (QuadReduceIteratee iteratee, optional any initialValue);
     // boolean                           some (QuadFilterIteratee iteratee);
 
+    /// Returns an array that contains every quad contained by this dataset
     #[wasm_bindgen(js_name="toArray")]
     pub fn to_array(&self) -> js_sys::Array {
         self.quads()
@@ -264,10 +299,9 @@ impl SophiaExportDataset {
     // String                            toCanonical ();
     // Stream                            toStream ();
 
+    /// Returns a string representation of the quads contained in the dataset
     #[wasm_bindgen(js_name="toString")]
     pub fn to_string(&self) -> String {
-        log("🌍");
-
         self.dataset
             .quads()
             .map_quads(|q| 
@@ -352,22 +386,21 @@ fn build_rcterm_from_js_import_term(term: &JsImportTerm) -> Option<RcTerm> {
 
 
 
-// Exportation of rust terms using an adapter that owns the term
-
+/// Exportation of rust terms using an adapter that owns the term
 #[wasm_bindgen(js_name="Term")]
 pub struct SophiaExportTerm {
-    /// The encapsulated Sophia Term. If None, this term describes the default graph.
+    /// The encapsulated Sophia Term. If `None`, this term describes the default graph.
     term: Option<RcTerm>
+    // TODO : Wouldn't it be better to make a proper enum { OnwedRcTerm(A), DefaultGraph } ?
 }
 
-// The new function is not exported into the Javascript interface
 impl SophiaExportTerm {   
-    // Returns a RDF JS compliant term based on Sophia's RcTerm
+    /// Returns a RDF JS compliant term based on Sophia's RcTerm
     pub fn new(term: &RcTerm) -> SophiaExportTerm {
         SophiaExportTerm { term: Some(term.clone()) }
     }
 
-    // Returns a term that represents the default graph
+    /// Returns a term that represents the default graph
     pub fn default_graph() -> SophiaExportTerm {
         SophiaExportTerm { term: None }
     }
