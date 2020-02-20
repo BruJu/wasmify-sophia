@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::iter;
 use uuid::Uuid;
 use sophia::dataset::Dataset;
+use sophia::dataset::DQuadSource;
 use sophia::dataset::inmem::FastDataset;
 use sophia::quad::Quad;
 use sophia::quad::stream::QuadSink;
@@ -128,7 +129,6 @@ extern "C" {
     pub fn get_sophia_dataset_ptr(this: &JsImportDataset) -> *mut SophiaExportDataset;
 }
 
-
 /// A Sophia `FastDataset` adapter that can be exported to an object that is almost compliant to a
 /// [RDF.JS dataset](https://rdf.js.org/dataset-spec/#dataset-interface)
 #[wasm_bindgen(js_name="DatasetCore")]
@@ -136,8 +136,8 @@ pub struct SophiaExportDataset {
     dataset: FastDataset
 }
 
-
 impl SophiaExportDataset {
+    /// Returns true if this dataset contained the passed `FastDataset`
     pub fn contains_dataset(&self, other_dataset: &FastDataset) -> bool {
         other_dataset.quads()
         .into_iter()
@@ -151,6 +151,51 @@ impl SophiaExportDataset {
             ).unwrap()
         })
     }
+
+    /*
+    I have some lifetime issues, an idea would be to return this struct :
+
+    struct MatchIterable<'a> {
+        s: RcTerm,
+        o: RcTerm,
+        p: RcTerm,
+        g: Option<RcTerm>,
+        quad_source: DQuadSource<'a, FastDataset>
+    }
+
+    so we have a struct than owns the data it borrows
+    but it deems overcomplicated to just return an iterator
+
+    /// Returns an iterator built from the passed terms imported from the Javascript world to match a pattern
+    /// 
+    /// See [RDF.JS match specification](https://rdf.js.org/dataset-spec/#dfn-match)
+    pub fn matches_iterator<'s>(&self, subject: Option<JsImportTerm>,predicate: Option<JsImportTerm>,
+        object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> DQuadSource<FastDataset> {
+        let subject = subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
+        let predicate = predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
+        let object = object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
+        let graph = graph.as_ref().map(|x| build_rcterm_from_js_import_term(x));
+
+        match (subject, predicate, object, graph) {
+            (None   , None   , None   , None   ) => self.dataset.quads(),
+            (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(&o),
+            (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(&p),
+            (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(&p, &o),
+            (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(&s),
+            (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(&s, &o),
+            (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(&s, &p),
+            (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(&s, &p, &o),
+            (None   , None   , None   , Some(g)) => self.dataset.quads_with_g(g.as_ref()),
+            (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(&o, g.as_ref()),
+            (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(&p, g.as_ref()),
+            (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(&p, &o, g.as_ref()),
+            (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(&s, g.as_ref()),
+            (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(&s, &o, g.as_ref()),
+            (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(&s, &p, g.as_ref()),
+            (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(&s, &p, &o, g.as_ref())
+        }
+    }
+    */
 }
 
 impl SophiaExportDataset {
@@ -175,7 +220,28 @@ impl SophiaExportDataset {
             let ref_ = unsafe { &*ptr };
             MaybeOwned::Borrowed(&ref_.dataset)
         } else {
-            panic!("🐄 Conversion from JsImportDataset is not yet implemented");
+            // TODO : there is probably a better dataset structure to just add quads and then iterate on
+            let mut exported_dataset = SophiaExportDataset::new();
+            
+            // We us the fact that we can iterate on the dataset
+            let import_as_js_value = JsValue::from(imported);
+            let iterator = js_sys::try_iter(&import_as_js_value);
+            match iterator {
+                Ok(Some(iter)) => {
+                    for js_value in iter {
+                        match js_value {
+                            Ok(some_value) => exported_dataset.add(some_value.into()),
+                            _ => {}
+                        }
+                    }
+                },
+                _ => {
+                    // We panic as we should have received a RDF JS compliant graph
+                    panic!("SophiaExportDataset::extract_dataset : Didn't receive an iterable");
+                }
+            }
+        
+            MaybeOwned::Owned(exported_dataset.dataset)
         }
     }
 }
@@ -289,8 +355,6 @@ impl SophiaExportDataset {
     #[wasm_bindgen(js_name="match")]
     pub fn match_quad(&self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> SophiaExportDataset {
-        let mut dataset = FastDataset::new();
-
         let subject = subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
         let predicate = predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
         let object = object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
@@ -315,8 +379,9 @@ impl SophiaExportDataset {
             (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(s, p, o, g.as_ref())
         };
 
+        let mut dataset = FastDataset::new();
         quads_iter.in_dataset(&mut dataset).unwrap();
-
+        
         SophiaExportDataset{ dataset: dataset }
     }
 
@@ -326,9 +391,11 @@ impl SophiaExportDataset {
         self.dataset.quads().into_iter().count()
     }
 
+    /// Adds every quad contained in the passed dataset or sequence
     #[wasm_bindgen(js_name="addAll")]
     pub fn add_all(&mut self, quads_as_jsvalue: JsValue) {
         // this addAll ((Dataset or sequence<Quad>) quads);
+        // TODO : return this
         if quads_as_jsvalue.is_null() || quads_as_jsvalue.is_undefined() {
             return;
         }
@@ -368,9 +435,22 @@ impl SophiaExportDataset {
     /// Returns true if imported_dataset is contained by this dataset
     #[wasm_bindgen(js_name="contains")]
     pub fn contains(&self, imported_dataset: JsImportDataset) -> bool {
+        // TODO : RDF.JS - "Blank Nodes will be normalized."
         let maybe_dataset = SophiaExportDataset::extract_dataset(&imported_dataset);
         self.contains_dataset(maybe_dataset.as_ref())
     }
+
+    /// Delete every quad that matches the given quad components
+    /*
+    #[wasm_bindgen(js_name="deleteMatches")]
+    pub fn delete_matches(&mut self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
+        object: Option<JsImportTerm>, graph: Option<JsImportTerm>) {
+        // this deleteMatches(optional Term, Optional Term, Optional Term, Optional Term)
+        // TODO : return this
+
+
+    }
+    */
 
     // this                              deleteMatches (optional Term subject, optional Term predicate, optional Term object, optional Term graph);
     // Dataset                           difference (Dataset other);
