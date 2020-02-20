@@ -135,6 +135,22 @@ pub struct SophiaExportDataset {
     dataset: FastDataset
 }
 
+impl SophiaExportDataset {
+    /// Tries to convert a `JsImportDataset` to a `SophiaExportDataset`
+    ///
+    /// This function makes the assumption that the get_sophia_dataset_ptr() returns a non null value only if the
+    /// imported object is an exported object (ie this library is the only one to implement the binded function)
+    fn try_from<'a>(imported: &'a JsImportDataset) -> Option<&'a SophiaExportDataset> {
+        let ptr = imported.get_sophia_dataset_ptr();
+
+        if !ptr.is_null() {
+            unsafe { ptr.as_ref() }
+        } else {
+            None
+        }
+    }
+}
+
 #[wasm_bindgen(js_class="DatasetCore")]
 impl SophiaExportDataset {
     /// Constructs an empty `FastDataset` that have a RDF.JS interface.
@@ -291,38 +307,31 @@ impl SophiaExportDataset {
         // Try to detect a SophiaExportDataset
         let imported_dataset = JsImportDataset::from(quads_as_jsvalue);
 
-        let ptr = imported_dataset.get_sophia_dataset_ptr();
+        match SophiaExportDataset::try_from(&imported_dataset) {
+            Some(exported) => {
+                exported.dataset.quads().in_dataset(&mut self.dataset).unwrap();
+            },
+            None => {
+                // We get back our jsvalue and we use the fact that both a dataset and a sequence<quad> can be iterated on to
+                // receive quads.
+                let quads_as_jsvalue = JsValue::from(imported_dataset);
 
-        if !ptr.is_null() {
-            // Probably a SophiaExportDataset
-            let other_ref = unsafe { ptr.as_ref() };
+                let iterator = js_sys::try_iter(&quads_as_jsvalue);
 
-            if let Some(other) = other_ref {
-                other.dataset.quads().in_dataset(&mut self.dataset).unwrap();
-                return;
-            }
-        }
-
-        // - Fall back to the fact that jsValue is iterable
-        // We get back our jsvalue and we use the fact that both a dataset and a sequence<quad> can be iterated on to
-        // receive quads.
-        let quads_as_jsvalue = JsValue::from(imported_dataset);
-
-        
-        let iterator = js_sys::try_iter(&quads_as_jsvalue);
-
-        match iterator {
-            Ok(Some(iter)) => {
-                for js_value in iter {
-                    match js_value {
-                        Ok(some_value) => self.add(some_value.into()),
-                        _ => {}
+                match iterator {
+                    Ok(Some(iter)) => {
+                        for js_value in iter {
+                            match js_value {
+                                Ok(some_value) => self.add(some_value.into()),
+                                _ => {}
+                            }
+                        }
+                    },
+                    _ => {
+                        // TODO : error management
+                        log("SophiaExportDataset::add_all did not receive an iterable");
                     }
                 }
-            },
-            _ => {
-                // TODO : error management
-                log("SophiaExportDataset::add_all did not receive an iterable");
             }
         }
     }
