@@ -9,6 +9,7 @@ function runTests (rdf) {
   require('./triple')(rdf)          // Data Model
   require('./quad')(rdf)            // Data Model
   require('./DatasetCore')(rdf)     // Dataset
+  require('./Dataset')(rdf)         // Dataset
 }
 
 if (global.rdf) {
