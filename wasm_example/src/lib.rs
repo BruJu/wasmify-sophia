@@ -136,6 +136,27 @@ pub struct SophiaExportDataset {
     dataset: FastDataset
 }
 
+
+pub struct MatchRequestOnRcTerm {
+    pub s: Option<RcTerm>,
+    pub p: Option<RcTerm>,
+    pub o: Option<RcTerm>,
+    pub g: Option<Option<RcTerm>>
+}
+
+impl MatchRequestOnRcTerm {
+    pub fn new(subject: Option<JsImportTerm>,predicate: Option<JsImportTerm>,
+        object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> MatchRequestOnRcTerm {
+            MatchRequestOnRcTerm {
+            s: subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap()),
+            p: predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap()),
+            o: object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap()),
+            g: graph.as_ref().map(build_rcterm_from_js_import_term)
+        }
+    }
+}
+
+
 impl SophiaExportDataset {
     /// Returns true if this dataset contained the passed `FastDataset`
     pub fn contains_dataset(&self, other_dataset: &FastDataset) -> bool {
@@ -152,50 +173,31 @@ impl SophiaExportDataset {
         })
     }
 
-    /*
-    I have some lifetime issues, an idea would be to return this struct :
-
-    struct MatchIterable<'a> {
-        s: RcTerm,
-        o: RcTerm,
-        p: RcTerm,
-        g: Option<RcTerm>,
-        quad_source: DQuadSource<'a, FastDataset>
-    }
-
-    so we have a struct than owns the data it borrows
-    but it deems overcomplicated to just return an iterator
-
-    /// Returns an iterator built from the passed terms imported from the Javascript world to match a pattern
+    /// Returns an iterator built from the passed match request
     /// 
     /// See [RDF.JS match specification](https://rdf.js.org/dataset-spec/#dfn-match)
-    pub fn matches_iterator<'s>(&self, subject: Option<JsImportTerm>,predicate: Option<JsImportTerm>,
-        object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> DQuadSource<FastDataset> {
-        let subject = subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-        let predicate = predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-        let object = object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-        let graph = graph.as_ref().map(|x| build_rcterm_from_js_import_term(x));
-
-        match (subject, predicate, object, graph) {
+    pub fn matches_iterator<'a, 's>(&'a self, match_iterable: &'s MatchRequestOnRcTerm)
+        -> DQuadSource<'s, FastDataset>
+        where 'a: 's {
+        match (&match_iterable.s, &match_iterable.p, &match_iterable.o, &match_iterable.g) {
             (None   , None   , None   , None   ) => self.dataset.quads(),
-            (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(&o),
-            (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(&p),
-            (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(&p, &o),
-            (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(&s),
-            (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(&s, &o),
-            (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(&s, &p),
-            (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(&s, &p, &o),
+            (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(o),
+            (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(p),
+            (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(p, o),
+            (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(s),
+            (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(s, o),
+            (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(s, p),
+            (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(s, p, o),
             (None   , None   , None   , Some(g)) => self.dataset.quads_with_g(g.as_ref()),
-            (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(&o, g.as_ref()),
-            (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(&p, g.as_ref()),
-            (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(&p, &o, g.as_ref()),
-            (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(&s, g.as_ref()),
-            (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(&s, &o, g.as_ref()),
-            (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(&s, &p, g.as_ref()),
-            (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(&s, &p, &o, g.as_ref())
+            (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(o, g.as_ref()),
+            (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(p, g.as_ref()),
+            (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(p, o, g.as_ref()),
+            (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(s, g.as_ref()),
+            (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(s, o, g.as_ref()),
+            (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(s, p, g.as_ref()),
+            (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(s, p, o, g.as_ref())
         }
     }
-    */
 }
 
 impl SophiaExportDataset {
@@ -355,29 +357,8 @@ impl SophiaExportDataset {
     #[wasm_bindgen(js_name="match")]
     pub fn match_quad(&self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> SophiaExportDataset {
-        let subject = subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-        let predicate = predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-        let object = object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap());
-        let graph = graph.as_ref().map(|x| build_rcterm_from_js_import_term(x));
-
-        let mut quads_iter = match (&subject, &predicate, &object, graph.as_ref()) {
-            (None   , None   , None   , None   ) => self.dataset.quads(),
-            (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(o),
-            (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(p),
-            (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(p, o),
-            (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(s),
-            (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(s, o),
-            (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(s, p),
-            (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(s, p, o),
-            (None   , None   , None   , Some(g)) => self.dataset.quads_with_g(g.as_ref()),
-            (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(o, g.as_ref()),
-            (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(p, g.as_ref()),
-            (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(p, o, g.as_ref()),
-            (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(s, g.as_ref()),
-            (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(s, o, g.as_ref()),
-            (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(s, p, g.as_ref()),
-            (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(s, p, o, g.as_ref())
-        };
+        let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
+        let mut quads_iter = self.matches_iterator(&m);
 
         let mut dataset = FastDataset::new();
         quads_iter.in_dataset(&mut dataset).unwrap();
