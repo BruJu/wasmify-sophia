@@ -217,6 +217,24 @@ function runTests (rdf) {
         assert(graph.has(in_other))
       })
     })
+
+
+    describe('some', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.some, 'function')
+      })
+
+      it('should find existing elements', () => {
+        const quad = rdf.quad(ex.subject, ex.predicate, ex.object)
+        const graph = rdf.dataset([quad])
+
+        assert(graph.some(q => quad.equals(q)));
+        assert(graph.some(q => q.subject.value == ex.subject.value));
+        assert(!graph.some(q => q.subject.value == ex.subject145.value));
+      })
+    })
 }
 
 module.exports = runTests

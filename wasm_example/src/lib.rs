@@ -542,6 +542,18 @@ impl SophiaExportDataset {
     // any                               reduce (QuadReduceIteratee iteratee, optional any initialValue);
     // boolean                           some (QuadFilterIteratee iteratee);
 
+    #[wasm_bindgen(js_name="some")]
+    pub fn some(&self, filter_function: &js_sys::Function) -> bool {
+        self.dataset.quads()
+            .into_iter()
+            .any(|quad| {
+            let quad = quad.unwrap();
+            let export_quad = SophiaExportQuad::new(quad.s(), quad.p(), quad.o(), quad.g());
+            let js_value = JsValue::from(export_quad);
+            filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
+        })
+    }
+
     /// Returns an array that contains every quad contained by this dataset
     #[wasm_bindgen(js_name="toArray")]
     pub fn to_array(&self) -> js_sys::Array {
