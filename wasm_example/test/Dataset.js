@@ -129,6 +129,94 @@ function runTests (rdf) {
         assert(!graph12.contains(graph13));
       })
     })
+
+
+    describe('deleteMatches', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.deleteMatches, 'function')
+      })
+
+      it('delete all by default', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+        const quad21 = rdf.quad(ex.subject2, ex.predicate, ex.object1)
+
+        const graph = rdf.dataset([quad11, quad12, quad13, quad21])
+
+        assert.strictEqual(graph.size, 4)
+        graph.deleteMatches()
+        assert.strictEqual(graph.size, 0)
+      })
+
+      it('delete all if removing a shared predicate', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+        const quad21 = rdf.quad(ex.subject2, ex.predicate, ex.object1)
+
+        const graph = rdf.dataset([quad11, quad12, quad13, quad21])
+
+        assert.strictEqual(graph.size, 4)
+        graph.deleteMatches(undefined, ex.predicate, undefined, undefined)
+        assert.strictEqual(graph.size, 0)
+      })
+
+      it('delete only matching term', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+        const quad21 = rdf.quad(ex.subject2, ex.predicate, ex.object1)
+
+        const graph = rdf.dataset([quad11, quad12, quad13, quad21])
+
+        assert.strictEqual(graph.size, 4)
+        graph.deleteMatches(ex.subject1)
+        assert.strictEqual(graph.size, 1)
+        assert(graph.has(quad21))
+      })
+
+      it('delete only matching term (bis)', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+        const quad21 = rdf.quad(ex.subject2, ex.predicate, ex.object1)
+
+        const graph = rdf.dataset([quad11, quad12, quad13, quad21])
+
+        assert.strictEqual(graph.size, 4)
+        graph.deleteMatches(undefined, undefined, ex.object1)
+        assert.strictEqual(graph.size, 2)
+        assert(graph.has(quad12))
+        assert(graph.has(quad13))
+      })
+
+      it('work properly with default graph', () => {
+        const in_default = rdf.quad(ex.subject1, ex.predicate, ex.object1, rdf.defaultGraph())
+        const in_other = rdf.quad(ex.subject1, ex.predicate, ex.object1, ex.other)
+
+        const graph = rdf.dataset([in_default, in_other])
+
+        graph.deleteMatches(undefined, undefined, undefined, rdf.defaultGraph())
+        assert.strictEqual(graph.size, 1)
+        assert(graph.has(in_other))
+      })
+
+      it('work properly with another graph', () => {
+        const in_default = rdf.quad(ex.subject1, ex.predicate, ex.object1, rdf.defaultGraph())
+        const in_other = rdf.quad(ex.subject1, ex.predicate, ex.object1, ex.other)
+        const in_another = rdf.quad(ex.subject1, ex.predicate, ex.object1, ex.another)
+
+        const graph = rdf.dataset([in_default, in_other, in_another])
+
+        graph.deleteMatches(undefined, undefined, undefined, ex.another)
+        assert.strictEqual(graph.size, 2)
+        assert(graph.has(in_default))
+        assert(graph.has(in_other))
+      })
+    })
 }
 
 module.exports = runTests

@@ -474,13 +474,10 @@ impl SophiaExportDataset {
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) {
         // this deleteMatches(optional Term, Optional Term, Optional Term, Optional Term)
         // TODO : return this
-        /*
+        
         let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
-        self.dataset.remove_matching(
-            m._s,
-            
-        );
-*/
+        self.dataset.remove_matching(&m.s, &m.p, &m.o, &m.g).unwrap();
+
     }
     
 
