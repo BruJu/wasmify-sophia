@@ -486,8 +486,11 @@ impl SophiaExportDataset {
         let mut ds = FastDataset::new();
 
         self.dataset.quads()
-            .filter(|quad| !other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap())
-            .in_dataset(ds);
+            .filter(|quad| {
+                let quad = quad.as_ref().unwrap();
+                !other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap()
+            })
+            .in_dataset(&mut ds);
 
         SophiaExportDataset { dataset: ds }
     }
@@ -497,19 +500,23 @@ impl SophiaExportDataset {
     pub fn equals(&self, imported_dataset: JsImportDataset) -> bool {
         let other = SophiaExportDataset::extract_dataset(&imported_dataset);
 
-        return self.dataset.length == other.dataset.length && self.contains_dataset(imported_dataset.dataset)
+        self.get_size() == other.quads().into_iter().count()
+            && self.contains_dataset(&other)
     }
 
     /// Returns a dataset with the elements that are contained by both dataset
     #[wasm_bindgen(js_name="intersection")]
-    pub fn intersection&self, imported_dataset: JsImportDataset) -> SophiaExportDataset {
+    pub fn intersection(&self, imported_dataset: JsImportDataset) -> SophiaExportDataset {
         let other = SophiaExportDataset::extract_dataset(&imported_dataset);
 
         let mut ds = FastDataset::new();
 
         self.dataset.quads()
-            .filter(|quad| other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap())
-            .in_dataset(ds);
+            .filter(|quad| {
+                let quad = quad.as_ref().unwrap();
+                other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap()
+            })
+            .in_dataset(&mut ds);
 
         SophiaExportDataset { dataset: ds }
     }
@@ -521,8 +528,8 @@ impl SophiaExportDataset {
 
         let mut ds = FastDataset::new();
 
-        self.dataset.quads().in_dataset(ds);
-        other.dataset.quads().in_dataset(ds);
+        self.dataset.quads().in_dataset(&mut ds);
+        other.quads().in_dataset(&mut ds);
 
         SophiaExportDataset { dataset: ds }
     }
