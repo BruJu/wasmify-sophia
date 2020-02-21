@@ -468,7 +468,6 @@ impl SophiaExportDataset {
     }
 
     /// Delete every quad that matches the given quad components
-    
     #[wasm_bindgen(js_name="deleteMatches")]
     pub fn delete_matches(&mut self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) {
@@ -477,18 +476,61 @@ impl SophiaExportDataset {
         
         let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
         self.dataset.remove_matching(&m.s, &m.p, &m.o, &m.g).unwrap();
-
     }
     
+    /// Returns a new dataset which contains the elements of this dataset that are not included in the imported_dataset
+    #[wasm_bindgen(js_name="difference")]
+    pub fn difference(&self, imported_dataset: JsImportDataset) -> SophiaExportDataset {
+        let other = SophiaExportDataset::extract_dataset(&imported_dataset);
 
-    // this                              deleteMatches (optional Term subject, optional Term predicate, optional Term object, optional Term graph);
-    // Dataset                           difference (Dataset other);
-    // boolean                           equals (Dataset other);
+        let mut ds = FastDataset::new();
+
+        self.dataset.quads()
+            .filter(|quad| !other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap())
+            .in_dataset(ds);
+
+        SophiaExportDataset { dataset: ds }
+    }
+
+    /// Returns true if the two datasets are equals
+    #[wasm_bindgen(js_name="equals")]
+    pub fn equals(&self, imported_dataset: JsImportDataset) -> bool {
+        let other = SophiaExportDataset::extract_dataset(&imported_dataset);
+
+        return self.dataset.length == other.dataset.length && self.contains_dataset(imported_dataset.dataset)
+    }
+
+    /// Returns a dataset with the elements that are contained by both dataset
+    #[wasm_bindgen(js_name="intersection")]
+    pub fn intersection&self, imported_dataset: JsImportDataset) -> SophiaExportDataset {
+        let other = SophiaExportDataset::extract_dataset(&imported_dataset);
+
+        let mut ds = FastDataset::new();
+
+        self.dataset.quads()
+            .filter(|quad| other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap())
+            .in_dataset(ds);
+
+        SophiaExportDataset { dataset: ds }
+    }
+
+    /// Returns a dataset that contains all quads from the two graphs
+    #[wasm_bindgen(js_name="union")]
+    pub fn union(&self, imported_dataset: JsImportDataset) -> SophiaExportDataset {
+        let other = SophiaExportDataset::extract_dataset(&imported_dataset);
+
+        let mut ds = FastDataset::new();
+
+        self.dataset.quads().in_dataset(ds);
+        other.dataset.quads().in_dataset(ds);
+
+        SophiaExportDataset { dataset: ds }
+    }
+
     // boolean                           every (QuadFilterIteratee iteratee);
     // Dataset                           filter (QuadFilterIteratee iteratee);
     // void                              forEach (QuadRunIteratee iteratee);
     // Promise<Dataset>                  import (Stream stream);
-    // Dataset                           intersection (Dataset other);
     // Dataset                           map (QuadMapIteratee iteratee);
     // any                               reduce (QuadReduceIteratee iteratee, optional any initialValue);
     // boolean                           some (QuadFilterIteratee iteratee);
@@ -519,7 +561,6 @@ impl SophiaExportDataset {
             .join("\n")
     }
     
-    // Dataset                           union (Dataset quads);
 }
 
 impl SophiaExportDataset {
