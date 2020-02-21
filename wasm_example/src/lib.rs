@@ -11,12 +11,15 @@ use uuid::Uuid;
 use sophia::dataset::Dataset;
 use sophia::dataset::DQuadSource;
 use sophia::dataset::inmem::FastDataset;
+use sophia::dataset::inmem::LightDataset;
 use sophia::quad::Quad;
 use sophia::quad::stream::QuadSink;
 use sophia::quad::stream::QuadSource;
 use sophia::graph::inmem::LightGraph;
 use sophia::parser::trig;
 use sophia::term::*;
+use sophia::term::matcher::GraphNameMatcher;
+use sophia::term::matcher::TermMatcher;
 use sophia::triple::stream::TripleSource;
 use sophia::dataset::MutableDataset;
 use wasm_bindgen::prelude::*;
@@ -114,7 +117,6 @@ impl RustExportIteratorNext {
 }
 
 
-
 // ====================================================================================================================
 // ==== DATASET
 
@@ -136,23 +138,92 @@ pub struct SophiaExportDataset {
     dataset: FastDataset
 }
 
+pub enum AlmostOption<T> {
+    Some(T), None
+}
+
+
+/// An enum capturing the different states of variable during query processing.
+/// Stoled to sophia_rs/src/query.rs
+enum Binding<T> {
+    /// The variable is bound to the given term.
+    Bound(T),
+    /// The variable is free.
+    Free,
+}
+
+impl<T> From<Option<T>> for Binding<T> {
+    fn from(src: Option<T>) -> Binding<T> {
+        match src {
+            Some(t) => Binding::Bound(t),
+            None => Binding::Free,
+        }
+    }
+}
+
+impl TermMatcher for Binding<RcTerm> {
+    type TermData = std::rc::Rc<str>;
+    fn constant(&self) -> Option<&Term<Self::TermData>> {
+        match self {
+            Binding::Bound(t) => Some(t),
+            Binding::Free => None,
+        }
+    }
+    fn matches<T>(&self, t: &Term<T>) -> bool
+    where
+        T: TermData,
+    {
+        match self {
+            Binding::Bound(tself) => tself == t,
+            Binding::Free => true,
+        }
+    }
+}
+
+impl GraphNameMatcher for Binding<Option<RcTerm>> {
+    type TermData = std::rc::Rc<str>;
+
+    fn constant(&self) -> Option<Option<&Term<Self::TermData>>> {
+        match self {
+            Binding::Bound(t) => Some(t.as_ref()),
+            Binding::Free => None,
+        }
+    }
+
+    fn matches<T>(&self, t: Option<&Term<T>>) -> bool
+    where
+        T: TermData,
+    {
+        match self {
+            Binding::Bound(Some(term)) => match t {
+                Some(arg_t) => arg_t == term,
+                None => false
+            },
+            Binding::Bound(None) => t.is_none(),
+            Binding::Free => true,
+        }
+    }
+}
+
 
 pub struct MatchRequestOnRcTerm {
-    pub s: Option<RcTerm>,
-    pub p: Option<RcTerm>,
-    pub o: Option<RcTerm>,
-    pub g: Option<Option<RcTerm>>
+    s: Binding<RcTerm>,
+    p: Binding<RcTerm>,
+    o: Binding<RcTerm>,
+    g: Binding<Option<RcTerm>>
 }
 
 impl MatchRequestOnRcTerm {
     pub fn new(subject: Option<JsImportTerm>,predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> MatchRequestOnRcTerm {
-            MatchRequestOnRcTerm {
-            s: subject.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap()),
-            p: predicate.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap()),
-            o: object.as_ref().map(|x| build_rcterm_from_js_import_term(x).unwrap()),
-            g: graph.as_ref().map(build_rcterm_from_js_import_term)
-        }
+        
+        let build_and_unwrap = |x| build_rcterm_from_js_import_term(x).unwrap();
+        let s = Binding::from(subject.as_ref().map(build_and_unwrap));
+        let p = Binding::from(predicate.as_ref().map(build_and_unwrap));
+        let o = Binding::from(object.as_ref().map(build_and_unwrap));
+        let g = Binding::from(graph.as_ref().map(build_rcterm_from_js_import_term));
+        
+        MatchRequestOnRcTerm { s: s, p: p, o: o, g: g }
     }
 }
 
@@ -171,32 +242,6 @@ impl SophiaExportDataset {
                 element.g()
             ).unwrap()
         })
-    }
-
-    /// Returns an iterator built from the passed match request
-    /// 
-    /// See [RDF.JS match specification](https://rdf.js.org/dataset-spec/#dfn-match)
-    pub fn matches_iterator<'a, 's>(&'a self, match_iterable: &'s MatchRequestOnRcTerm)
-        -> DQuadSource<'s, FastDataset>
-        where 'a: 's {
-        match (&match_iterable.s, &match_iterable.p, &match_iterable.o, &match_iterable.g) {
-            (None   , None   , None   , None   ) => self.dataset.quads(),
-            (None   , None   , Some(o), None   ) => self.dataset.quads_with_o(o),
-            (None   , Some(p), None   , None   ) => self.dataset.quads_with_p(p),
-            (None   , Some(p), Some(o), None   ) => self.dataset.quads_with_po(p, o),
-            (Some(s), None   , None   , None   ) => self.dataset.quads_with_s(s),
-            (Some(s), None   , Some(o), None   ) => self.dataset.quads_with_so(s, o),
-            (Some(s), Some(p), None   , None   ) => self.dataset.quads_with_sp(s, p),
-            (Some(s), Some(p), Some(o), None   ) => self.dataset.quads_with_spo(s, p, o),
-            (None   , None   , None   , Some(g)) => self.dataset.quads_with_g(g.as_ref()),
-            (None   , None   , Some(o), Some(g)) => self.dataset.quads_with_og(o, g.as_ref()),
-            (None   , Some(p), None   , Some(g)) => self.dataset.quads_with_pg(p, g.as_ref()),
-            (None   , Some(p), Some(o), Some(g)) => self.dataset.quads_with_pog(p, o, g.as_ref()),
-            (Some(s), None   , None   , Some(g)) => self.dataset.quads_with_sg(s, g.as_ref()),
-            (Some(s), None   , Some(o), Some(g)) => self.dataset.quads_with_sog(s, o, g.as_ref()),
-            (Some(s), Some(p), None   , Some(g)) => self.dataset.quads_with_spg(s, p, g.as_ref()),
-            (Some(s), Some(p), Some(o), Some(g)) => self.dataset.quads_with_spog(s, p, o, g.as_ref())
-        }
     }
 }
 
@@ -358,7 +403,8 @@ impl SophiaExportDataset {
     pub fn match_quad(&self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> SophiaExportDataset {
         let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
-        let mut quads_iter = self.matches_iterator(&m);
+
+        let mut quads_iter = self.dataset.quads_matching(&m.s, &m.p, &m.o, &m.g);
 
         let mut dataset = FastDataset::new();
         quads_iter.in_dataset(&mut dataset).unwrap();
@@ -422,16 +468,21 @@ impl SophiaExportDataset {
     }
 
     /// Delete every quad that matches the given quad components
-    /*
+    
     #[wasm_bindgen(js_name="deleteMatches")]
     pub fn delete_matches(&mut self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) {
         // this deleteMatches(optional Term, Optional Term, Optional Term, Optional Term)
         // TODO : return this
-
-
+        /*
+        let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
+        self.dataset.remove_matching(
+            m._s,
+            
+        );
+*/
     }
-    */
+    
 
     // this                              deleteMatches (optional Term subject, optional Term predicate, optional Term object, optional Term graph);
     // Dataset                           difference (Dataset other);
