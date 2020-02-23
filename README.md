@@ -38,8 +38,9 @@ The first goal is to enable javascript users to use *Sophia* as a backend.
 
 1 This word is often a lie
 
-
 - https://rustwasm.github.io/docs/wasm-bindgen/reference/attributes/on-rust-exports/inspectable.html
+
+- https://github.com/rustwasm/wasm-bindgen/tree/master/examples
 
 
 ### Blank Node Normalization
