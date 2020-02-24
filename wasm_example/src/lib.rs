@@ -270,7 +270,7 @@ impl SophiaExportDataset {
             // TODO : there is probably a better dataset structure to just add quads and then iterate on
             let mut exported_dataset = SophiaExportDataset::new();
             
-            // We us the fact that we can iterate on the dataset
+            // We use the fact that we can iterate on the dataset
             let import_as_js_value = JsValue::from(imported);
             let iterator = js_sys::try_iter(&import_as_js_value);
             match iterator {
@@ -534,13 +534,17 @@ impl SophiaExportDataset {
         SophiaExportDataset { dataset: ds }
     }
 
-    // boolean                           every (QuadFilterIteratee iteratee);
-    // Dataset                           filter (QuadFilterIteratee iteratee);
-    // void                              forEach (QuadRunIteratee iteratee);
-    // Promise<Dataset>                  import (Stream stream);
-    // Dataset                           map (QuadMapIteratee iteratee);
-    // any                               reduce (QuadReduceIteratee iteratee, optional any initialValue);
-    // boolean                           some (QuadFilterIteratee iteratee);
+    #[wasm_bindgen(js_name="forEach")]
+    pub fn for_each(&self, quad_run_iteratee: &js_sys::Function) {
+        self.dataset.quads()
+            .into_iter()
+            .for_each(|quad| {
+            let quad = quad.unwrap();
+            let export_quad = SophiaExportQuad::new(quad.s(), quad.p(), quad.o(), quad.g());
+            let js_value = JsValue::from(export_quad);
+            quad_run_iteratee.call1(&JsValue::NULL, &js_value).unwrap();
+        });
+    }
 
     #[wasm_bindgen(js_name="some")]
     pub fn some(&self, filter_function: &js_sys::Function) -> bool {
@@ -554,6 +558,56 @@ impl SophiaExportDataset {
         })
     }
 
+    #[wasm_bindgen(js_name="every")]
+    pub fn every(&self, filter_function: &js_sys::Function) -> bool {
+        self.dataset.quads()
+            .into_iter()
+            .all(|quad| {
+            let quad = quad.unwrap();
+            let export_quad = SophiaExportQuad::new(quad.s(), quad.p(), quad.o(), quad.g());
+            let js_value = JsValue::from(export_quad);
+            filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
+        })
+    }
+
+    // Dataset          filter (QuadFilterIteratee iteratee);
+    #[wasm_bindgen(js_name="filter")]
+    pub fn filter(&self, filter_function: &js_sys::Function) -> SophiaExportDataset {
+        let mut ds = FastDataset::new();
+
+        self.dataset.quads()
+            .filter_quads(|quad| {
+            let export_quad = SophiaExportQuad::new(quad.s(), quad.p(), quad.o(), quad.g());
+            let js_value = JsValue::from(export_quad);
+            filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
+        })
+            .in_dataset(&mut ds);
+
+        SophiaExportDataset { dataset: ds }
+    }
+
+
+    // Dataset          map (QuadMapIteratee iteratee);
+    #[wasm_bindgen(js_name="map")]
+    pub fn map(&self, map_function: &js_sys::Function) -> SophiaExportDataset {
+        let mut ds = SophiaExportDataset::new();
+
+        self.dataset.quads()
+            .for_each_quad(|quad| {
+                let export_quad = SophiaExportQuad::new(quad.s(), quad.p(), quad.o(), quad.g());
+                let js_value = JsValue::from(export_quad);
+                let mapped_js_quad = map_function.call1(&JsValue::NULL, &js_value).unwrap();
+                let mapped_quad = JsImportQuad::from(mapped_js_quad);
+                ds.add(mapped_quad);
+            })
+            .unwrap();
+
+        ds
+    }
+
+    // Promise<Dataset> import (Stream stream);
+    // any              reduce (QuadReduceIteratee iteratee, optional any initialValue);
+    
     /// Returns an array that contains every quad contained by this dataset
     #[wasm_bindgen(js_name="toArray")]
     pub fn to_array(&self) -> js_sys::Array {
