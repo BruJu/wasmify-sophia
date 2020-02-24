@@ -43,6 +43,35 @@ pub extern "C" {
     pub fn terms_equals(this: &JsImportTerm, other_term: &JsImportTerm);
 }
 
+/// Builds a new RcTerm that has the representation used by Sophia for the give
+/// JsImportTerm
+pub fn build_rcterm_from_js_import_term(term: &JsImportTerm) -> Option<RcTerm> {
+    let determine = |result_term: Result<RcTerm>| Some(result_term.unwrap());
+    // TODO : check if defining build_literal here can cause performances issues
+    let build_literal = |term: &JsImportTerm| {
+        let value = term.value();
+        let language = term.language();
+        if language != "" { // Lang
+            RcTerm::new_literal_lang(value, language)
+        } else {
+            let datatype = term.datatype();
+            RcTerm::new_literal_dt(value, build_rcterm_from_js_import_term(&datatype).unwrap())
+        }
+    };
+
+    match term.term_type().as_str() {
+        "NamedNode" => determine(RcTerm::new_iri(term.value())),
+        "BlankNode" => determine(RcTerm::new_bnode(term.value())),
+        "Literal" => determine(build_literal(term)),
+        "Variable" => determine(RcTerm::new_variable(term.value())),
+        "DefaultGraph" => None,
+        _ => None
+    }
+}
+
+
+// ============================================================================
+//   ==== EXPORTATION ==== EXPORTATION ==== EXPORTATION ==== EXPORTATION ====
 
 /// Exportation of rust terms using an adapter that owns the term
 #[wasm_bindgen(js_name="Term")]
