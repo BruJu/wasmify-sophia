@@ -72,7 +72,7 @@ https://rdf.js.org/dataset-spec/#datasetcore-interface : "Blank Nodes will be no
 | ------- | ----------- |
 | https://dev.to/sendilkumarn/rust-and-webassembly-for-the-masses-wasm-bindgen-57fl | A basic tutorial on wasm_bindgen |
 | https://rustwasm.github.io/wasm-bindgen/reference/arbitrary-data-with-serde.html | A potential way to make the code faster |
-| https://rustwasm.github.io/wasm-bi:bindgen/reference/cli.html | We are actually not supposed to use the command wasm_bindgen but wasm-pack |
+| https://rustwasm.github.io/wasm-bindgen/reference/cli.html | We are actually not supposed to use the command wasm_bindgen but wasm-pack |
 | https://github.com/rustwasm/wasm-pack | wasm pack repository |
 
 #### Other documentation
