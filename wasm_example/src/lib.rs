@@ -2,6 +2,16 @@
 extern crate wasm_bindgen;
 
 // TODO : remove unused imports when finished
+// TODO : find how to use folder instead of using _
+mod datamodel_term;
+use crate::datamodel_term::*;
+
+mod matchableterm;
+use crate::matchableterm::MatchableTerm;
+
+mod exportiterator;
+use crate::exportiterator::RustExportIterator;
+
 
 use maybe_owned::MaybeOwned;
 use std::any;
@@ -52,70 +62,6 @@ fn print_type<T>(_: T) {
 }
 
 
-// ====================================================================================================================
-// ==== ITERATORS
-
-/// An iterator on the elements contained by an exported container.
-///
-/// The iterator we provide is an iterator on the elements that are contained when we create the iterator : new and
-/// deleted elements in the origian container do not change the state of the iterator.
-///
-/// This feature is implemented as earlier versions of NodeJs do not support `js_sys::Array::values()`
-#[wasm_bindgen]
-pub struct RustExportIterator {
-    array: js_sys::Array
-}
-
-impl RustExportIterator {
-    /// Build an iterator from a `js_sys::Array`
-    pub fn new(array: js_sys::Array) -> RustExportIterator {
-        // We reverse in place so we can think our iterator as a list of quads we have not iterated on yet
-        array.reverse();
-        RustExportIterator { array }
-    }
-}
-
-#[wasm_bindgen]
-impl RustExportIterator {
-    /// Returns an `RustExportIteratorNext` that contains to the next element
-    pub fn next(&mut self) -> RustExportIteratorNext {
-        if self.array.length() != 0 {
-            RustExportIteratorNext{ current_element: Some(self.array.pop()) }
-        } else {
-            RustExportIteratorNext{ current_element: None }
-        }
-    }
-}
-
-/// An object that contains an element returned by `RustExportIterator::next`
-///
-/// It follows the Javascript specification, having a `done` attribute that tells if the iterator is empty and a
-/// `value` attribute that contains the eventual value. They are modelized with an optional `JsValue`.
-#[wasm_bindgen]
-pub struct RustExportIteratorNext {
-    #[wasm_bindgen(skip)]
-    /// The JsValue contained by this object
-    pub current_element: Option<JsValue>
-}
-
-#[wasm_bindgen]
-impl RustExportIteratorNext {
-    /// Return true if the iterator is empty
-    #[wasm_bindgen(getter)]
-    pub fn done(&self) -> bool {
-        self.current_element.is_none()
-    }
-
-    /// Return the possessed `JsValue`
-    #[wasm_bindgen(getter)]
-    pub fn value(&self) -> JsValue {
-        match self.current_element.as_ref() {
-            None => JsValue::undefined(),
-            Some(real_value) => real_value.clone()
-        }
-    }
-}
-
 
 // ====================================================================================================================
 // ==== DATASET
@@ -138,79 +84,14 @@ pub struct SophiaExportDataset {
     dataset: FastDataset
 }
 
-pub enum AlmostOption<T> {
-    Some(T), None
-}
 
-
-/// An enum capturing the different states of variable during query processing.
-/// Stoled to sophia_rs/src/query.rs
-enum Binding<T> {
-    /// The variable is bound to the given term.
-    Bound(T),
-    /// The variable is free.
-    Free,
-}
-
-impl<T> From<Option<T>> for Binding<T> {
-    fn from(src: Option<T>) -> Binding<T> {
-        match src {
-            Some(t) => Binding::Bound(t),
-            None => Binding::Free,
-        }
-    }
-}
-
-impl TermMatcher for Binding<RcTerm> {
-    type TermData = std::rc::Rc<str>;
-    fn constant(&self) -> Option<&Term<Self::TermData>> {
-        match self {
-            Binding::Bound(t) => Some(t),
-            Binding::Free => None,
-        }
-    }
-    fn matches<T>(&self, t: &Term<T>) -> bool
-    where
-        T: TermData,
-    {
-        match self {
-            Binding::Bound(tself) => tself == t,
-            Binding::Free => true,
-        }
-    }
-}
-
-impl GraphNameMatcher for Binding<Option<RcTerm>> {
-    type TermData = std::rc::Rc<str>;
-
-    fn constant(&self) -> Option<Option<&Term<Self::TermData>>> {
-        match self {
-            Binding::Bound(t) => Some(t.as_ref()),
-            Binding::Free => None,
-        }
-    }
-
-    fn matches<T>(&self, t: Option<&Term<T>>) -> bool
-    where
-        T: TermData,
-    {
-        match self {
-            Binding::Bound(Some(term)) => match t {
-                Some(arg_t) => arg_t == term,
-                None => false
-            },
-            Binding::Bound(None) => t.is_none(),
-            Binding::Free => true,
-        }
-    }
-}
 
 
 pub struct MatchRequestOnRcTerm {
-    s: Binding<RcTerm>,
-    p: Binding<RcTerm>,
-    o: Binding<RcTerm>,
-    g: Binding<Option<RcTerm>>
+    s: MatchableTerm<RcTerm>,
+    p: MatchableTerm<RcTerm>,
+    o: MatchableTerm<RcTerm>,
+    g: MatchableTerm<Option<RcTerm>>
 }
 
 impl MatchRequestOnRcTerm {
@@ -218,10 +99,10 @@ impl MatchRequestOnRcTerm {
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> MatchRequestOnRcTerm {
         
         let build_and_unwrap = |x| build_rcterm_from_js_import_term(x).unwrap();
-        let s = Binding::from(subject.as_ref().map(build_and_unwrap));
-        let p = Binding::from(predicate.as_ref().map(build_and_unwrap));
-        let o = Binding::from(object.as_ref().map(build_and_unwrap));
-        let g = Binding::from(graph.as_ref().map(build_rcterm_from_js_import_term));
+        let s = MatchableTerm::from(subject.as_ref().map(build_and_unwrap));
+        let p = MatchableTerm::from(predicate.as_ref().map(build_and_unwrap));
+        let o = MatchableTerm::from(object.as_ref().map(build_and_unwrap));
+        let g = MatchableTerm::from(graph.as_ref().map(build_rcterm_from_js_import_term));
         
         MatchRequestOnRcTerm { s: s, p: p, o: o, g: g }
     }
@@ -607,7 +488,7 @@ impl SophiaExportDataset {
 
     // Promise<Dataset> import (Stream stream);
     // any              reduce (QuadReduceIteratee iteratee, optional any initialValue);
-    
+
     /// Returns an array that contains every quad contained by this dataset
     #[wasm_bindgen(js_name="toArray")]
     pub fn to_array(&self) -> js_sys::Array {
@@ -636,46 +517,10 @@ impl SophiaExportDataset {
     
 }
 
-impl SophiaExportDataset {
-
-
-}
-
 
 // ============================================================================
 // ==== RDF JS Term
 
-// Importation of Javascript Term (JsImportTerm)
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_name = Term)]
-    pub type JsImportTerm;
-    
-    #[wasm_bindgen(method, getter = termType)]
-    pub fn term_type(this: &JsImportTerm) -> String;
-
-    #[wasm_bindgen(method, getter)]
-    pub fn value(this: &JsImportTerm) -> String;
-
-    #[wasm_bindgen(method, setter)]
-    pub fn set_value(this: &JsImportTerm, value: String);
-
-    #[wasm_bindgen(method, getter)]
-    pub fn language(this: &JsImportTerm) -> String;
-
-    #[wasm_bindgen(method, setter)]
-    pub fn set_language(this: &JsImportTerm, value: String);
-
-    #[wasm_bindgen(method, getter)]
-    pub fn datatype(this: &JsImportTerm) -> JsImportTerm;
-    // Returning a copy of a JsImportTerm is acceptable by RDFJS standard
-
-    #[wasm_bindgen(method, setter)]
-    pub fn set_datatype(this: &JsImportTerm, named_node: &JsImportTerm);
-
-    #[wasm_bindgen(js_name=equals)]
-    pub fn terms_equals(this: &JsImportTerm, other_term: &JsImportTerm);
-}
 
 fn build_rcterm_from_js_import_term(term: &JsImportTerm) -> Option<RcTerm> {
     let determine = |result_term : Result<RcTerm>| Some(result_term.unwrap());
@@ -702,162 +547,6 @@ fn build_rcterm_from_js_import_term(term: &JsImportTerm) -> Option<RcTerm> {
 }
 
 
-
-/// Exportation of rust terms using an adapter that owns the term
-#[wasm_bindgen(js_name="Term")]
-pub struct SophiaExportTerm {
-    /// The encapsulated Sophia Term. If `None`, this term describes the default graph.
-    term: Option<RcTerm>
-    // TODO : Wouldn't it be better to make a proper enum { OnwedRcTerm(A), DefaultGraph } ?
-}
-
-impl SophiaExportTerm {   
-    /// Returns a RDF JS compliant term based on Sophia's RcTerm
-    pub fn new(term: &RcTerm) -> SophiaExportTerm {
-        SophiaExportTerm { term: Some(term.clone()) }
-    }
-
-    /// Returns a term that represents the default graph
-    pub fn default_graph() -> SophiaExportTerm {
-        SophiaExportTerm { term: None }
-    }
-}
-
-// Implementation of the RDF JS specification
-// https://rdf.js.org/data-model-spec/#term-interface
-// Every term type is implemented as a SophiaExportTerm
-#[wasm_bindgen(js_class="Term")]
-impl SophiaExportTerm {
-    #[wasm_bindgen]
-    pub fn is_connected_to_rust(&self) -> bool {
-        true
-    }
-
-    #[wasm_bindgen(getter = termType)]
-    pub fn term_type(&self) -> String {
-        match &self.term {
-            Some(Iri(_)) => "NamedNode".into(),
-            Some(BNode(_)) => "BlankNode".into(),
-            Some(Literal(_1, _2)) => "Literal".into(),
-            Some(Variable(_)) => "Variable".into(),
-            None => "DefaultGraph".into()
-        }
-    }
-
-    #[wasm_bindgen(getter = value)]
-    pub fn value(&self) -> String {
-        match &self.term {
-            Some(t) => t.value(),
-            None => "".into()
-        }
-    }
-
-    #[wasm_bindgen(setter = value)]
-    pub fn set_value(&mut self, new_value: &str) {
-        match &self.term {
-            None => { /* can't reassign a Default Graph */ },
-            Some(real_term) => self.term = Some(match real_term {
-                RcTerm::Iri(_) => RcTerm::new_iri(new_value).unwrap(),
-                RcTerm::BNode(_) => RcTerm::new_bnode(new_value).unwrap(),
-                RcTerm::Variable(_) => RcTerm::new_variable(new_value).unwrap(),
-                RcTerm::Literal(_, Lang(lang)) => RcTerm::new_literal_lang(new_value, lang.clone()).unwrap(),
-                RcTerm::Literal(_, Datatype(dt)) =>
-                        RcTerm::new_literal_dt(new_value, RcTerm::new_iri(dt.to_string()).unwrap()).unwrap()
-                })
-        }
-    }
-
-    #[wasm_bindgen(getter = language)]
-    pub fn language(&self) -> String {
-        match &self.term {
-            Some(Literal(_, Lang(language))) => language.to_string(),
-            _ => String::from("")
-        }
-    }
-
-    #[wasm_bindgen(method, setter)]
-    pub fn set_language(&mut self, language: &str) {
-        // In this implementation, if we set the language of a literal, it will be automatically
-        // converted to the datatype langString regardless of its previous datatype.
-        // Setting the language of any other term has no effect.
-        if let Some(Literal(old_value, _)) = &self.term {
-            let language: Rc<str> = language.into();
-            self.term = Some(RcTerm::new_literal_lang(old_value.to_string(), language).unwrap());
-        }
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn datatype(&self) -> Option<SophiaExportTerm> {
-        match &self.term {
-            Some(Literal(_1, Lang(_2))) =>
-                Option::Some(SophiaExportTerm {
-                    term: Some(RcTerm::new_iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#langString").unwrap())
-                }),
-            // TODO : check if iri always has a type (especially for string)
-            Some(Literal(_1, Datatype(iri))) =>
-                Option::Some(SophiaExportTerm {
-                    term: Some(RcTerm::new_iri(iri.to_string()).unwrap())
-                }),
-            _ => Option::None
-        }
-    }
-
-    #[wasm_bindgen(method, setter)]
-    pub fn set_datatype(&mut self, named_node: &JsImportTerm) {
-        if let Some(Literal(_, literal_kind)) = &self.term {
-            if let Lang(_) = literal_kind {
-                if named_node.value() == "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" {
-                    // Do not change datatype to langString of literals that are already langString
-                    return
-                }
-            }
-            let new_node_value = self.value();
-            let literal_type: RcTerm = RcTerm::new_iri(named_node.value().as_str()).unwrap();
-            self.term = Some(RcTerm::new_literal_dt(new_node_value, literal_type).unwrap());
-        }
-    }
-
-    #[wasm_bindgen(js_name = equals)]
-    pub fn equals(&self, other: Option<JsImportTerm>) -> bool {
-        match other {
-            None => false,
-            Some(x) => {
-                // We don't use the implementation of term_type / value to have better performances.
-                let other_term_type = x.term_type();
-                match &self.term {
-                    Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.to_string(),
-                    Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.to_string(),
-                    Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.to_string(),
-                    Some(Literal(txt, literal_kind)) => 
-                        other_term_type == "Literal" && x.value() == txt.to_string()
-                            && SophiaExportTerm::equals_to_literal(literal_kind, &x),
-                    None => other_term_type == "DefaultGraph" // value should be "" if it is RDFJS compliant
-                }
-            }
-        }
-    }
-
-    fn equals_to_literal(literal_kind: &LiteralKind<Rc<str>>, other : &JsImportTerm) -> bool {
-        // The standard ensures us that other has the language and datatype attributes
-        
-        // Documentation questionning :
-        // Otherwise, if no datatype is explicitly specified, the datatype has the IRI
-        // "http://www.w3.org/2001/XMLSchema#string". -> ????
-        match literal_kind {
-            Lang(language) => language.to_string() == other.language()
-                && "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" == other.datatype().value(),
-            Datatype(iri) => other.language() == "" && other.datatype().value() == iri.to_string()
-        }
-    }
-
-    #[wasm_bindgen(js_name = toString)]
-    pub fn to_string(&self) -> String {
-        match &self.term {
-            Some(t) => t.n3(),
-            None => String::from("(DefaultGraph)")
-        }
-    }
-}
 
 // ============================================================================
 // ==== RDF JS Quad
@@ -1185,59 +874,3 @@ impl SophiaExportDataFactory {
         ds
     }
 }
-
-/* ======= */
-/* THE LAB */
-
-/*
-#[wasm_bindgen]
-pub struct Animal {
-    pub name: u32
-}
-
-#[wasm_bindgen]
-impl Animal {
-    pub fn common(&self) {
-        log("Animal::Common-RUST");
-    }
-
-    pub fn export_only(&self) {
-        log("Animal::ExportOnly-RUST");
-    }
-}
-
-
-#[wasm_bindgen]
-pub fn animalog(js_value: JsValue) {
-    let animalust = Animal::try_from(&js_value);
-
-    if let Ok(a) = animalust {
-        a.common();
-        a.export_only();
-    } else {
-        let animals = AnimalImport::try_from(&js_value);
-
-        if let Ok(a) = animals {
-            a.common();
-            a.import_only();
-        } else {
-            log("c'est nul :(");
-        }
-    }
-
-
-}
-
-
-#[wasm_bindgen]
-extern "C" {
-    pub type AnimalImport;
-
-    #[wasm_bindgen]
-    pub fn common(this: &AnimalImport);
-
-    #[wasm_bindgen]
-    pub fn import_only(this: &AnimalImport);
-}
-
-*/
