@@ -33,7 +33,7 @@ extern "C" {
     pub type JsImportDataset;
 
     #[wasm_bindgen(method, getter=getSophiaDatasetPtr)]
-    pub fn get_sophia_dataset_ptr(this: &JsImportDataset) -> *mut SophiaExportDataset;
+    pub fn get_sophia_dataset_ptr(this: &JsImportDataset) -> *const SophiaExportDataset;
 }
 
 
@@ -64,7 +64,7 @@ impl SophiaExportDataset {
     /// 
     /// It is used as a way to detect if a javascript object that we received is an exported object by this library.
     #[wasm_bindgen(method, getter=getSophiaDatasetPtr)]
-    pub fn get_sophia_dataset_ptr(&mut self) -> *mut SophiaExportDataset {
+    pub fn get_sophia_dataset_ptr(&self) -> *const SophiaExportDataset {
         self
     }
 
@@ -246,9 +246,9 @@ impl SophiaExportDataset {
 
     /// Returns true if imported_dataset is contained by this dataset
     #[wasm_bindgen(js_name="contains")]
-    pub fn contains(&self, imported_dataset: JsImportDataset) -> bool {
+    pub fn contains(&self, imported_dataset: &JsImportDataset) -> bool {
         // TODO : RDF.JS - "Blank Nodes will be normalized."
-        let maybe_dataset = SophiaExportDataset::extract_dataset(&imported_dataset);
+        let maybe_dataset = SophiaExportDataset::extract_dataset(imported_dataset);
         self.contains_dataset(maybe_dataset.as_ref())
     }
 
