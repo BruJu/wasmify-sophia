@@ -275,7 +275,7 @@ impl SophiaExportDataset {
                 let quad = quad.as_ref().unwrap();
                 !other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap()
             })
-            .in_dataset(&mut ds);
+            .in_dataset(&mut ds).unwrap();
 
         SophiaExportDataset { dataset: ds }
     }
@@ -301,7 +301,7 @@ impl SophiaExportDataset {
                 let quad = quad.as_ref().unwrap();
                 other.contains(quad.s(), quad.p(), quad.o(), quad.g()).unwrap()
             })
-            .in_dataset(&mut ds);
+            .in_dataset(&mut ds).unwrap();
 
         SophiaExportDataset { dataset: ds }
     }
@@ -313,8 +313,8 @@ impl SophiaExportDataset {
 
         let mut ds = FastDataset::new();
 
-        self.dataset.quads().in_dataset(&mut ds);
-        other.quads().in_dataset(&mut ds);
+        self.dataset.quads().in_dataset(&mut ds).unwrap();
+        other.quads().in_dataset(&mut ds).unwrap();
 
         SophiaExportDataset { dataset: ds }
     }
@@ -366,7 +366,8 @@ impl SophiaExportDataset {
             let js_value = JsValue::from(export_quad);
             filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
         })
-            .in_dataset(&mut ds);
+            .in_dataset(&mut ds)
+            .unwrap();
 
         SophiaExportDataset { dataset: ds }
     }
