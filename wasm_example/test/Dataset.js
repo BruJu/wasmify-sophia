@@ -703,6 +703,92 @@ function runTests (rdf) {
 
         assert.strictEqual(typeof dataset.reduce, 'function')
       })
+
+      it('do nothing special with an empty dataset', () => {
+        const dataset = rdf.dataset()
+        const f = (acc, quad) => 77
+
+        assert.strictEqual(dataset.reduce(f), undefined)
+        assert.strictEqual(dataset.reduce(f, "Bzzzt"), "Bzzzt")
+      })
+
+      it('quads into one', () => {
+        const minimalQuad = (acc, quad) => {
+          const spaceship = (s1, s2) => {
+            if (s1 < s2) {
+              return -1;
+            } else if (s1 > s2) {
+              return 1;
+            } else {
+              return 0;
+            }
+          }
+
+          r = [
+            spaceship(acc.subject.termType, quad.subject.termType),
+            spaceship(acc.subject.value, quad.subject.value),
+            spaceship(acc.predicate.termType, quad.predicate.termType),
+            spaceship(acc.predicate.value, quad.predicate.value),
+            spaceship(acc.object.termType, quad.object.termType),
+            spaceship(acc.object.value, quad.object.value),
+            spaceship(acc.graph.termType, quad.graph.termType),
+            spaceship(acc.graph.value, quad.graph.value)
+          ]
+
+          for (let index in r) {
+            let v = r[index]
+            if (v < 0) {
+              return acc
+            } else if (v > 0) {
+              return quad
+            }
+          }
+
+          return quad
+        };
+
+        const mediumQuad = rdf.quad(ex.subject, ex.jjj, ex.zzz)
+        const bigQuad = rdf.quad(ex.subject, ex.zzz, ex.zzz)
+        const smallQuad = rdf.quad(ex.aaa, ex.predicate, ex.object)
+
+        const dataset = rdf.dataset([mediumQuad, bigQuad, smallQuad])
+
+        assert(minimalQuad(smallQuad, mediumQuad).equals(smallQuad))
+        assert(minimalQuad(mediumQuad, bigQuad).equals(mediumQuad))
+        assert(minimalQuad(mediumQuad, minimalQuad(smallQuad, bigQuad)).equals(smallQuad))
+        assert(dataset.reduce(minimalQuad), smallQuad)
+      })
+
+      it('quads into other types', () => {
+        let predicates = [
+          ex.predicate1, ex.predicate2, ex.predicate3, ex.predicate4, ex.predicate5
+        ]
+
+        let quads = []
+        let predicates_names = new Set()
+        for (const i in predicates) {
+          quads.push(rdf.quad(ex.subject, predicates[i], ex.object))
+          predicates_names.add(predicates[i].value)
+        }
+
+        let predicate_name_adder = (set, quad) => { set.add(quad.predicate.value); return set; }
+
+        let dataset = rdf.dataset(quads)
+        let reduced = dataset.reduce(predicate_name_adder, new Set())
+
+        function isSuperset(set, subset) {
+          for (var elem of subset) {
+            if (!set.has(elem)) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        assert(isSuperset(reduced, predicates_names))
+        assert(isSuperset(predicates_names, reduced))
+      })
+
     })
 
 }

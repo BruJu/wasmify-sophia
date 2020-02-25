@@ -46,7 +46,7 @@ extern "C" {
     pub fn quads_equals(this: &JsImportQuad, other_quad: &JsImportQuad);
     
     #[wasm_bindgen(method, getter=getRustPtr)]
-    pub fn quads_get_rust_ptr(this: &JsImportQuad) -> *mut SophiaExportQuad;
+    pub fn quads_get_rust_ptr(this: &JsImportQuad) -> *const SophiaExportQuad;
 }
 
 
@@ -172,7 +172,7 @@ impl SophiaExportQuad {
     }
 
     #[wasm_bindgen(method, getter=getRustPtr)]
-    pub fn quads_get_rust_ptr(&mut self) -> *mut SophiaExportQuad {
+    pub fn quads_get_rust_ptr(&self) -> *const SophiaExportQuad {
         self
     }
 }
