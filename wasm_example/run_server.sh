@@ -22,6 +22,9 @@ then
     pre_compile
     wasm-bindgen --target no-modules target/wasm32-unknown-unknown/debug/wasm_example.wasm --out-dir .
     npm run serve
+  elif [ $1 == "reload" ]
+  then
+    pre_compile
   else
     echo "Unknown argument"
   fi

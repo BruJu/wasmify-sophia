@@ -319,6 +319,7 @@ impl SophiaExportDataset {
         SophiaExportDataset { dataset: ds }
     }
 
+    /// Produces an action for each quad of the dataset
     #[wasm_bindgen(js_name="forEach")]
     pub fn for_each(&self, quad_run_iteratee: &js_sys::Function) {
         self.dataset.quads()
@@ -331,6 +332,8 @@ impl SophiaExportDataset {
         });
     }
 
+    /// Returns true if the result of `filter_function` is true for at least
+    /// one quad of the dataset
     #[wasm_bindgen(js_name="some")]
     pub fn some(&self, filter_function: &js_sys::Function) -> bool {
         self.dataset.quads()
@@ -343,6 +346,8 @@ impl SophiaExportDataset {
         })
     }
 
+    /// Returns true if the result of the passed function is true for every
+    /// quad of the dataset
     #[wasm_bindgen(js_name="every")]
     pub fn every(&self, filter_function: &js_sys::Function) -> bool {
         self.dataset.quads()
@@ -355,7 +360,8 @@ impl SophiaExportDataset {
         })
     }
 
-    // Dataset          filter (QuadFilterIteratee iteratee);
+    /// Returns a new dataset which contains every quads of this dataset that
+    /// verifies the `filter_functio`
     #[wasm_bindgen(js_name="filter")]
     pub fn filter(&self, filter_function: &js_sys::Function) -> SophiaExportDataset {
         let mut ds = FastDataset::new();
@@ -373,7 +379,8 @@ impl SophiaExportDataset {
     }
 
 
-    // Dataset          map (QuadMapIteratee iteratee);
+    /// Builds a new dataset which contains quads that have been built by
+    /// applying the map function to every quad of this dataset
     #[wasm_bindgen(js_name="map")]
     pub fn map(&self, map_function: &js_sys::Function) -> SophiaExportDataset {
         let mut ds = SophiaExportDataset::new();

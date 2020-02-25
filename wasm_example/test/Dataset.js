@@ -407,6 +407,138 @@ function runTests (rdf) {
 
     })
 
+    describe('union', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.union, 'function')
+      })
+
+      it('should be able to unite empty dataset', () => {
+        const graph1 = rdf.dataset()
+        const graph2 = rdf.dataset()
+
+        assert.strictEqual(graph1.union(graph2).size, 0)
+        assert.strictEqual(graph1.union(graph1).size, 0)
+      })
+
+      it('should not modify the united dataset', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+        const graph1 = rdf.dataset([quad11, quad12])
+        const graph2 = rdf.dataset([quad13])
+
+        graph1.union(graph2)
+
+        assert(graph1.equals([quad11, quad12]))
+        assert(graph2.equals([quad13]))
+      })
+
+      it('should be able to union the same dataset', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+
+        const graph1 = rdf.dataset([quad11, quad12, quad13])
+        const graph2 = rdf.dataset([quad11, quad12, quad13])
+
+        const union11 = graph1.intersection(graph1)
+        const union12 = graph1.intersection(graph2)
+
+        assert.strictEqual(graph1.size, 3)
+        assert(graph1.equals(union11))
+        assert(graph1.equals(union12))
+      })
+
+      it('should be able to unify two distinct datasets', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+        const quad14 = rdf.quad(ex.subject1, ex.predicate, ex.object4)
+
+        const graph1 = rdf.dataset([quad11, quad12])
+        const graph2 = rdf.dataset([quad13, quad14])
+
+        const union = graph1.union(graph2)
+
+        assert(union.equals(rdf.dataset([quad11, quad12, quad13, quad14])))
+      })
+
+      it('should be able to unify two graphes with common nodes', () => {
+        const quad11 = rdf.quad(ex.subject1, ex.predicate, ex.object1)
+        const quad12 = rdf.quad(ex.subject1, ex.predicate, ex.object2)
+        const quad13 = rdf.quad(ex.subject1, ex.predicate, ex.object3)
+        const quad14 = rdf.quad(ex.subject1, ex.predicate, ex.object4)
+        const quadCommon = rdf.quad(ex.common, ex.come, ex.on)
+        const quadAnotherCommon = rdf.quad(ex.anothercommon, ex.come, ex.on)
+
+        const graph1 = rdf.dataset([quad11, quad12, quadCommon, quadAnotherCommon])
+        const graph2 = rdf.dataset([quad13, quad14, quadCommon, quadAnotherCommon])
+
+        const unification = graph1.union(graph2)
+
+        assert.strictEqual(unification.size, 6)
+        assert(unification.equals(rdf.dataset([
+          quad11, quad12, quad13, quad14,
+          quadCommon, quadAnotherCommon
+        ])))
+      })
+    })
+
+    describe('forEach', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.forEach, 'function')
+      })
+
+      it('should work on an empty dataset', () => {
+        const quad = rdf.quad(ex.subject, ex.predicate, ex.object)
+        const graph = rdf.dataset([quad])
+
+        graph.forEach((_) => {});
+      })
+
+      it('should iterate once for each quads', () => {
+        const quad1 = rdf.quad(ex.subject1, ex.predicate, ex.object)
+        const quad2 = rdf.quad(ex.subject2, ex.predicate5, ex.object7)
+        const quad3 = rdf.quad(ex.subject3, ex.predicate5, ex.object7)
+        const quad4 = rdf.quad(ex.subject4, ex.predicate5, ex.object7)
+        const graph = rdf.dataset([quad1, quad2, quad3, quad4])
+
+        const seen_quads = []
+
+        graph.forEach((quad) => seen_quads.push(quad))
+
+        assert.strictEqual(seen_quads.length, 4)
+        const built_graph = rdf.dataset(seen_quads)
+
+        assert(built_graph.equals(graph))
+      })
+
+      it('should iterate on each quad once', () => {
+        const quad1 = rdf.quad(ex.subject1, ex.predicate, ex.object)
+        const quad2 = rdf.quad(ex.subject2, ex.predicate5, ex.object7)
+        const quad3 = rdf.quad(ex.subject3, ex.predicate5, ex.object7)
+        const quad4 = rdf.quad(ex.subject4, ex.predicate5, ex.object7)
+        const graph = rdf.dataset([quad1, quad2, quad3, quad4])
+
+        let expected_subjects = new Set([
+          ex.subject1.value, ex.subject2.value, ex.subject3.value, ex.subject4.value
+        ])
+
+        graph.forEach((quad) => {
+          let subject = quad.subject.value
+          assert(expected_subjects.has(subject))
+          expected_subjects.delete(subject)
+        });
+
+        assert.strictEqual(expected_subjects.size, 0)
+      })
+
+    })
+
     describe('some', () => {
       it('should be a function', () => {
         const dataset = rdf.dataset()
@@ -423,6 +555,156 @@ function runTests (rdf) {
         assert(!graph.some(q => q.subject.value == ex.subject145.value));
       })
     })
+
+    describe('every', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.every, 'function')
+      })
+
+      it('should return true on a empty dataset', () => {
+        const graph = rdf.dataset()
+
+        assert(graph.every((quad) => false));
+      })
+
+      it('should return true if every quad verify the function', () => {
+        const f = (quad) => quad.subject.equals(ex.somesubject)
+        const quad1 = rdf.quad(ex.somesubject, ex.predicate1, ex.object)
+        const quad2 = rdf.quad(ex.somesubject, ex.predicate2, ex.object)
+        const quad3 = rdf.quad(ex.somesubject, ex.predicate3, ex.object)
+        const quad4 = rdf.quad(ex.somesubject, ex.predicate4, ex.object)
+        const wrong_quad = rdf.quad(ex.anothersubject, ex.predicate, ex.object)
+
+        const graph = rdf.dataset([quad1, quad2, quad3, quad4])
+
+        assert(graph.every(f))
+
+        graph.add(wrong_quad)
+        assert(!graph.every(f))
+      })
+    })
+
+    describe('filter', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.filter, 'function')
+      })
+
+      it('should return true on a empty dataset', () => {
+        const f = quad => true
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(dataset.filter(f).size, 0);
+      })
+
+      it('should return an empty dataset when filtering everying', () => {
+        const f = quad => false
+
+        const quad1 = rdf.quad(ex.somesubject, ex.predicate1, ex.object)
+        const quad2 = rdf.quad(ex.somesubject, ex.predicate2, ex.object)
+        const quad3 = rdf.quad(ex.somesubject, ex.predicate3, ex.object)
+        const quad4 = rdf.quad(ex.somesubject, ex.predicate4, ex.object)
+
+        const dataset = rdf.dataset([quad1, quad2, quad3, quad4])
+        const filtered_dataset = dataset.filter(f)
+
+        assert(dataset.equals(rdf.dataset([quad1, quad2, quad3, quad4])))
+        assert.strictEqual(filtered_dataset.size, 0)
+      })
+
+      it('should return a copy of the same dataset when the filter is always true', () => {
+        const f = quad => true
+
+        const quad1 = rdf.quad(ex.somesubject, ex.predicate1, ex.object)
+        const quad2 = rdf.quad(ex.somesubject, ex.predicate2, ex.object)
+        const quad3 = rdf.quad(ex.somesubject, ex.predicate3, ex.object)
+        const quad4 = rdf.quad(ex.somesubject, ex.predicate4, ex.object)
+
+        const dataset = rdf.dataset([quad1, quad2, quad3, quad4])
+        const filtered_dataset = dataset.filter(f)
+
+        assert(dataset.equals(filtered_dataset))
+
+        const new_quad = rdf.quad(ex.anothersubject, ex.predicate, ex.object)
+        filtered_dataset.add(new_quad)
+
+        assert(!dataset.equals(filtered_dataset))
+        assert(filtered_dataset.contains(dataset))
+        assert.strictEqual(filtered_dataset.size, dataset.size + 1)
+        assert(filtered_dataset.has(new_quad))
+      })
+
+      it('should properly filter the dataset', () => {
+        const f = quad => quad.object.equals(ex.dog)
+
+        const quad1 = rdf.quad(ex.somesubject, ex.predicate1, ex.cat)
+        const quad2 = rdf.quad(ex.somesubject, ex.predicate2, ex.cat)
+        const quad3 = rdf.quad(ex.somesubject, ex.predicate3, ex.dog)
+        const quad4 = rdf.quad(ex.somesubject, ex.predicate4, ex.dog)
+        const quad5 = rdf.quad(ex.somesubject, ex.predicate5, ex.cat)
+
+        const dataset = rdf.dataset([quad1, quad2, quad3, quad4, quad5])
+        const filtered_dataset = dataset.filter(f)
+
+        assert(filtered_dataset.equals(rdf.dataset([quad3, quad4])))
+      })
+    })
+
+    describe('map', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.map, 'function')
+      })
+
+      it('should do nothing when used an empty dataset', () => {
+        const graph = rdf.dataset()
+
+        let i = true
+        assert(graph.map((quad) => {
+          i = false
+          return quad;
+        }));
+
+        assert.strictEqual(i, true)
+      })
+
+      it('should work', () => {
+        const f = (quad) => quad.subject.equals(ex.somesubject)
+        const quad1 = rdf.quad(ex.rabbit, ex.predicate1, ex.object)
+        const quad2 = rdf.quad(ex.cat, ex.predicate2, ex.object)
+        const quad3 = rdf.quad(ex.rabbit, ex.predicate3, ex.object)
+        const quad4 = rdf.quad(ex.cat, ex.predicate4, ex.object)
+        
+        const quad2dog = rdf.quad(ex.dog, ex.predicate2, ex.object)
+        const quad4dog = rdf.quad(ex.dog, ex.predicate4, ex.object)
+
+        const graph = rdf.dataset([quad1, quad2, quad3, quad4])
+        const wanted_graph = rdf.dataset([quad1, quad2dog, quad3, quad4dog])
+        const mapped_graph = graph.map(quad => {
+          if (quad.subject.equals(ex.rabbit)) {
+            return quad;
+          } else {
+            return rdf.quad(ex.dog, quad.predicate, quad.object)
+          }
+        })
+
+        assert(!graph.equals(mapped_graph))
+        assert(wanted_graph.equals(mapped_graph))
+      })
+    })
+
+    describe('reduce', () => {
+      it('should be a function', () => {
+        const dataset = rdf.dataset()
+
+        assert.strictEqual(typeof dataset.reduce, 'function')
+      })
+    })
+
 }
 
 module.exports = runTests
