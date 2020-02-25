@@ -362,10 +362,10 @@ impl SophiaExportDataset {
 
         self.dataset.quads()
             .filter_quads(|quad| {
-            let export_quad = SophiaExportQuad::new(quad.s(), quad.p(), quad.o(), quad.g());
-            let js_value = JsValue::from(export_quad);
-            filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
-        })
+                let export_quad = SophiaExportQuad::new(quad.s(), quad.p(), quad.o(), quad.g());
+                let js_value = JsValue::from(export_quad);
+                filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
+            })
             .in_dataset(&mut ds)
             .unwrap();
 
@@ -391,17 +391,11 @@ impl SophiaExportDataset {
         ds
     }
 
-    // Promise<Dataset> import (Stream stream);
-    // any              reduce (QuadReduceIteratee iteratee, optional any initialValue);
-
     /// Returns an array that contains every quad contained by this dataset
     #[wasm_bindgen(js_name="toArray")]
     pub fn to_array(&self) -> js_sys::Array {
         self.quads()
     }
-
-    // String                            toCanonical ();
-    // Stream                            toStream ();
 
     /// Returns a string representation of the quads contained in the dataset
     #[wasm_bindgen(js_name="toString")]
@@ -419,6 +413,43 @@ impl SophiaExportDataset {
             .unwrap()
             .join("\n")
     }
+
+    // any reduce (QuadReduceIteratee iteratee, optional any initialValue);
+    #[wasm_bindgen(js_name="reduce")]
+    pub fn reduce(&self, reducer: js_sys::Function, initial_value: JsValue) -> JsValue {
+        let mut iterator = self.dataset.quads();
+        let mut accumulated_value = initial_value;
+
+        if accumulated_value.as_ref().is_undefined() {
+            let first_iter = iterator.next();
+            match first_iter {
+                None => return accumulated_value,
+                Some(quad_result) => {
+                    let quad = quad_result.unwrap();
+                    let export_quad = SophiaExportQuad::new(
+                        quad.s(), quad.p(), quad.o(), quad.g()
+                    );
+
+                    accumulated_value = JsValue::from(export_quad);
+                }
+            }
+        }
+
+        while let Some(quad_result) = iterator.next() {
+            let quad = quad_result.unwrap();
+            let export_quad = SophiaExportQuad::new(
+                quad.s(), quad.p(), quad.o(), quad.g()
+            );
+            let to_accumulate = JsValue::from(export_quad);
+            accumulated_value = reducer.call2(&JsValue::NULL, &accumulated_value, &to_accumulate).unwrap();
+        }
+
+        accumulated_value
+    }
+
+    // Promise<Dataset> import (Stream stream);
+    // Not implemented : String toCanonical ();
+    // Not implemented : Stream toStream ();
 }
 
 
