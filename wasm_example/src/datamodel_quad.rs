@@ -116,10 +116,8 @@ impl SophiaExportQuad {
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
         match &self._graph {
-            Some(g) => format!("{0} {1} {2} {3} .",
-                            self._subject.n3(), self._predicate.n3(), self._object.n3(), g.n3()),
-            None    => format!("{0} {1} {2} .",
-                            self._subject.n3(), self._predicate.n3(), self._object.n3())
+            Some(g) => format!("{0} {1} {2} {3} .", self._subject, self._predicate, self._object, g),
+            None    => format!("{0} {1} {2} ."    , self._subject, self._predicate, self._object)
         }
     }
 

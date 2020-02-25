@@ -224,7 +224,7 @@ impl SophiaExportTerm {
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
         match &self.term {
-            Some(t) => t.n3(),
+            Some(t) => format!("{}", t),
             None => String::from("(DefaultGraph)")
         }
     }

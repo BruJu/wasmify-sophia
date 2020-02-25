@@ -404,8 +404,8 @@ impl SophiaExportDataset {
             .quads()
             .map_quads(|q| 
                 match q.g().as_ref() {
-                    None    => format!("{0} {1} {2} .",     q.s().n3(), q.p().n3(), q.o().n3()),
-                    Some(g) => format!("{0} {1} {2} {3} .", q.s().n3(), q.p().n3(), q.o().n3(), g.n3())
+                    None    => format!("{0} {1} {2} .",     q.s(), q.p(), q.o()),
+                    Some(g) => format!("{0} {1} {2} {3} .", q.s(), q.p(), q.o(), g)
                 }
             )
             .into_iter()
