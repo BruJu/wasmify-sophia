@@ -13,6 +13,7 @@ use sophia::term::RcTerm;
 use sophia::term::Term;
 use sophia::term::TermData;
 
+// TODO : this class is obsolete as it was integrated in Sophia's interface
 
 /// An enum that can be used to match with one RcTerm, DefaultGraph or any term
 /// 

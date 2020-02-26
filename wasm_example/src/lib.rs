@@ -14,30 +14,8 @@ pub mod dataset_core;
 
 // Debug / Log
 pub mod util;
-use crate::util::*;
+pub mod parser;
 
 // Required by factory
 use crate::dataset_core::*;
 
-
-// The lab
-
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub struct Dog {
-    name: String
-}
-
-#[wasm_bindgen]
-impl Dog {
-    #[wasm_bindgen(constructor)]
-    pub fn new(s: String) -> Dog {
-        Dog { name: s }
-    }
-    
-    pub fn woof(&self) {
-        let full_woof = format!("🐶 {}: Woof !", self.name);
-        log(full_woof.as_str());
-    }
-}
