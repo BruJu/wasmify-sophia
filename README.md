@@ -123,6 +123,9 @@ https://rdf.js.org/dataset-spec/#datasetcore-interface : "Blank Nodes will be no
 
 - rflib.js : http://linkeddata.github.io/rdflib.js/doc/
 
+- My script to synchronize my sophia_rs fork and use the latest version when compiling : https://gist.github.com/BruJu/eade23cd8fa94e1543898cb30ab02ff8
+
+
 ### Other people that do related things
 
 
