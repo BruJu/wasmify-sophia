@@ -1,8 +1,13 @@
 /target
 **/*.rs.bk
+
+## Rust package Manager
 Cargo.lock
-node_modules
 yarn.lock
+
+# Node Package Manager
+node_modules
+package-lock.json
 
 # Files from https://github.com/davidavzP/wasm_example that are not required to compile
 Final Paper/
@@ -16,3 +21,4 @@ wasm_example_bg.wasm
 wasm_example.d.ts
 wasm_example.js
 wasm_example_bg.js
+
