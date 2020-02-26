@@ -8,7 +8,6 @@ pub mod datamodel_quad;
 pub mod datamodel_factory;
 
 // Dataset Core
-pub mod matchableterm;
 pub mod exportiterator;
 pub mod dataset_core;
 

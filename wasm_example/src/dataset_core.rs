@@ -7,7 +7,6 @@ extern crate wasm_bindgen;
 use crate::datamodel_term::*;
 use crate::datamodel_quad::*;
 use crate::datamodel_factory::*;
-use crate::matchableterm::MatchableTerm;
 use crate::exportiterator::RustExportIterator;
 use crate::util::*;
 
@@ -16,6 +15,7 @@ use sophia::dataset::Dataset;
 use sophia::dataset::MutableDataset;
 use sophia::dataset::inmem::FastDataset;
 use sophia::term::*;
+use sophia::term::matcher::AnyOrExactly;
 use sophia::quad::Quad;
 use sophia::quad::stream::QuadSource;
 
@@ -530,26 +530,43 @@ impl SophiaExportDataset {
 // -----------------------------------------------------
 // ==== Implementation Detail : Match Request Conversion
 
-/// A list of MatchableTerm to build a match request on a Sophia dataset
+fn build_anyorexactly_for_term(js_parameter: Option<JsImportTerm>) -> AnyOrExactly<RcTerm> {
+    match js_parameter {
+        None => AnyOrExactly::Any,
+        Some(js_term) => AnyOrExactly::Exactly(build_rcterm_from_js_import_term(&js_term).unwrap())
+    }
+}
+
+fn build_anyorexactly_for_graph(js_parameter: Option<JsImportTerm>) -> AnyOrExactly<Option<RcTerm>> {
+    match js_parameter {
+        None => AnyOrExactly::Any,
+        Some(js_term) => match build_rcterm_from_js_import_term(&js_term) {
+            Some(re_js_term) => AnyOrExactly::Exactly(Some(re_js_term)),
+            None => AnyOrExactly::Exactly(None)
+        }
+    }
+}
+
+
+/// A list of AnyOrExactly MatchTerms to build a match request on a Sophia dataset
 pub struct MatchRequestOnRcTerm {
-    s: MatchableTerm<RcTerm>,
-    p: MatchableTerm<RcTerm>,
-    o: MatchableTerm<RcTerm>,
-    g: MatchableTerm<Option<RcTerm>>
+    s: AnyOrExactly<RcTerm>,
+    p: AnyOrExactly<RcTerm>,
+    o: AnyOrExactly<RcTerm>,
+    g: AnyOrExactly<Option<RcTerm>>
 }
 
 impl MatchRequestOnRcTerm {
     /// Builds a `MatchRequestOnRcTerm` from `JsImportTerms`
-    pub fn new(subject: Option<JsImportTerm>,predicate: Option<JsImportTerm>,
+    pub fn new(subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
         object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> MatchRequestOnRcTerm {
         
-        let build_and_unwrap = |x| build_rcterm_from_js_import_term(x).unwrap();
-        let s = MatchableTerm::from(subject.as_ref().map(build_and_unwrap));
-        let p = MatchableTerm::from(predicate.as_ref().map(build_and_unwrap));
-        let o = MatchableTerm::from(object.as_ref().map(build_and_unwrap));
-        let g = MatchableTerm::from(graph.as_ref().map(build_rcterm_from_js_import_term));
-        
-        MatchRequestOnRcTerm { s: s, p: p, o: o, g: g }
+        MatchRequestOnRcTerm {
+            s: build_anyorexactly_for_term(subject),
+            p: build_anyorexactly_for_term(predicate),
+            o: build_anyorexactly_for_term(object),
+            g: build_anyorexactly_for_graph(graph)
+        }
     }
 }
 
