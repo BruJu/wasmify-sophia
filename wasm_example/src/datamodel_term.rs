@@ -6,6 +6,7 @@ extern crate wasm_bindgen;
 use std::rc::Rc;
 use sophia::term::*;
 use wasm_bindgen::prelude::*;
+use crate::util::log;
 
 // ============================================================================
 //   ==== IMPORTATION ==== IMPORTATION ==== IMPORTATION ==== IMPORTATION ====
@@ -197,8 +198,8 @@ impl SophiaExportTerm {
                 let other_term_type = x.term_type();
                 match &self.term {
                     Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.to_string(),
-                    Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.to_string(),
-                    Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.to_string(),
+                    Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.value(),
+                    Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.value(),
                     Some(Literal(txt, literal_kind)) => 
                         other_term_type == "Literal" && x.value() == txt.to_string()
                             && SophiaExportTerm::equals_to_literal(literal_kind, &x),
