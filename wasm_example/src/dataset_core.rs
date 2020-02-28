@@ -116,9 +116,13 @@ impl SophiaExportDataset {
 #[wasm_bindgen(js_class="DatasetCore")]
 impl SophiaExportDataset {
     /// Returns the number of quads contained by this dataset
-    #[wasm_bindgen(getter = size)]
+    #[wasm_bindgen(getter=size)]
     pub fn get_size(&self) -> usize {
-        self.dataset.quads().into_iter().count()
+        // We try to use hint to avoid iterating on every quads, currently it doesnt work
+        match self.dataset.quads().into_iter().size_hint() {
+            (v1, Some(v2)) if v1 == v2 => v1,
+            _ => self.dataset.quads().count()
+        }
     }
 
     /// Returns a javascript style iterator on every quads on this dataset.
