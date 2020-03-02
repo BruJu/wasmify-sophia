@@ -24,6 +24,13 @@ then
   elif [ $1 == "reload" ]
   then
     pre_compile
+  elif [ $1 == "release" ]
+  then
+    cargo +nightly build --target wasm32-unknown-unknown --release
+    wasm-bindgen target/wasm32-unknown-unknown/release/wasm_example.wasm --out-dir .
+    wasm-bindgen --target nodejs target/wasm32-unknown-unknown/release/wasm_example.wasm --out-dir .
+    mocha
+    # Running some quick benchark would be nice here (and eventually plotting the evolution)
   else
     echo "Unknown argument"
   fi
