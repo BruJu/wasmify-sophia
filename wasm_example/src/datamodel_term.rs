@@ -153,7 +153,6 @@ impl SophiaExportTerm {
         // converted to the datatype langString regardless of its previous datatype.
         // Setting the language of any other term has no effect.
         if let Some(Literal(old_value, _)) = &self.term {
-            let language: Rc<str> = language.into();
             self.term = Some(RcTerm::new_literal_lang(old_value.to_string(), language).unwrap());
         }
     }
@@ -184,7 +183,7 @@ impl SophiaExportTerm {
                 }
             }
             let new_node_value = self.value();
-            let literal_type: RcTerm = RcTerm::new_iri(named_node.value().as_str()).unwrap();
+            let literal_type: RcTerm = RcTerm::new_iri(named_node.value()).unwrap();
             self.term = Some(RcTerm::new_literal_dt(new_node_value, literal_type).unwrap());
         }
     }
