@@ -3,10 +3,9 @@
 
 extern crate wasm_bindgen;
 
-use std::rc::Rc;
 use sophia::term::*;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
-use crate::util::log;
 
 // ============================================================================
 //   ==== IMPORTATION ==== IMPORTATION ==== IMPORTATION ==== IMPORTATION ====

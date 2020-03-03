@@ -45,6 +45,28 @@ extern "C" {
 // -----------------------------------------------------
 // ==== DatasetCore and extra services
 
+use std::io::BufReader;
+use std::io::Read;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen]
+    pub type JsImportedStream;
+
+    #[wasm_bindgen(method)]
+    fn js_read(this: &JsImportedStream, max_read_size: usize) -> js_sys::Uint8Array;
+
+
+}
+
+impl Read for JsImportedStream {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        let read_data = self.js_read(buf.len());
+        read_data.copy_to(buf);
+        Ok(0)
+    }
+}
+
 /// A Sophia `FastDataset` adapter that can be exported to an object that is almost compliant to a
 /// [RDF.JS dataset](https://rdf.js.org/dataset-spec/#dataset-interface)
 #[wasm_bindgen(js_name="DatasetCore")]
@@ -75,6 +97,19 @@ impl SophiaExportDataset {
             Ok(_) => {},
             Err(error) => log(error.to_string().as_str())
         }
+    }
+
+    /// Loads a dataset from the content of a Stream written using the TriG format
+    #[wasm_bindgen(js_name=FromStream)]
+    pub fn load_from_stream(stream: JsImportedStream) -> SophiaExportDataset {
+        let mut ds = SophiaExportDataset{ dataset: FastDataset::new() };
+        let buf_reader = BufReader::new(stream);
+        let r = sophia::parser::trig::parse_bufread(buf_reader).in_dataset(&mut ds.dataset);
+        match r {
+            Ok(_) => {},
+            Err(error) => log(error.to_string().as_str())
+        }
+        ds
     }
 
     pub fn quads(&self) -> js_sys::Array {

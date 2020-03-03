@@ -13,7 +13,6 @@ pub mod dataset_core;
 
 // Debug / Log
 pub mod util;
-pub mod parser;
 
 // Required by factory
 use crate::dataset_core::*;
