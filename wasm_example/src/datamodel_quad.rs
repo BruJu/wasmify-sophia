@@ -1,6 +1,8 @@
 //! This modules contains the quad importation and exportation from Sophia and
 //! javascript.
 
+#![deny(missing_docs)]
+
 extern crate wasm_bindgen;
 
 use crate::datamodel_term::*;
@@ -15,36 +17,53 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
+    /// A quad imported from the Javascript world
     #[wasm_bindgen(js_name = Quad)]
     pub type JsImportQuad;
     
+    /// Returns the subject of the quad
     #[wasm_bindgen(method, getter)]
     pub fn subject(this: &JsImportQuad) -> JsImportTerm;
 
+    /// Modifies the subject of the quad
     #[wasm_bindgen(method, setter)]
     pub fn set_subject(this: &JsImportQuad, value: &JsImportTerm);
 
+    /// Returns the object of the quad
     #[wasm_bindgen(method, getter)]
     pub fn object(this: &JsImportQuad) -> JsImportTerm;
 
+    /// Modifies the object of the quad
     #[wasm_bindgen(method, setter)]
     pub fn set_object(this: &JsImportQuad, value: &JsImportTerm);
 
+    /// Returns the predicate of the quad
     #[wasm_bindgen(method, getter)]
     pub fn predicate(this: &JsImportQuad) -> JsImportTerm;
 
+    /// Modifies the predicate of the quad
     #[wasm_bindgen(method, setter)]
     pub fn set_predicate(this: &JsImportQuad, value: &JsImportTerm);
 
+    /// Returns the graph of the quad
     #[wasm_bindgen(method, getter)]
     pub fn graph(this: &JsImportQuad) -> JsImportTerm;
 
+    /// Modifies the graph of the quad
     #[wasm_bindgen(method, setter)]
     pub fn set_graph(this: &JsImportQuad, value: &JsImportTerm);
 
+    /// Returns true if the two quads are equals according to RDF.JS specification
     #[wasm_bindgen(js_name=equals)]
     pub fn quads_equals(this: &JsImportQuad, other_quad: &JsImportQuad);
     
+    /// Returns a pointer to this quad.
+    /// 
+    /// This is mainly used to be able to detect a Rust managed quad from an
+    /// imported quad (as wasm_bindgen doesn't let us use polymorphism).
+    /// 
+    /// Using this method can be very unsafe because it supposes only this
+    /// object has a method called getRustPtr in the Javascript world. 
     #[wasm_bindgen(method, getter=getRustPtr)]
     pub fn quads_get_rust_ptr(this: &JsImportQuad) -> *const SophiaExportQuad;
 }
@@ -56,12 +75,16 @@ extern "C" {
 /// A SophiaExportQuad owns its data in the form of four RcTerms.
 #[wasm_bindgen(js_name = Quad)]
 pub struct SophiaExportQuad {
+    /// Subject of the quad
     #[wasm_bindgen(skip)]
     pub _subject: RcTerm,
+    /// Predicate of the quad
     #[wasm_bindgen(skip)]
     pub _predicate: RcTerm,
+    /// Object of the quad
     #[wasm_bindgen(skip)]
     pub _object: RcTerm,
+    /// Grpah of the quad. The default graph is represented as None
     #[wasm_bindgen(skip)]
     pub _graph: Option<RcTerm>
 }
@@ -90,21 +113,25 @@ impl SophiaExportQuad {
 
 #[wasm_bindgen(js_class = Quad)]
 impl SophiaExportQuad {
+    /// Returns the subject of the quad
     #[wasm_bindgen(method, getter)]
     pub fn subject(&self) -> SophiaExportTerm {
         SophiaExportTerm::new(&self._subject)
     }
 
+    /// Returns the predicate of the quad
     #[wasm_bindgen(method, getter)]
     pub fn predicate(&self) -> SophiaExportTerm {
         SophiaExportTerm::new(&self._predicate)
     }
 
+    /// Returns the object of the quad
     #[wasm_bindgen(method, getter)]
     pub fn object(&self) -> SophiaExportTerm {
         SophiaExportTerm::new(&self._object)
     }
 
+    /// Returns the graph of the quad
     #[wasm_bindgen(method, getter)]
     pub fn graph(&self) -> SophiaExportTerm {
         match &self._graph {
@@ -113,6 +140,7 @@ impl SophiaExportQuad {
         }
     }
 
+    /// Returns a N-Quad representation of the quad 
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
         match &self._graph {
@@ -121,6 +149,9 @@ impl SophiaExportQuad {
         }
     }
 
+    /// Returns true if the passed quad is identical to this quad according to
+    /// RDF.JS specification ie the subject, predicate, object and graph are
+    /// the same.
     #[wasm_bindgen(js_name = equals)]
     pub fn equals(&self, other: Option<JsImportQuad>) -> bool {
         match &other {
@@ -151,26 +182,37 @@ impl SophiaExportQuad {
         }
     }
 
+    /// Modifies the subject of this quad
     #[wasm_bindgen(method, setter)]
     pub fn set_subject(&mut self, other: &JsImportTerm) {
         self._subject = build_rcterm_from_js_import_term(other).unwrap();
     }
     
+    /// Modifies the predicate of this quad
     #[wasm_bindgen(method, setter)]
     pub fn set_predicate(&mut self, other: &JsImportTerm) {
         self._predicate = build_rcterm_from_js_import_term(other).unwrap();
     }
 
+    /// Modifies the object of this quad
     #[wasm_bindgen(method, setter)]
     pub fn set_object(&mut self, other: &JsImportTerm) {
         self._object = build_rcterm_from_js_import_term(other).unwrap();
     }
     
+    /// Modifies the graph of this quad
     #[wasm_bindgen(method, setter)]
     pub fn set_graph(&mut self, other: &JsImportTerm) {
         self._graph = build_rcterm_from_js_import_term(other);
     }
 
+    /// Returns a pointer to this quad.
+    /// 
+    /// This is mainly used to be able to detect a Rust managed quad from an
+    /// imported quad (as wasm_bindgen doesn't let us use polymorphism).
+    /// 
+    /// Using this method can be very unsafe because it supposes only this
+    /// object has a method called getRustPtr in the Javascript world. 
     #[wasm_bindgen(method, getter=getRustPtr)]
     pub fn quads_get_rust_ptr(&self) -> *const SophiaExportQuad {
         self

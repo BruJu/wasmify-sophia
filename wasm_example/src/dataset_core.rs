@@ -2,6 +2,8 @@
 //! specification. The implementation also offers many services from the
 //! Dataset class.
 
+#![deny(missing_docs)]
+
 extern crate wasm_bindgen;
 
 use crate::datamodel_term::*;
@@ -29,9 +31,15 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     // TODO : check if we should give to import and exported objects the same js name or not
 
+    /// A dataset managed that is imported from Javascript
     #[wasm_bindgen(js_name=DatasetCore)]
     pub type JsImportDataset;
 
+    /// Returns a pointer to the intern memory of Rust if this dataset is
+    /// managed by it.
+    /// 
+    /// This method can be very unsafe because it supposes only
+    /// `SophiaExportDataset` has this method.
     #[wasm_bindgen(method, getter=getSophiaDatasetPtr)]
     pub fn get_sophia_dataset_ptr(this: &JsImportDataset) -> *const SophiaExportDataset;
 }
@@ -40,32 +48,8 @@ extern "C" {
 // ============================================================================
 //   ==== EXPORTATION ==== EXPORTATION ==== EXPORTATION ==== EXPORTATION ====
 
-
-
 // -----------------------------------------------------
 // ==== DatasetCore and extra services
-
-use std::io::BufReader;
-use std::io::Read;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen]
-    pub type JsImportedStream;
-
-    #[wasm_bindgen(method)]
-    fn js_read(this: &JsImportedStream, max_read_size: usize) -> js_sys::Uint8Array;
-
-
-}
-
-impl Read for JsImportedStream {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        let read_data = self.js_read(buf.len());
-        read_data.copy_to(buf);
-        Ok(0)
-    }
-}
 
 /// A Sophia `FastDataset` adapter that can be exported to an object that is almost compliant to a
 /// [RDF.JS dataset](https://rdf.js.org/dataset-spec/#dataset-interface)
@@ -99,19 +83,7 @@ impl SophiaExportDataset {
         }
     }
 
-    /// Loads a dataset from the content of a Stream written using the TriG format
-    #[wasm_bindgen(js_name=FromStream)]
-    pub fn load_from_stream(stream: JsImportedStream) -> SophiaExportDataset {
-        let mut ds = SophiaExportDataset{ dataset: FastDataset::new() };
-        let buf_reader = BufReader::new(stream);
-        let r = sophia::parser::trig::parse_bufread(buf_reader).in_dataset(&mut ds.dataset);
-        match r {
-            Ok(_) => {},
-            Err(error) => log(error.to_string().as_str())
-        }
-        ds
-    }
-
+    /// Returns an array that contains every quads contained by this dataset
     pub fn quads(&self) -> js_sys::Array {
         self.dataset
             .quads()
@@ -460,7 +432,10 @@ impl SophiaExportDataset {
             .join("\n")
     }
 
-    // any reduce (QuadReduceIteratee iteratee, optional any initialValue);
+    /// Reduces the whole dataset to a single element
+    /// 
+    /// The behavior of this function matches the `Array.prototype.reduce`
+    /// function from EcmaScript.
     #[wasm_bindgen(js_name="reduce")]
     pub fn reduce(&self, reducer: js_sys::Function, initial_value: JsValue) -> JsValue {
         let mut iterator = self.dataset.quads();

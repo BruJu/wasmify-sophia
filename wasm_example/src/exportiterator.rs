@@ -7,6 +7,7 @@
 //! This feature is implemented as earlier versions of NodeJs do not support
 //! `js_sys::Array::values()`
 
+#![deny(missing_docs)]
 
 extern crate wasm_bindgen;
 

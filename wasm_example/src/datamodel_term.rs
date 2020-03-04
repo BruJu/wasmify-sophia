@@ -1,6 +1,8 @@
 //! This module contains every terms that can either be imported or exported to
 //! the Javascript world.
 
+#![deny(missing_docs)]
+
 extern crate wasm_bindgen;
 
 use sophia::term::*;
@@ -99,11 +101,10 @@ impl SophiaExportTerm {
 // Every term type is implemented as a SophiaExportTerm
 #[wasm_bindgen(js_class="Term")]
 impl SophiaExportTerm {
-    #[wasm_bindgen]
-    pub fn is_connected_to_rust(&self) -> bool {
-        true
-    }
-
+    /// Returns the term type of this term.
+    /// 
+    /// The returned value can either be NamedNode, BlankNode, Literal,
+    /// Variable or DefaultGraph.
     #[wasm_bindgen(getter = termType)]
     pub fn term_type(&self) -> String {
         match &self.term {
@@ -115,6 +116,7 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Returns the value of this term
     #[wasm_bindgen(getter = value)]
     pub fn value(&self) -> String {
         match &self.term {
@@ -123,6 +125,7 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Modifies the value of this term
     #[wasm_bindgen(setter = value)]
     pub fn set_value(&mut self, new_value: &str) {
         match &self.term {
@@ -138,6 +141,7 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Returns the language of this term or an empty string if not applicable
     #[wasm_bindgen(getter = language)]
     pub fn language(&self) -> String {
         match &self.term {
@@ -146,6 +150,7 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Modifies the language of this term if applicable
     #[wasm_bindgen(method, setter)]
     pub fn set_language(&mut self, language: &str) {
         // In this implementation, if we set the language of a literal, it will be automatically
@@ -156,6 +161,7 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Returns the datatype of this term if applicable
     #[wasm_bindgen(getter)]
     pub fn datatype(&self) -> Option<SophiaExportTerm> {
         match &self.term {
@@ -172,6 +178,7 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Modifies the dataset of this literal if applicable
     #[wasm_bindgen(method, setter)]
     pub fn set_datatype(&mut self, named_node: &JsImportTerm) {
         if let Some(Literal(_, literal_kind)) = &self.term {
@@ -187,6 +194,11 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Returns true if this term and the given term are equals according to
+    /// RDF.JS specification.
+    /// 
+    /// Two terms are identical if their termType, value and eventual language
+    /// or datatype are the same.
     #[wasm_bindgen(js_name = equals)]
     pub fn equals(&self, other: Option<JsImportTerm>) -> bool {
         match other {
@@ -220,6 +232,7 @@ impl SophiaExportTerm {
         }
     }
 
+    /// Returns the n3 representation of this term
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
         match &self.term {
