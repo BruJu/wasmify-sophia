@@ -8,8 +8,9 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2.58"
+wasm-bindgen = "0.2.59"
+wasm-bindgen-futures = "0.4.9"
 sophia = { git = "https://github.com/bruju/sophia_rs" }
-js-sys = "0.3.32"
+js-sys = "0.3.36"
 uuid = { version = "0.8.1", features = ["v4", "wasm-bindgen"] }
 maybe-owned = "0.3.2"
