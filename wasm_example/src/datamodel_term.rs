@@ -48,24 +48,49 @@ pub extern "C" {
 /// Builds a new RcTerm that has the representation used by Sophia for the give
 /// JsImportTerm
 pub fn build_rcterm_from_js_import_term(term: &JsImportTerm) -> Option<RcTerm> {
-    let determine = |result_term: Result<RcTerm>| Some(result_term.unwrap());
-    // TODO : check if defining build_literal here can cause performances issues
-    let build_literal = |term: &JsImportTerm| {
-        let value = term.value();
-        let language = term.language();
-        if language != "" { // Lang
-            RcTerm::new_literal_lang(value, language)
-        } else {
-            let datatype = term.datatype();
-            RcTerm::new_literal_dt(value, build_rcterm_from_js_import_term(&datatype).unwrap())
-        }
-    };
-
     match term.term_type().as_str() {
-        "NamedNode" => determine(RcTerm::new_iri(term.value())),
-        "BlankNode" => determine(RcTerm::new_bnode(term.value())),
-        "Literal" => determine(build_literal(term)),
-        "Variable" => determine(RcTerm::new_variable(term.value())),
+        "NamedNode" => Some(RcTerm::new_iri(term.value()).unwrap()),
+        "BlankNode" => Some(RcTerm::new_bnode(term.value()).unwrap()),
+        "Literal" => {
+            let value = term.value();
+            let language = term.language();
+
+            let a = if language != "" { // Lang
+                RcTerm::new_literal_lang(value, language)
+            } else {
+                let datatype = term.datatype();
+                RcTerm::new_literal_dt(value, build_rcterm_from_js_import_term(&datatype).unwrap())
+            };
+            
+            Some(a.unwrap())
+        },
+        "Variable" => Some(RcTerm::new_variable(term.value()).unwrap()),
+        "DefaultGraph" => None,
+        _ => None
+    }
+}
+
+/// Builds a StringTerm from a JsImportTerm
+/// 
+/// This is the fastest way to build a Term from an object imported from Javascript
+pub fn build_stringterm_from_js_import_term(term: &JsImportTerm) -> Option<Term<String>> {
+    match term.term_type().as_str() {
+        "NamedNode" => Some(Term::<String>::new_iri(term.value()).unwrap()),
+        "BlankNode" => Some(Term::<String>::new_bnode(term.value()).unwrap()),
+        "Literal" => {
+            let value = term.value();
+            let language = term.language();
+
+            let literal_result = if language != "" { // Lang
+                Term::<String>::new_literal_lang(value, language)
+            } else {
+                let datatype = term.datatype();
+                Term::<String>::new_literal_dt(value, build_stringterm_from_js_import_term(&datatype).unwrap())
+            };
+            
+            Some(literal_result.unwrap())
+        },
+        "Variable" => Some(Term::<String>::new_variable(term.value()).unwrap()),
         "DefaultGraph" => None,
         _ => None
     }
@@ -81,7 +106,6 @@ pub struct SophiaExportTerm {
     /// The encapsulated Sophia Term. If `None`, this term describes the default graph.
     #[wasm_bindgen(skip)]
     pub term: Option<RcTerm>
-    // TODO : Wouldn't it be better to make a proper enum { OnwedRcTerm(A), DefaultGraph } ?
 }
 
 impl SophiaExportTerm {

@@ -143,17 +143,11 @@ impl SophiaExportDataset {
     /// Adds the given quad to this dataset
     #[wasm_bindgen(js_name="add")]
     pub fn add(&mut self, quad: JsImportQuad) {
-        // As we use RcTerms, copy should be cheap and simple enough to not
-        // have too much performances issues
-        let sophia_quad = SophiaExportDataFactory::from_quad(quad);
         self.dataset.insert(
-            &sophia_quad._subject,
-            &sophia_quad._predicate,
-            &sophia_quad._object,
-            match &sophia_quad._graph {
-                None => None,
-                Some(x) => Some(x)
-            }
+            &build_stringterm_from_js_import_term(&quad.subject()).unwrap(),
+            &build_stringterm_from_js_import_term(&quad.predicate()).unwrap(),
+            &build_stringterm_from_js_import_term(&quad.object()).unwrap(),
+            build_stringterm_from_js_import_term(&quad.graph()).as_ref(),
         ).unwrap();
 
         // TODO : return this
