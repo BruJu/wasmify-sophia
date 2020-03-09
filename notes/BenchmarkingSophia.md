@@ -18,6 +18,9 @@ For every test with PRIWA we use Datasetcorearry as the used dataset
 | PRIWA (rdf js style)    | 15.17 | 0.29                              |
 | PRIWA (sophia_rs style) | 15.36 | 0.14                              |
 | n3js                    | 8.76  | 0.067                             |
+| graphy                  | 6.83  | 0.34                              [
+
+FastDS takes 20 sec to load
 
 But the catch is that the FastDataset is useless for querying PO (the tested
 match). The indexing is only used if we only query an object. n3js is
@@ -31,6 +34,13 @@ optimized for PO and not P / O.
 | priwa fastDS into array  | 0.26 | 0.12 | 0.30 |
 | Graphy                   | 0.30 | 0.32 | 0.36 |
 | priwa fastdataset x2     | 0.69 | 0.53 | 0.72 |
+
+
+n3js is way faster for PO because it uses an alternative indexes if there are
+more than 1 keys.
+
+
+
 
 
 
