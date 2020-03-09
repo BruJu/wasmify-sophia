@@ -106,6 +106,11 @@ https://rdf.js.org/dataset-spec/#datasetcore-interface : "Blank Nodes will be no
 
 
 
+### Indexing
+
+- http://wifo5-03.informatik.uni-mannheim.de/benchmarks-200801/
+
+
 ### Internship
 
 - https://projet.liris.cnrs.fr/repid/2019/stage-raisonnement-portable/fr/
