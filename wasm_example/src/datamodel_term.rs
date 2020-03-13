@@ -191,12 +191,12 @@ impl SophiaExportTerm {
         match &self.term {
             Some(Literal(_1, Lang(_2))) =>
                 Option::Some(SophiaExportTerm {
-                    term: Some(RcTerm::new_iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#langString").unwrap())
+                    term: Some(RcTerm::new_iri_unchecked("http://www.w3.org/1999/02/22-rdf-syntax-ns#langString", true))
                 }),
             // TODO : check if iri always has a type (especially for string)
             Some(Literal(_1, Datatype(iri))) =>
                 Option::Some(SophiaExportTerm {
-                    term: Some(RcTerm::new_iri(iri.to_string()).unwrap())
+                    term: Some(RcTerm::new_iri_unchecked(iri.value(), true))
                 }),
             _ => Option::None
         }
@@ -231,7 +231,7 @@ impl SophiaExportTerm {
                 // We don't use the implementation of term_type / value to have better performances.
                 let other_term_type = x.term_type();
                 match &self.term {
-                    Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.to_string(),
+                    Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.value(),
                     Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.value(),
                     Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.value(),
                     Some(Literal(txt, literal_kind)) => 
@@ -252,7 +252,7 @@ impl SophiaExportTerm {
         match literal_kind {
             Lang(language) => language.to_string() == other.language()
                 && "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" == other.datatype().value(),
-            Datatype(iri) => other.language() == "" && other.datatype().value() == iri.to_string()
+            Datatype(iri) => other.language() == "" && other.datatype().value() == iri.value()
         }
     }
 
