@@ -3,7 +3,15 @@ use std::collections::hash_set::HashSet;
 use sophia::graph::inmem::TermIndexMapU;
 use sophia::term::factory::RcTermFactory;
 use std::cell::RefCell;
-
+use std::convert::Infallible;
+use sophia::quad::streaming_mode::ByValue;
+use sophia::dataset::Dataset;
+use sophia::dataset::DQuadSource;
+use sophia::term::index_map::TermIndexMap;
+use sophia::quad::streaming_mode::StreamedQuad;
+use std::cell::Ref;
+use sophia::quad::Quad;
+use sophia::term::RcTerm;
 
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
@@ -104,6 +112,23 @@ impl Data {
         true
     }
 
+    pub fn inflate_quads<'a>(&'a self, index_map: &'a TermIndexMapU<u32, RcTermFactory>)
+    -> DQuadSource<'a, FullIndexDataset>
+    {
+        Box::new(
+            self.get_3(POS_DEFAULT_BUILT)
+            .map(move |spog| {
+                let s = index_map.get_term(spog[0]).unwrap().clone();
+                let p = index_map.get_term(spog[1]).unwrap().clone();
+                let o = index_map.get_term(spog[2]).unwrap().clone();
+                let g = index_map.get_term(spog[3]).unwrap().clone();
+                Ok(StreamedQuad::by_value([s, p, o, g]))
+            })
+        )
+    }
+
+
+    /*
     pub fn get_quads<'a>(&'a mut self, level: u8, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
         match level {
             3 => {
@@ -122,8 +147,9 @@ impl Data {
         }
 
     }
+    */
 
-    fn ensure_built(&mut self, level: u8, position: usize) {
+    pub fn ensure_built(&mut self, level: u8, position: usize) {
         match level {
             3 => self.ensure_built_3(position),
             2 => self.ensure_built_2(position),
@@ -186,7 +212,7 @@ impl Data {
         self.one_indexes[position] = Some(map_to_fill);
     }
 
-    fn get<'a>(&'a self, level: u8, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
+    pub fn get<'a>(&'a self, level: u8, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
         match level {
             3 => self.get_3(position),
             2 => self.get_2(position),
@@ -298,4 +324,17 @@ impl Data {
 pub struct FullIndexDataset {
     term_index: TermIndexMapU<u32, RcTermFactory>,
     data: RefCell<Data>
+}
+
+impl Dataset for FullIndexDataset {
+    type Quad = ByValue<[RcTerm; 4]>;
+    type Error = Infallible;
+
+    fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {
+        // self.data.borrow_mut.ensure_built_3(3, POS_DEFAULT_BUILT);
+
+        let borrowed: Ref<'a, Data> = self.data.borrow();
+        let iter = borrowed.inflate_quads(&self.term_index);
+        iter
+    }
 }
