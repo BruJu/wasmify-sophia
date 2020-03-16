@@ -18,6 +18,17 @@ proper README.
 
 The first goal is to enable javascript users to use *Sophia* as a backend.
 
+### Getting Started
+
+- "Install rust, nodejs and npm"
+
+```sh
+rustup toolchain install nightly
+cargo +nightly install wasm-bindgen-cli
+# rustup target add wasm32-unknown-unknown (Not sure if it is required)
+rustup +nightly target add wasm32-unknown-unknown
+```
+
 ### How to "use"
 
 *Normally*
