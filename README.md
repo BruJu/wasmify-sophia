@@ -27,6 +27,11 @@ rustup toolchain install nightly
 cargo +nightly install wasm-bindgen-cli
 # rustup target add wasm32-unknown-unknown (Not sure if it is required)
 rustup +nightly target add wasm32-unknown-unknown
+npm install
+
+# For unit tests
+npm i @rdfjs/namespace
+npm i mocha -g
 ```
 
 ### How to "use"
@@ -38,11 +43,19 @@ rustup +nightly target add wasm32-unknown-unknown
 
 *Unit Testing*
 
-- `npm i @rdfjs/namespace`
-
 - `./wasm_example/run_server.sh test`
 
-=
+
+### Frequently Encoutered Issues
+
+- RLS can't find crates
+
+reinstall rls vscode plugin
+
+`rustup update` and restart VSCode
+
+
+
 ---
 
 ## Temporary1 link heap
