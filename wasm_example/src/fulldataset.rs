@@ -18,7 +18,9 @@ use sophia::term::TermData;
 use std::iter::empty;
 use once_cell::unsync::OnceCell;
 use arr_macro::arr;
-
+use sophia::dataset::MutableDataset;
+use sophia::term::RefTerm;
+use sophia::dataset::MDResult;
 
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
@@ -352,4 +354,72 @@ impl Dataset for FullIndexDataset {
         self.unsafe_ref_data().inflate_quads(&self.term_index)
     }
     */
+}
+
+impl MutableDataset for FullIndexDataset {
+    type MutationError = Infallible;
+
+    fn insert<T, U, V, W>(
+        &mut self,
+        s: &Term<T>,
+        p: &Term<U>,
+        o: &Term<V>,
+        g: Option<&Term<W>>,
+    ) -> MDResult<Self, bool>
+    where
+        T: TermData,
+        U: TermData,
+        V: TermData,
+        W: TermData,
+    {
+        let si = self.term_index.make_index(&s.into());
+        let pi = self.term_index.make_index(&p.into());
+        let oi = self.term_index.make_index(&o.into());
+        let gi = self
+            .term_index
+            .make_index_for_graph_name(g.map(RefTerm::from).as_ref());
+        let modified = self.data.insert([si, pi, oi, gi]);
+        if modified {
+            //Some([si, pi, oi, gi])
+        } else {
+            self.term_index.dec_ref(si);
+            self.term_index.dec_ref(pi);
+            self.term_index.dec_ref(oi);
+            self.term_index.dec_ref(gi);
+            //None
+        };
+
+        Ok(modified)
+    }
+
+    fn remove<T, U, V, W>(
+        &mut self,
+        s: &Term<T>,
+        p: &Term<U>,
+        o: &Term<V>,
+        g: Option<&Term<W>>,
+    ) -> MDResult<Self, bool>
+    where
+        T: TermData,
+        U: TermData,
+        V: TermData,
+        W: TermData,
+    {
+        let si = self.term_index.get_index(&s.into());
+        let pi = self.term_index.get_index(&p.into());
+        let oi = self.term_index.get_index(&o.into());
+        let gi = self.term_index.get_index_for_graph_name(g.map(RefTerm::from).as_ref());
+        if let (Some(si), Some(pi), Some(oi), Some(gi)) = (si, pi, oi, gi) {
+            let modified = self.data.remove([si, pi, oi, gi]);
+            if modified {
+                self.term_index.dec_ref(si);
+                self.term_index.dec_ref(pi);
+                self.term_index.dec_ref(oi);
+                self.term_index.dec_ref(gi);
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
 }
