@@ -21,6 +21,8 @@ use std::collections::hash_map::HashMap;
 use std::collections::hash_set::HashSet;
 use std::convert::Infallible;
 use std::iter::empty;
+use sophia::dataset::DResult;
+use sophia::dataset::DQuad;
 
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
@@ -338,22 +340,43 @@ pub struct FullIndexDataset {
     data: Data,
 }
 
+pub struct InflatedQuadsIterator<'a> {
+    base_iterator: Box<dyn Iterator<Item = [u32; 4]> + 'a>,
+    term_index: &'a TermIndexMapU<u32, RcTermFactory>
+}
+
+impl<'a> InflatedQuadsIterator<'a> {
+    pub fn new_box(
+        base_iterator: Box<dyn Iterator<Item = [u32; 4]> + 'a>,
+        term_index: &'a TermIndexMapU<u32, RcTermFactory>
+    ) -> Box<InflatedQuadsIterator<'a>> {
+        Box::new(InflatedQuadsIterator {
+            base_iterator: base_iterator,
+            term_index: term_index
+        })
+    }
+}
+
+impl<'a> Iterator for InflatedQuadsIterator<'a> {
+    type Item = DResult<FullIndexDataset, DQuad<'a, FullIndexDataset>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.base_iterator.next().map(|spog| {
+            let s = self.term_index.get_term(spog[0]).unwrap().clone();
+            let p = self.term_index.get_term(spog[1]).unwrap().clone();
+            let o = self.term_index.get_term(spog[2]).unwrap().clone();
+            let g = self.term_index.get_term(spog[3]).unwrap().clone();
+            Ok(StreamedQuad::by_value([s, p, o, g]))
+        })
+    }
+}
+
 impl FullIndexDataset {
     pub fn new() -> FullIndexDataset {
         FullIndexDataset {
             term_index: TermIndexMapU::new(),
             data: Data::new(),
         }
-    }
-    
-    pub fn inflate_quads<'a>(&'a self) -> DQuadSource<'a, FullIndexDataset> {
-        Box::new(self.data.get().map(move |spog| {
-            let s = self.term_index.get_term(spog[0]).unwrap().clone();
-            let p = self.term_index.get_term(spog[1]).unwrap().clone();
-            let o = self.term_index.get_term(spog[2]).unwrap().clone();
-            let g = self.term_index.get_term(spog[3]).unwrap().clone();
-            Ok(StreamedQuad::by_value([s, p, o, g]))
-        }))
     }
 }
 
@@ -370,17 +393,33 @@ impl Dataset for FullIndexDataset {
     type Error = Infallible;
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {
-        self.inflate_quads()
+        let quads = self.data.get();
+        InflatedQuadsIterator::new_box(quads, &self.term_index)
     }
 
-    /*
-    fn quads_with_s<'s, T>(&'s self, p: &'s Term<T>) -> DQuadSource<'s, Self>
+    fn quads_with_s<'s, T>(&'s self, s: &'s Term<T>) -> DQuadSource<'s, Self>
         where T: TermData
     {
-        self.data.borrow_mut().ensure_built_1(POS_S);
-        self.unsafe_ref_data().inflate_quads(&self.term_index)
+        let si = self.term_index.get_index(&s.into());
+        if si.is_none() {
+            return Box::new(empty());
+        } else {
+            let quads = self.data.get_1(POS_S, si.unwrap());
+            InflatedQuadsIterator::new_box(quads, &self.term_index)
+        }
     }
-    */
+
+    fn quads_with_o<'s, T>(&'s self, o: &'s Term<T>) -> DQuadSource<'s, Self>
+        where T: TermData
+    {
+        let oi = self.term_index.get_index(&o.into());
+        if oi.is_none() {
+            return Box::new(empty());
+        } else {
+            let quads = self.data.get_1(POS_O, oi.unwrap());
+            InflatedQuadsIterator::new_box(quads, &self.term_index)
+        }
+    }
 }
 
 impl MutableDataset for FullIndexDataset {
