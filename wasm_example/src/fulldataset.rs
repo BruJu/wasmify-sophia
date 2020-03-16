@@ -16,6 +16,9 @@ use sophia::term::RcTerm;
 use sophia::term::Term;
 use sophia::term::TermData;
 use std::iter::empty;
+use once_cell::unsync::OnceCell;
+use arr_macro::arr;
+
 
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
@@ -41,17 +44,29 @@ const QUAD_O: usize = 2;
 const QUAD_G: usize = 3;
 
 struct Data {
-    three_indexes: [Option<HashMap<[u32; 3], HashSet<u32>>>; 4],
-    two_indexes: [Option<HashMap<[u32; 2], HashSet<[u32; 2]>>>; 6],
-    one_indexes: [Option<HashMap<u32, HashSet<[u32; 3]>>>; 4]
+    three_indexes: [OnceCell<HashMap<[u32; 3], HashSet<u32>>>; 4],
+    two_indexes: [OnceCell<HashMap<[u32; 2], HashSet<[u32; 2]>>>; 6],
+    one_indexes: [OnceCell<HashMap<u32, HashSet<[u32; 3]>>>; 4]
 }
 
 
 impl Data {
+    pub fn new() -> Data {
+        let data = Data {
+            three_indexes: arr![OnceCell::new(); 4],
+            two_indexes: arr![OnceCell::new(); 6],
+            one_indexes: arr![OnceCell::new(); 4]
+        };
+
+        data.three_indexes[POS_DEFAULT_BUILT].set(HashMap::new());
+
+        data
+    }
+
     pub fn insert(&mut self, spog: [u32; 4]) -> bool {
         // Check if already contains the quad
         let (key_default, value_default) = Data::decompose_3(spog, POS_DEFAULT_BUILT);
-        let default_index = self.three_indexes[POS_DEFAULT_BUILT].as_ref().unwrap();
+        let default_index = self.three_indexes[POS_DEFAULT_BUILT].get().unwrap();
         if let Some(mapped_set) = default_index.get(&key_default) {
             if mapped_set.contains(&value_default) {
                 return false;
@@ -60,21 +75,21 @@ impl Data {
 
         // Modify every indexes
         for (i, maybe_index) in self.three_indexes.iter_mut().enumerate() {
-            if let Some(index) = maybe_index {
+            if let Some(index) = maybe_index.get_mut() {
                 let (key, value) = Data::decompose_3(spog, i);
                 index.entry(key).or_insert_with(HashSet::new).insert(value);
             }
         }
 
         for (i, maybe_index) in self.two_indexes.iter_mut().enumerate() {
-            if let Some(index) = maybe_index {
+            if let Some(index) = maybe_index.get_mut() {
                 let (key, value) = Data::decompose_2(spog, i);
                 index.entry(key).or_insert_with(HashSet::new).insert(value);
             }
         }
 
         for (i, maybe_index) in self.one_indexes.iter_mut().enumerate() {
-            if let Some(index) = maybe_index {
+            if let Some(index) = maybe_index.get_mut() {
                 let (key, value) = Data::decompose_1(spog, i);
                 index.entry(key).or_insert_with(HashSet::new).insert(value);
             }
@@ -85,7 +100,7 @@ impl Data {
 
     pub fn remove(&mut self, spog: [u32; 4]) -> bool {
         let (key_default, value_default) = Data::decompose_3(spog, POS_DEFAULT_BUILT);
-        let default_index = self.three_indexes[POS_DEFAULT_BUILT].as_ref().unwrap();
+        let default_index = self.three_indexes[POS_DEFAULT_BUILT].get().unwrap();
         if let Some(mapped_set) = default_index.get(&key_default) {
             if !mapped_set.contains(&value_default) {
                 return false;
@@ -93,21 +108,21 @@ impl Data {
         }
 
         for (i, maybe_index) in self.three_indexes.iter_mut().enumerate() {
-            if let Some(index) = maybe_index {
+            if let Some(index) = maybe_index.get_mut() {
                 let (key, value) = Data::decompose_3(spog, i);
                 index.get_mut(&key).unwrap().remove(&value);
             }
         }
 
         for (i, maybe_index) in self.two_indexes.iter_mut().enumerate() {
-            if let Some(index) = maybe_index {
+            if let Some(index) = maybe_index.get_mut() {
                 let (key, value) = Data::decompose_2(spog, i);
                 index.get_mut(&key).unwrap().remove(&value);
             }
         }
 
         for (i, maybe_index) in self.one_indexes.iter_mut().enumerate() {
-            if let Some(index) = maybe_index {
+            if let Some(index) = maybe_index.get_mut() {
                 let (key, value) = Data::decompose_1(spog, i);
                 index.get_mut(&key).unwrap().remove(&value);
             }
@@ -120,115 +135,63 @@ impl Data {
     -> DQuadSource<'a, FullIndexDataset>
     {
         Box::new(
-            self.get(POS_DEFAULT_BUILT)
-            .map(move |spog| {
-                let s = index_map.get_term(spog[0]).unwrap().clone();
-                let p = index_map.get_term(spog[1]).unwrap().clone();
-                let o = index_map.get_term(spog[2]).unwrap().clone();
-                let g = index_map.get_term(spog[3]).unwrap().clone();
-                Ok(StreamedQuad::by_value([s, p, o, g]))
-            })
-        )
-    }
-/*
-    pub fn inflate_quads<'a>(&'a self, index_map: &'a TermIndexMapU<u32, RcTermFactory>)
-    -> DQuadSource<'a, FullIndexDataset>
-    {
-        Box::new(
-            self.get_3(POS_DEFAULT_BUILT)
-            .map(move |spog| {
-                let s = index_map.get_term(spog[0]).unwrap().clone();
-                let p = index_map.get_term(spog[1]).unwrap().clone();
-                let o = index_map.get_term(spog[2]).unwrap().clone();
-                let g = index_map.get_term(spog[3]).unwrap().clone();
-                Ok(StreamedQuad::by_value([s, p, o, g]))
-            })
+            self.get()
+                .map(move |spog| {
+                    let s = index_map.get_term(spog[0]).unwrap().clone();
+                    let p = index_map.get_term(spog[1]).unwrap().clone();
+                    let o = index_map.get_term(spog[2]).unwrap().clone();
+                    let g = index_map.get_term(spog[3]).unwrap().clone();
+                    Ok(StreamedQuad::by_value([s, p, o, g]))
+                })
         )
     }
 
-*/
-    /*
-    pub fn get_quads<'a>(&'a mut self, level: u8, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
-        match level {
-            3 => {
-                self.ensure_built_3(position);
-                self.get_3(position)
-            },
-            2 => {
-                self.ensure_built_2(position);
-                self.get_2(position)
-            },
-            1 => {
-                self.ensure_built_1(position);
-                self.get_1(position)
-            },
-            _ => panic!("Access to a non existing index")
-        }
-
-    }
-    */
-
-    pub fn ensure_built(&mut self, level: u8, position: usize) {
-        match level {
-            3 => self.ensure_built_3(position),
-            2 => self.ensure_built_2(position),
-            1 => self.ensure_built_1(position),
-            _ => panic!("Access to a non existing index")
-        }
-    }
-
-    fn ensure_built_3(&mut self, position: usize) {
+    fn build_3(&self, position: usize) -> HashMap<[u32; 3], HashSet<u32>> {
         if position >= self.three_indexes.len() {
             panic!("ensure_built_3 : Invalid index {} / {}", position, self.three_indexes.len());
-        } else if self.three_indexes[position].is_some() {
-            return;
         }
 
         let mut map_to_fill = HashMap::new();
 
-        let quads = self.get(3, POS_DEFAULT_BUILT);
+        let quads = self.get();
         for quad in quads {
             let (key, value) = Data::decompose_3(quad, position);
             map_to_fill.entry(key).or_insert_with(HashSet::new).insert(value);            
         }
 
-        self.three_indexes[position] = Some(map_to_fill);
+        map_to_fill
     }
 
-    fn ensure_built_2(&mut self, position: usize) {
+    fn build_2(&self, position: usize) -> HashMap<[u32; 2], HashSet<[u32; 2]>> {
         if position >= self.two_indexes.len() {
             panic!("ensure_built_2 : Invalid index {} / {}", position, self.two_indexes.len());
-        } else if self.two_indexes[position].is_some() {
-            return;
         }
 
         let mut map_to_fill = HashMap::new();
 
-        let quads = self.get(3, POS_DEFAULT_BUILT);
+        let quads = self.get();
         for quad in quads {
             let (key, value) = Data::decompose_2(quad, position);
             map_to_fill.entry(key).or_insert_with(HashSet::new).insert(value);            
         }
 
-        self.two_indexes[position] = Some(map_to_fill);
+        map_to_fill
     }
 
-    fn ensure_built_1(&mut self, position: usize) {
+    fn build_1(&self, position: usize) -> HashMap<u32, HashSet<[u32; 3]>> {
         if position >= self.one_indexes.len() {
             panic!("ensure_built_1 : Invalid index {} / {}", position, self.one_indexes.len());
-        } else if self.one_indexes[position].is_some() {
-            return;
         }
 
         let mut map_to_fill = HashMap::new();
 
-        let quads = self.get(3, POS_DEFAULT_BUILT);
+        let quads = self.get();
         for quad in quads {
             let (key, value) = Data::decompose_1(quad, position);
             map_to_fill.entry(key).or_insert_with(HashSet::new).insert(value);            
         }
 
-        self.one_indexes[position] = Some(map_to_fill);
+        map_to_fill
     }
 
     pub fn get<'a>(&'a self) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
@@ -236,7 +199,7 @@ impl Data {
 
         Box::new(
             self.three_indexes[POS_DEFAULT_BUILT]
-                .as_ref()
+                .get()
                 .unwrap()
                 .iter()
                 .flat_map(move |(key, values)| {
@@ -254,73 +217,72 @@ impl Data {
 
     pub fn get_3<'a>(&'a self, position: usize, key: [u32; 3])
         -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
+        let map = self.three_indexes[position].get_or_init(|| self.build_3(position)).get(&key);
+        
+        match map {
+            None => Box::new(empty()),
+            Some(map) => {
+                let (k1, k2, k3, v1) = Data::indexes(3, position);
 
-        let map = self.three_indexes[position]
-            .as_ref()
-            .unwrap()
-            .get(&key);
-
-        if map.is_none() {
-            return Box::new(empty());
+                Box::new(
+                    map.iter()
+                        .map(move |value| {
+                                let mut quad : [u32; 4] = [0, 0, 0, 0];
+                                quad[k1] = key[0];
+                                quad[k2] = key[1];
+                                quad[k3] = key[2];
+                                quad[v1] = *value;
+                                quad
+                            })
+                )
+            }
         }
-
-        let map = map.unwrap();
-
-        let (k1, k2, k3, v1) = Data::indexes(3, position);
-
-        Box::new(
-            map.iter()
-                .map(move |value| {
-                        let mut quad : [u32; 4] = [0, 0, 0, 0];
-                        quad[k1] = key[0];
-                        quad[k2] = key[1];
-                        quad[k3] = key[2];
-                        quad[v1] = *value;
-                        quad
-                    })
-        )
     }
 
-    fn get_2<'a>(&'a self, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
-        let (k1, k2, v1, v2) = Data::indexes(2, position);
+    pub fn get_2<'a>(&'a self, position: usize, key: [u32; 2]) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
+        let map = self.two_indexes[position].get_or_init(|| self.build_2(position)).get(&key);
+        
+        match map {
+            None => Box::new(empty()),
+            Some(map) => {
+                let (k1, k2, v1, v2) = Data::indexes(2, position);
 
-        Box::new(
-            self.two_indexes[position]
-                .as_ref()
-                .unwrap()
-                .iter()
-                .flat_map(move |(key, values)| {
-                    values.iter().map(move |value| {
-                        let mut quad : [u32; 4] = [0, 0, 0, 0];
-                        quad[k1] = key[0];
-                        quad[k2] = key[1];
-                        quad[v1] = value[0];
-                        quad[v2] = value[1];
-                        quad
-                    })
-                })
-        )
+                Box::new(
+                    map.iter()
+                        .map(move |value| {
+                                let mut quad : [u32; 4] = [0, 0, 0, 0];
+                                quad[k1] = key[0];
+                                quad[k2] = key[1];
+                                quad[v1] = value[0];
+                                quad[v2] = value[1];
+                                quad
+                            })
+                )
+            }
+        }
     }
 
-    fn get_1<'a>(&'a self, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
-        let (k, v1, v2, v3) = Data::indexes(1, position);
+    pub fn get_1<'a>(&'a self, position: usize, key: u32) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
+        let map = self.one_indexes[position].get_or_init(|| self.build_1(position)).get(&key);
+        
+        match map {
+            None => Box::new(empty()),
+            Some(map) => {
+                let (k, v1, v2, v3) = Data::indexes(1, position);
 
-        Box::new(
-            self.one_indexes[position]
-                .as_ref()
-                .unwrap()
-                .iter()
-                .flat_map(move |(key, values)| {
-                    values.iter().map(move |value| {
-                        let mut quad : [u32; 4] = [0, 0, 0, 0];
-                        quad[k] = *key;
-                        quad[v1] = value[0];
-                        quad[v2] = value[1];
-                        quad[v3] = value[2];
-                        quad
-                    })
-                })
-        )
+                Box::new(
+                    map.iter()
+                        .map(move |value| {
+                                let mut quad : [u32; 4] = [0, 0, 0, 0];
+                                quad[k] = key;
+                                quad[v1] = value[0];
+                                quad[v2] = value[1];
+                                quad[v3] = value[2];
+                                quad
+                            })
+                )
+            }
+        }
     }
 
     fn indexes(level: u8, position: usize) -> (usize, usize, usize, usize) {
@@ -362,14 +324,14 @@ impl Data {
 
 pub struct FullIndexDataset {
     term_index: TermIndexMapU<u32, RcTermFactory>,
-    data: RefCell<Data>
+    data: Data
 }
 
 impl FullIndexDataset {
-    fn unsafe_ref_data(&self) -> &Data {
-        let ptr = self.data.as_ptr();
-        unsafe {
-            ptr.as_ref().unwrap()
+    pub fn new() -> FullIndexDataset {
+        FullIndexDataset {
+            term_index: TermIndexMapU::new(),
+            data: Data::new()
         }
     }
 }
@@ -379,8 +341,7 @@ impl Dataset for FullIndexDataset {
     type Error = Infallible;
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {
-        // self.data.borrow_mut().ensure_built_3(3, POS_DEFAULT_BUILT);
-        self.unsafe_ref_data().inflate_quads(&self.term_index)
+        self.data.inflate_quads(&self.term_index)
     }
 
     /*
