@@ -24,8 +24,6 @@ use std::iter::empty;
 use sophia::dataset::DResult;
 use sophia::dataset::DQuad;
 
-// TODO : GET DOESN4T RECEIVE A SPOG ORDER BUT A GPSO ORDER !!!!!!!!!!!!!!!!!!!!!!!!
-
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
 const POS_GSO: usize = 2;
@@ -56,6 +54,60 @@ struct Data {
 }
 
 impl Data {
+    // Index corresponding
+
+    /// We receive a key with the order SGPO. We want a key with the order
+    /// specified in the POS constant
+    
+
+    /// Receives a SPOG ordered key, returns a GPSO ordered key
+    fn rebuild_key_4(key: [u32; 4]) -> [u32; 4] {
+        [key[QUAD_G], key[QUAD_P], key[QUAD_S], key[QUAD_O]]
+    }
+
+    fn rebuild_key_3(key: [u32; 3], position: usize) -> [u32; 3] {
+        match position {
+            POS_GPS => [key[QUAD_G], key[QUAD_P], key[QUAD_S]],
+            POS_GPO => [key[QUAD_G], key[QUAD_P], key[QUAD_O]],
+            POS_GSO => [key[QUAD_G], key[QUAD_S], key[QUAD_O]],
+            POS_PSO => [key[QUAD_P], key[QUAD_S], key[QUAD_O]],
+        }
+    }
+
+    fn rebuild_key_2(key: [u32; 2], position: usize) -> [u32; 2] {
+        let (k1, k2, _, _) = Data::indexes(2, position);
+        if k1 < k2 {
+            key
+        } else {
+            // The first indexed term has a greater value in SPOG ordering than
+            // the second : we need to flip the keys
+            [key[1], key[0]]
+        }
+    }
+
+    fn indexes(level: u8, position: usize) -> (usize, usize, usize, usize) {
+        match (level, position) {
+            (3, POS_GPS) => (QUAD_G, QUAD_P, QUAD_S, QUAD_O),
+            (3, POS_GPO) => (QUAD_G, QUAD_P, QUAD_O, QUAD_S),
+            (3, POS_GSO) => (QUAD_G, QUAD_S, QUAD_O, QUAD_P),
+            (3, POS_PSO) => (QUAD_P, QUAD_S, QUAD_O, QUAD_G),
+            (2, POS_GP) => (QUAD_G, QUAD_P, QUAD_S, QUAD_O),
+            (2, POS_GS) => (QUAD_G, QUAD_S, QUAD_P, QUAD_O),
+            (2, POS_PS) => (QUAD_P, QUAD_S, QUAD_G, QUAD_O),
+            (2, POS_GO) => (QUAD_G, QUAD_O, QUAD_P, QUAD_S),
+            (2, POS_PO) => (QUAD_P, QUAD_O, QUAD_G, QUAD_S),
+            (2, POS_SO) => (QUAD_S, QUAD_O, QUAD_G, QUAD_P),
+            (1, POS_G) => (QUAD_G, QUAD_P, QUAD_S, QUAD_O),
+            (1, POS_P) => (QUAD_P, QUAD_G, QUAD_S, QUAD_O),
+            (1, POS_S) => (QUAD_S, QUAD_G, QUAD_P, QUAD_O),
+            (1, POS_O) => (QUAD_O, QUAD_G, QUAD_P, QUAD_S),
+            (_, _) => panic!(),
+        }
+    }
+
+    // Data implementation
+
+
     pub fn new() -> Data {
         let data = Data {
             three_indexes: arr![OnceCell::new(); 4],
@@ -230,6 +282,8 @@ impl Data {
         &'a self,
         key: [u32; 4],
     ) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
+        let key = Data.rebuild_key_4(key);
+
         let map = self.three_indexes[POS_DEFAULT_BUILT].get().unwrap().get(&key[0..3]);
 
         match map {
@@ -256,6 +310,8 @@ impl Data {
         position: usize,
         key: [u32; 3],
     ) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
+        let key = Data.rebuild_key_3(key, position);
+
         let map = self.three_indexes[position]
             .get_or_init(|| self.build_3(position))
             .get(&key);
@@ -281,6 +337,8 @@ impl Data {
         position: usize,
         key: [u32; 2],
     ) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
+        let key = Data.rebuild_key_2(key, position);
+
         let map = self.two_indexes[position]
             .get_or_init(|| self.build_2(position))
             .get(&key);
@@ -326,25 +384,6 @@ impl Data {
         }
     }
 
-    fn indexes(level: u8, position: usize) -> (usize, usize, usize, usize) {
-        match (level, position) {
-            (3, POS_GPS) => (QUAD_G, QUAD_P, QUAD_S, QUAD_O),
-            (3, POS_GPO) => (QUAD_G, QUAD_P, QUAD_O, QUAD_S),
-            (3, POS_GSO) => (QUAD_G, QUAD_S, QUAD_O, QUAD_P),
-            (3, POS_PSO) => (QUAD_P, QUAD_S, QUAD_O, QUAD_G),
-            (2, POS_GP) => (QUAD_G, QUAD_P, QUAD_S, QUAD_O),
-            (2, POS_GS) => (QUAD_G, QUAD_S, QUAD_P, QUAD_O),
-            (2, POS_PS) => (QUAD_P, QUAD_S, QUAD_G, QUAD_O),
-            (2, POS_GO) => (QUAD_G, QUAD_O, QUAD_P, QUAD_S),
-            (2, POS_PO) => (QUAD_P, QUAD_O, QUAD_G, QUAD_S),
-            (2, POS_SO) => (QUAD_S, QUAD_O, QUAD_G, QUAD_P),
-            (1, POS_G) => (QUAD_G, QUAD_P, QUAD_S, QUAD_O),
-            (1, POS_P) => (QUAD_P, QUAD_G, QUAD_S, QUAD_O),
-            (1, POS_S) => (QUAD_S, QUAD_G, QUAD_P, QUAD_O),
-            (1, POS_O) => (QUAD_O, QUAD_G, QUAD_P, QUAD_S),
-            (_, _) => panic!(),
-        }
-    }
 
     fn decompose_3(quad: [u32; 4], position: usize) -> ([u32; 3], u32) {
         let (k1, k2, k3, v) = Data::indexes(3, position);
