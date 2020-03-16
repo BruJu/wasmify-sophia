@@ -23,6 +23,8 @@ use std::convert::Infallible;
 use std::iter::empty;
 use sophia::dataset::DResult;
 use sophia::dataset::DQuad;
+use sophia::dataset::test_dataset_impl;
+
 
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
@@ -66,11 +68,18 @@ impl Data {
     }
 
     fn rebuild_key_3(key: [u32; 3], position: usize) -> [u32; 3] {
+        // Key is SPOG with a missing letter
+        // G always last (2), S always first (0)
         match position {
-            POS_GPS => [key[QUAD_G], key[QUAD_P], key[QUAD_S]],
-            POS_GPO => [key[QUAD_G], key[QUAD_P], key[QUAD_O]],
-            POS_GSO => [key[QUAD_G], key[QUAD_S], key[QUAD_O]],
-            POS_PSO => [key[QUAD_P], key[QUAD_S], key[QUAD_O]],
+            // SP_G -> P = 1
+            POS_GPS => [key[2], key[1], key[0]],
+            // _POG -> P = 0, O = 1
+            POS_GPO => [key[2], key[0], key[1]],
+            // S_OG -> O = 1
+            POS_GSO => [key[2], key[0], key[1]],
+            // SPO_ -> P = 1, O = 2
+            POS_PSO => [key[1], key[0], key[2]],
+            _ => panic!()
         }
     }
 
@@ -282,7 +291,7 @@ impl Data {
         &'a self,
         key: [u32; 4],
     ) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
-        let key = Data.rebuild_key_4(key);
+        let key = Data::rebuild_key_4(key);
 
         let map = self.three_indexes[POS_DEFAULT_BUILT].get().unwrap().get(&key[0..3]);
 
@@ -310,7 +319,7 @@ impl Data {
         position: usize,
         key: [u32; 3],
     ) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
-        let key = Data.rebuild_key_3(key, position);
+        let key = Data::rebuild_key_3(key, position);
 
         let map = self.three_indexes[position]
             .get_or_init(|| self.build_3(position))
@@ -337,7 +346,7 @@ impl Data {
         position: usize,
         key: [u32; 2],
     ) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
-        let key = Data.rebuild_key_2(key, position);
+        let key = Data::rebuild_key_2(key, position);
 
         let map = self.two_indexes[position]
             .get_or_init(|| self.build_2(position))
@@ -664,3 +673,6 @@ impl MutableDataset for FullIndexDataset {
         Ok(false)
     }
 }
+
+#[cfg(test)]
+test_dataset_impl!(test_fulldataset, FullIndexDataset);
