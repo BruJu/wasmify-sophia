@@ -59,7 +59,7 @@ impl Data {
             one_indexes: arr![OnceCell::new(); 4],
         };
 
-        data.three_indexes[POS_DEFAULT_BUILT].set(HashMap::new());
+        data.three_indexes[POS_DEFAULT_BUILT].set(HashMap::new()).unwrap();
 
         data
     }
@@ -130,19 +130,6 @@ impl Data {
         }
 
         true
-    }
-
-    pub fn inflate_quads<'a>(
-        &'a self,
-        index_map: &'a TermIndexMapU<u32, RcTermFactory>,
-    ) -> DQuadSource<'a, FullIndexDataset> {
-        Box::new(self.get().map(move |spog| {
-            let s = index_map.get_term(spog[0]).unwrap().clone();
-            let p = index_map.get_term(spog[1]).unwrap().clone();
-            let o = index_map.get_term(spog[2]).unwrap().clone();
-            let g = index_map.get_term(spog[3]).unwrap().clone();
-            Ok(StreamedQuad::by_value([s, p, o, g]))
-        }))
     }
 
     fn build_3(&self, position: usize) -> HashMap<[u32; 3], HashSet<u32>> {
@@ -358,14 +345,32 @@ impl FullIndexDataset {
             data: Data::new(),
         }
     }
+    
+    pub fn inflate_quads<'a>(&'a self) -> DQuadSource<'a, FullIndexDataset> {
+        Box::new(self.data.get().map(move |spog| {
+            let s = self.term_index.get_term(spog[0]).unwrap().clone();
+            let p = self.term_index.get_term(spog[1]).unwrap().clone();
+            let o = self.term_index.get_term(spog[2]).unwrap().clone();
+            let g = self.term_index.get_term(spog[3]).unwrap().clone();
+            Ok(StreamedQuad::by_value([s, p, o, g]))
+        }))
+    }
 }
+
+// Write a propoer inflate_quads methods :
+// Iterator adapter :
+// https://dev.to/dandyvica/yarit-yet-another-rust-iterators-tutorial-46dk
+// https://users.rust-lang.org/t/how-to-write-iterator-adapter/8835/2
+//
+// Box<Adapter> has to implement DQuadSource :
+// https://docs.rs/sophia/0.4.0/sophia/dataset/type.DQuadSource.html
 
 impl Dataset for FullIndexDataset {
     type Quad = ByValue<[RcTerm; 4]>;
     type Error = Infallible;
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {
-        self.data.inflate_quads(&self.term_index)
+        self.inflate_quads()
     }
 
     /*
