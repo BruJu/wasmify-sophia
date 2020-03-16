@@ -18,3 +18,8 @@ pub mod util;
 use crate::dataset_core::*;
 pub mod arrydataset;
 pub mod dataset_corearry;
+
+//pub mod latticedataset;
+pub mod fulldataset;
+
+

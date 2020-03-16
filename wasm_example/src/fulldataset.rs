@@ -11,7 +11,11 @@ use sophia::term::index_map::TermIndexMap;
 use sophia::quad::streaming_mode::StreamedQuad;
 use std::cell::Ref;
 use sophia::quad::Quad;
+use std::cell::Cell;
 use sophia::term::RcTerm;
+use sophia::term::Term;
+use sophia::term::TermData;
+use std::iter::empty;
 
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
@@ -116,6 +120,21 @@ impl Data {
     -> DQuadSource<'a, FullIndexDataset>
     {
         Box::new(
+            self.get(POS_DEFAULT_BUILT)
+            .map(move |spog| {
+                let s = index_map.get_term(spog[0]).unwrap().clone();
+                let p = index_map.get_term(spog[1]).unwrap().clone();
+                let o = index_map.get_term(spog[2]).unwrap().clone();
+                let g = index_map.get_term(spog[3]).unwrap().clone();
+                Ok(StreamedQuad::by_value([s, p, o, g]))
+            })
+        )
+    }
+/*
+    pub fn inflate_quads<'a>(&'a self, index_map: &'a TermIndexMapU<u32, RcTermFactory>)
+    -> DQuadSource<'a, FullIndexDataset>
+    {
+        Box::new(
             self.get_3(POS_DEFAULT_BUILT)
             .map(move |spog| {
                 let s = index_map.get_term(spog[0]).unwrap().clone();
@@ -127,7 +146,7 @@ impl Data {
         )
     }
 
-
+*/
     /*
     pub fn get_quads<'a>(&'a mut self, level: u8, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
         match level {
@@ -212,20 +231,11 @@ impl Data {
         self.one_indexes[position] = Some(map_to_fill);
     }
 
-    pub fn get<'a>(&'a self, level: u8, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
-        match level {
-            3 => self.get_3(position),
-            2 => self.get_2(position),
-            1 => self.get_1(position),
-            _ => panic!("Get : Access to a non existing index")
-        }
-    }
-
-    fn get_3<'a>(&'a self, position: usize) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
-        let (k1, k2, k3, v1) = Data::indexes(3, position);
+    pub fn get<'a>(&'a self) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
+        let (k1, k2, k3, v1) = Data::indexes(3, POS_DEFAULT_BUILT);
 
         Box::new(
-            self.three_indexes[position]
+            self.three_indexes[POS_DEFAULT_BUILT]
                 .as_ref()
                 .unwrap()
                 .iter()
@@ -239,6 +249,35 @@ impl Data {
                         quad
                     })
                 })
+        )
+    }
+
+    pub fn get_3<'a>(&'a self, position: usize, key: [u32; 3])
+        -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
+
+        let map = self.three_indexes[position]
+            .as_ref()
+            .unwrap()
+            .get(&key);
+
+        if map.is_none() {
+            return Box::new(empty());
+        }
+
+        let map = map.unwrap();
+
+        let (k1, k2, k3, v1) = Data::indexes(3, position);
+
+        Box::new(
+            map.iter()
+                .map(move |value| {
+                        let mut quad : [u32; 4] = [0, 0, 0, 0];
+                        quad[k1] = key[0];
+                        quad[k2] = key[1];
+                        quad[k3] = key[2];
+                        quad[v1] = *value;
+                        quad
+                    })
         )
     }
 
@@ -326,15 +365,30 @@ pub struct FullIndexDataset {
     data: RefCell<Data>
 }
 
+impl FullIndexDataset {
+    fn unsafe_ref_data(&self) -> &Data {
+        let ptr = self.data.as_ptr();
+        unsafe {
+            ptr.as_ref().unwrap()
+        }
+    }
+}
+
 impl Dataset for FullIndexDataset {
     type Quad = ByValue<[RcTerm; 4]>;
     type Error = Infallible;
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {
-        // self.data.borrow_mut.ensure_built_3(3, POS_DEFAULT_BUILT);
-
-        let borrowed: Ref<'a, Data> = self.data.borrow();
-        let iter = borrowed.inflate_quads(&self.term_index);
-        iter
+        // self.data.borrow_mut().ensure_built_3(3, POS_DEFAULT_BUILT);
+        self.unsafe_ref_data().inflate_quads(&self.term_index)
     }
+
+    /*
+    fn quads_with_s<'s, T>(&'s self, p: &'s Term<T>) -> DQuadSource<'s, Self>
+        where T: TermData
+    {
+        self.data.borrow_mut().ensure_built_1(POS_S);
+        self.unsafe_ref_data().inflate_quads(&self.term_index)
+    }
+    */
 }
