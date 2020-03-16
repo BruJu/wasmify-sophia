@@ -1,0 +1,27 @@
+digraph PAZRAZRA {
+    ranksep=equally;
+    rankdir=BT;
+    ordering=in;
+    center=True;
+    
+    { rank=same G P S O };
+    { rank=same GP GS PS GO PO SO };
+    { rank=same GPS GPO GSO PSO };
+    { rank=same GPSO };
+    
+    G -> GP [label="P"];
+    P -> GP [label="G"];
+    S -> GS [label="G"];
+    O -> GO [label="G"];
+    
+    GP -> GPS [label="S"];
+    GS -> GPS [label="P"];
+    PS -> GPS [label="G"];
+    GO -> GPO [label="P"];
+    PO -> GPO [label="G"];
+    SO -> GSO [label="G"];
+    GPS -> GPSO [color = blue, label="P", tePtcolor = blue];
+    GPO -> GPSO [label="P"];
+    GSO -> GPSO [label="P"];
+    PSO -> GPSO [label="G"];
+}
