@@ -24,6 +24,8 @@ use std::iter::empty;
 use sophia::dataset::DResult;
 use sophia::dataset::DQuad;
 
+// TODO : GET DOESN4T RECEIVE A SPOG ORDER BUT A GPSO ORDER !!!!!!!!!!!!!!!!!!!!!!!!
+
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
 const POS_GSO: usize = 2;
@@ -224,6 +226,31 @@ impl Data {
         )
     }
 
+    pub fn get_4<'a>(
+        &'a self,
+        key: [u32; 4],
+    ) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
+        let map = self.three_indexes[POS_DEFAULT_BUILT].get().unwrap().get(&key[0..3]);
+
+        match map {
+            None => Box::new(empty()),
+            Some(map) => {
+                let (k1, k2, k3, v1) = Data::indexes(3, POS_DEFAULT_BUILT);
+
+                Box::new(map.iter()
+                            .filter(move |value| **value == key[3])
+                            .map(move |value| {
+                                let mut quad: [u32; 4] = [0, 0, 0, 0];
+                                quad[k1] = key[0];
+                                quad[k2] = key[1];
+                                quad[k3] = key[2];
+                                quad[v1] = *value;
+                                quad
+                            }))
+            }
+        }
+    }
+
     pub fn get_3<'a>(
         &'a self,
         position: usize,
@@ -380,6 +407,120 @@ impl FullIndexDataset {
     }
 }
 
+macro_rules! full_indexed_dataset_quads_with {
+    ($function_name: ident, $position: expr, 1) => (
+        fn $function_name<'s, T1>(&'s self, t1: &'s Term<T1>) -> DQuadSource<'s, Self>
+        where T1: TermData
+        {
+            let t1 = self.term_index.get_index(&t1.into());
+            if t1.is_none() {
+                return Box::new(empty());
+            } else {
+                let quads = self.data.get_1($position, t1.unwrap());
+                InflatedQuadsIterator::new_box(quads, &self.term_index)
+            }
+        }
+    );
+
+    ($function_name: ident, $position: expr, 2) => (
+        fn $function_name<'s, T1, T2>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>) -> DQuadSource<'s, Self>
+        where T1: TermData, T2: TermData
+        {
+            let t1 = self.term_index.get_index(&t1.into());
+            let t2 = self.term_index.get_index(&t2.into());
+            match (t1, t2) {
+                (Some(t1), Some(t2)) => {
+                    let quads = self.data.get_2($position, [t1, t2]);
+                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                },
+                (_, _) => Box::new(empty())
+            }
+        }
+    );
+
+    ($function_name: ident, $position: expr, 3) => (
+        fn $function_name<'s, T1, T2, T3>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>, t3: &'s Term<T3>) -> DQuadSource<'s, Self>
+        where T1: TermData, T2: TermData, T3: TermData
+        {
+            let t1 = self.term_index.get_index(&t1.into());
+            let t2 = self.term_index.get_index(&t2.into());
+            let t3 = self.term_index.get_index(&t3.into());
+            match (t1, t2, t3) {
+                (Some(t1), Some(t2), Some(t3)) => {
+                    let quads = self.data.get_3($position, [t1, t2, t3]);
+                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                },
+                (_, _, _) => Box::new(empty())
+            }
+        }
+    );
+    
+    ($function_name: ident, $position: expr, 1, true) => (
+        fn $function_name<'s, T1>(&'s self, t1: Option<&'s Term<T1>>) -> DQuadSource<'s, Self>
+        where T1: TermData
+        {
+            let t1 = self.term_index.get_index_for_graph_name(t1.map(RefTerm::from).as_ref());
+            if t1.is_none() {
+                return Box::new(empty());
+            } else {
+                let quads = self.data.get_1($position, t1.unwrap());
+                InflatedQuadsIterator::new_box(quads, &self.term_index)
+            }
+        }
+    );
+
+    ($function_name: ident, $position: expr, 2, true) => (
+        fn $function_name<'s, T1, T2>(&'s self, t1: &'s Term<T1>, t2: Option<&'s Term<T2>>) -> DQuadSource<'s, Self>
+        where T1: TermData, T2: TermData
+        {
+            let t1 = self.term_index.get_index(&t1.into());
+            let t2 = self.term_index.get_index_for_graph_name(t2.map(RefTerm::from).as_ref());
+            match (t1, t2) {
+                (Some(t1), Some(t2)) => {
+                    let quads = self.data.get_2($position, [t1, t2]);
+                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                },
+                (_, _) => Box::new(empty())
+            }
+        }
+    );
+
+    ($function_name: ident, $position: expr, 3, true) => (
+        fn $function_name<'s, T1, T2, T3>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>, t3: Option<&'s Term<T3>>) -> DQuadSource<'s, Self>
+        where T1: TermData, T2: TermData, T3: TermData
+        {
+            let t1 = self.term_index.get_index(&t1.into());
+            let t2 = self.term_index.get_index(&t2.into());
+            let t3 = self.term_index.get_index_for_graph_name(t3.map(RefTerm::from).as_ref());
+            match (t1, t2, t3) {
+                (Some(t1), Some(t2), Some(t3)) => {
+                    let quads = self.data.get_3($position, [t1, t2, t3]);
+                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                },
+                (_, _, _) => Box::new(empty())
+            }
+        }
+    );
+    
+    ($function_name: ident) => (
+        fn $function_name<'s, T1, T2, T3, T4>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>, t3: &'s Term<T3>, t4: Option<&'s Term<T4>>) -> DQuadSource<'s, Self>
+        where T1: TermData, T2: TermData, T3: TermData, T4: TermData
+        {
+            let t1 = self.term_index.get_index(&t1.into());
+            let t2 = self.term_index.get_index(&t2.into());
+            let t3 = self.term_index.get_index(&t3.into());
+            let t4 = self.term_index.get_index_for_graph_name(t4.map(RefTerm::from).as_ref());
+            match (t1, t2, t3, t4) {
+                (Some(t1), Some(t2), Some(t3), Some(t4)) => {
+                    let quads = self.data.get_4([t1, t2, t3, t4]);
+                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                },
+                (_, _, _, _) => Box::new(empty())
+            }
+        }
+    );
+}
+
 // Write a propoer inflate_quads methods :
 // Iterator adapter :
 // https://dev.to/dandyvica/yarit-yet-another-rust-iterators-tutorial-46dk
@@ -397,29 +538,22 @@ impl Dataset for FullIndexDataset {
         InflatedQuadsIterator::new_box(quads, &self.term_index)
     }
 
-    fn quads_with_s<'s, T>(&'s self, s: &'s Term<T>) -> DQuadSource<'s, Self>
-        where T: TermData
-    {
-        let si = self.term_index.get_index(&s.into());
-        if si.is_none() {
-            return Box::new(empty());
-        } else {
-            let quads = self.data.get_1(POS_S, si.unwrap());
-            InflatedQuadsIterator::new_box(quads, &self.term_index)
-        }
-    }
+    full_indexed_dataset_quads_with!(quads_with_s, POS_S, 1);
+    full_indexed_dataset_quads_with!(quads_with_p, POS_P, 1);
+    full_indexed_dataset_quads_with!(quads_with_o, POS_O, 1);
+    full_indexed_dataset_quads_with!(quads_with_sp, POS_PS, 2);
+    full_indexed_dataset_quads_with!(quads_with_so, POS_SO, 2);
+    full_indexed_dataset_quads_with!(quads_with_po, POS_PO, 2);
+    full_indexed_dataset_quads_with!(quads_with_spo, POS_PSO, 3);
 
-    fn quads_with_o<'s, T>(&'s self, o: &'s Term<T>) -> DQuadSource<'s, Self>
-        where T: TermData
-    {
-        let oi = self.term_index.get_index(&o.into());
-        if oi.is_none() {
-            return Box::new(empty());
-        } else {
-            let quads = self.data.get_1(POS_O, oi.unwrap());
-            InflatedQuadsIterator::new_box(quads, &self.term_index)
-        }
-    }
+    full_indexed_dataset_quads_with!(quads_with_g, POS_G, 1, true);
+    full_indexed_dataset_quads_with!(quads_with_sg, POS_GS, 2, true);
+    full_indexed_dataset_quads_with!(quads_with_pg, POS_GP, 2, true);
+    full_indexed_dataset_quads_with!(quads_with_og, POS_GO, 2, true);
+    full_indexed_dataset_quads_with!(quads_with_spg, POS_GPS, 3, true);
+    full_indexed_dataset_quads_with!(quads_with_sog, POS_GSO, 3, true);
+    full_indexed_dataset_quads_with!(quads_with_pog, POS_GPO, 3, true);
+    full_indexed_dataset_quads_with!(quads_with_spog);
 }
 
 impl MutableDataset for FullIndexDataset {
