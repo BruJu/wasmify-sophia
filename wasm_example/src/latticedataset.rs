@@ -125,7 +125,7 @@ impl LatticeData {
                 |(pgs, os)| os.iter().map(|o| [pgs[2], pgs[0], *o, pgs[1]])
             );
         
-        self.three_indexes[position] = Some(HashMap::new());
+        self.three_indexs[position] = Some(HashMap::new());
         let mut map_to_fill = &mut self.three_indexes[position].unwrap();
 
         for spog in flatted_iter {
@@ -134,20 +134,22 @@ impl LatticeData {
         }
     }
 
-    fn get_iter_3(&self, position: usize, indexes: [u32; 3]) -> std::collections::hash_set::Iter<'_, [u32; 4]> {
+    fn get_iter_3<'a>(&'a self, position: usize, indexes: [u32; 3]) -> Box<dyn Iterator<Item=[u32;4]> + 'a> {
         let (index, _, mapped_values) = get_parent_citizen(3, position);
         let option_images = self.three_indexes[position].unwrap().get(&indexes);
         match option_images {
-            None => empty(),
             Some(images) => 
-                images.iter()
-                    .map(|img| {
+                Box::new(images.iter()
+                    .map(move |img| {
                         let quad: [u32; 4];
                         quad[index[0]] = indexes[0];
                         quad[index[1]] = indexes[1];
                         quad[index[2]] = indexes[2];
                         quad[mapped_values] = *img;
+                        quad
                     })
+                ),
+            None => Box::new(::std::iter::empty())
         }
     }
 }
