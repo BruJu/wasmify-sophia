@@ -23,7 +23,6 @@ use std::convert::Infallible;
 use std::iter::empty;
 use sophia::dataset::DResult;
 use sophia::dataset::DQuad;
-use sophia::dataset::test_dataset_impl;
 
 
 const POS_GPS: usize = 0;
@@ -49,6 +48,16 @@ const QUAD_P: usize = 1;
 const QUAD_O: usize = 2;
 const QUAD_G: usize = 3;
 
+/// A struct that contains the quads with every possible indexing methods using
+/// a hashmap.
+/// 
+/// The indexes are created lazily except the index that maps the Graph,
+/// Predicate and Subject index to a hashset of Objects.
+/// 
+/// The functions of Data expects terms indexes with the order "SPOG".
+/// The implementation of the methods uses a different order that uses an
+/// "expected numbers of the different terms" orders which is
+/// `|G| < |P| < |S |< |O|`
 struct Data {
     three_indexes: [OnceCell<HashMap<[u32; 3], HashSet<u32>>>; 4],
     two_indexes: [OnceCell<HashMap<[u32; 2], HashSet<[u32; 2]>>>; 6],
@@ -56,10 +65,9 @@ struct Data {
 }
 
 impl Data {
-    // Index corresponding
-
-    /// We receive a key with the order SGPO. We want a key with the order
-    /// specified in the POS constant
+    // == Index corresponding :
+    // We receive a key with the order SGPO. We want a key with the order
+    // specified in the POS constant
     
 
     /// Receives a SPOG ordered key, returns a GPSO ordered key
@@ -67,6 +75,8 @@ impl Data {
         [key[QUAD_G], key[QUAD_P], key[QUAD_S], key[QUAD_O]]
     }
 
+    /// Receives a SPOG ordered key with a missing term, returns its GPSO
+    /// order.
     fn rebuild_key_3(key: [u32; 3], position: usize) -> [u32; 3] {
         // Key is SPOG with a missing letter
         // G always last (2), S always first (0)
@@ -83,6 +93,8 @@ impl Data {
         }
     }
 
+    /// Receives a SPOG ordered key with two missing terms, returns its
+    /// GPSO order
     fn rebuild_key_2(key: [u32; 2], position: usize) -> [u32; 2] {
         let (k1, k2, _, _) = Data::indexes(2, position);
         if k1 < k2 {
@@ -94,6 +106,8 @@ impl Data {
         }
     }
 
+    /// Maps the number of indexes and the positions of the index in the hashmap
+    /// array to the list of positions of terms in the SPOG order.
     fn indexes(level: u8, position: usize) -> (usize, usize, usize, usize) {
         match (level, position) {
             (3, POS_GPS) => (QUAD_G, QUAD_P, QUAD_S, QUAD_O),
@@ -116,7 +130,7 @@ impl Data {
 
     // Data implementation
 
-
+    /// Builds a new data indexer
     pub fn new() -> Data {
         let data = Data {
             three_indexes: arr![OnceCell::new(); 4],
@@ -129,6 +143,7 @@ impl Data {
         data
     }
 
+    /// Inserts the passed SPOG quad indexes into the structure
     pub fn insert(&mut self, spog: [u32; 4]) -> bool {
         // Check if already contains the quad
         let (key_default, value_default) = Data::decompose_3(spog, POS_DEFAULT_BUILT);
@@ -164,6 +179,7 @@ impl Data {
         true
     }
 
+    /// Removes the passed SPOG quad indexes from the structure
     pub fn remove(&mut self, spog: [u32; 4]) -> bool {
         let (key_default, value_default) = Data::decompose_3(spog, POS_DEFAULT_BUILT);
         let default_index = self.three_indexes[POS_DEFAULT_BUILT].get().unwrap();
@@ -197,6 +213,7 @@ impl Data {
         true
     }
 
+    /// Builds the *position*th 3 indexes hashmap
     fn build_3(&self, position: usize) -> HashMap<[u32; 3], HashSet<u32>> {
         if position >= self.three_indexes.len() {
             panic!(
@@ -220,6 +237,7 @@ impl Data {
         map_to_fill
     }
 
+    /// Builds the *position*th 2 indexes hashmap
     fn build_2(&self, position: usize) -> HashMap<[u32; 2], HashSet<[u32; 2]>> {
         if position >= self.two_indexes.len() {
             panic!(
@@ -243,6 +261,7 @@ impl Data {
         map_to_fill
     }
 
+    /// Builds the *position*th 1 index hashmap
     fn build_1(&self, position: usize) -> HashMap<u32, HashSet<[u32; 3]>> {
         if position >= self.one_indexes.len() {
             panic!(
@@ -266,6 +285,7 @@ impl Data {
         map_to_fill
     }
 
+    /// Returns every quads in the form of 4 indexes
     pub fn get<'a>(&'a self) -> Box<dyn Iterator<Item = [u32; 4]> + 'a> {
         let (k1, k2, k3, v1) = Data::indexes(3, POS_DEFAULT_BUILT);
 
@@ -287,6 +307,7 @@ impl Data {
         )
     }
 
+    /// Returns every quads that matches the passed SPOG pattern
     pub fn get_4<'a>(
         &'a self,
         key: [u32; 4],
@@ -314,6 +335,8 @@ impl Data {
         }
     }
 
+    /// Returns every quads that matches the passed SPOG pattern with three
+    /// known terms
     pub fn get_3<'a>(
         &'a self,
         position: usize,
@@ -341,6 +364,8 @@ impl Data {
         }
     }
 
+    /// Returns every quads that matches the passed SPOG pattern with two
+    /// known terms
     pub fn get_2<'a>(
         &'a self,
         position: usize,
@@ -368,6 +393,8 @@ impl Data {
         }
     }
 
+    /// Returns every quads that matches the passed SPOG pattern with one
+    /// known term
     pub fn get_1<'a>(
         &'a self,
         position: usize,
@@ -393,34 +420,44 @@ impl Data {
         }
     }
 
-
+    /// Decompose the SPGO quad into the wanted 3 indexes quad for the
+    /// *position*th hashmap into the form (key, value)
     fn decompose_3(quad: [u32; 4], position: usize) -> ([u32; 3], u32) {
         let (k1, k2, k3, v) = Data::indexes(3, position);
         ([quad[k1], quad[k2], quad[k3]], quad[v])
     }
 
+    /// Decompose the SPGO quad into the wanted 2 indexes quad for the
+    /// *position*th hashmap into the form (key, value)
     fn decompose_2(quad: [u32; 4], position: usize) -> ([u32; 2], [u32; 2]) {
         let (k1, k2, v1, v2) = Data::indexes(2, position);
         ([quad[k1], quad[k2]], [quad[v1], quad[v2]])
     }
 
+    /// Decompose the SPGO quad into the wanted 1 index quad for the
+    /// *position*th hashmap into the form (key, value)
     fn decompose_1(quad: [u32; 4], position: usize) -> (u32, [u32; 3]) {
         let (k, v1, v2, v3) = Data::indexes(1, position);
         (quad[k], [quad[v1], quad[v2], quad[v3]])
     }
 }
 
+/// A dataset that can lazily build every possible indexes
 pub struct FullIndexDataset {
     term_index: TermIndexMapU<u32, RcTermFactory>,
     data: Data,
 }
 
+/// An adapter that transforms an iterator on term indexes into an iterator of
+/// Sophia Quads
 pub struct InflatedQuadsIterator<'a> {
     base_iterator: Box<dyn Iterator<Item = [u32; 4]> + 'a>,
     term_index: &'a TermIndexMapU<u32, RcTermFactory>
 }
 
 impl<'a> InflatedQuadsIterator<'a> {
+    /// Builds a Box of InflatedQuadsIterator from an iterator on term indexes
+    /// and a `TermIndexMap` to match the `DQuadSource` interface.
     pub fn new_box(
         base_iterator: Box<dyn Iterator<Item = [u32; 4]> + 'a>,
         term_index: &'a TermIndexMapU<u32, RcTermFactory>
@@ -447,6 +484,7 @@ impl<'a> Iterator for InflatedQuadsIterator<'a> {
 }
 
 impl FullIndexDataset {
+    /// Builds an empty `FullIndexDataset`
     pub fn new() -> FullIndexDataset {
         FullIndexDataset {
             term_index: TermIndexMapU::new(),
@@ -569,13 +607,6 @@ macro_rules! full_indexed_dataset_quads_with {
     );
 }
 
-// Write a propoer inflate_quads methods :
-// Iterator adapter :
-// https://dev.to/dandyvica/yarit-yet-another-rust-iterators-tutorial-46dk
-// https://users.rust-lang.org/t/how-to-write-iterator-adapter/8835/2
-//
-// Box<Adapter> has to implement DQuadSource :
-// https://docs.rs/sophia/0.4.0/sophia/dataset/type.DQuadSource.html
 
 impl Dataset for FullIndexDataset {
     type Quad = ByValue<[RcTerm; 4]>;
@@ -669,10 +700,12 @@ impl MutableDataset for FullIndexDataset {
                 return Ok(true);
             }
         }
-
+ 
         Ok(false)
     }
 }
 
+/*
 #[cfg(test)]
-test_dataset_impl!(test_fulldataset, FullIndexDataset);
+sophia::dataset::test_dataset_impl!(test_fulldataset, FullIndexDataset);
+*/
