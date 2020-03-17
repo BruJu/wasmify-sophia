@@ -22,4 +22,5 @@ pub mod dataset_corearry;
 //pub mod latticedataset;
 pub mod fulldataset;
 
+pub mod dataset_macro;
 

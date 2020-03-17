@@ -6,22 +6,8 @@
 extern crate wasm_bindgen;
 
 use crate::datamodel_term::*;
-use crate::datamodel_quad::*;
-use crate::datamodel_factory::*;
-use crate::exportiterator::RustExportIterator;
-use crate::util::*;
-
-use maybe_owned::MaybeOwned;
-use sophia::dataset::Dataset;
-use sophia::dataset::MutableDataset;
-use sophia::dataset::inmem::FastDataset;
 use sophia::term::*;
 use sophia::term::matcher::AnyOrExactly;
-use sophia::quad::Quad;
-use sophia::quad::stream::QuadSource;
-
-use wasm_bindgen::prelude::*;
-
 
 // -----------------------------------------------------
 // ==== Implementation Detail : Match Request Conversion
@@ -46,10 +32,14 @@ fn build_anyorexactly_for_graph(js_parameter: Option<JsImportTerm>) -> AnyOrExac
 
 /// A list of AnyOrExactly MatchTerms to build a match request on a Sophia dataset
 pub struct MatchRequestOnRcTerm {
-    s: AnyOrExactly<RcTerm>,
-    p: AnyOrExactly<RcTerm>,
-    o: AnyOrExactly<RcTerm>,
-    g: AnyOrExactly<Option<RcTerm>>
+    /// The any of exactly subject matcher
+    pub s: AnyOrExactly<RcTerm>,
+    /// The any of exactly predicate matcher
+    pub p: AnyOrExactly<RcTerm>,
+    /// The any of exactly object matcher
+    pub o: AnyOrExactly<RcTerm>,
+    /// The any of exactly graph matcher
+    pub g: AnyOrExactly<Option<RcTerm>>
 }
 
 impl MatchRequestOnRcTerm {
@@ -67,7 +57,7 @@ impl MatchRequestOnRcTerm {
 }
 
 
-
+#[macro_export]
 macro_rules! export_sophia_dataset {
     ($rust_export_name:ident, $rust_import_name: ident, $js_name: expr,
         $wrapped_dataset: ident) => (
@@ -232,7 +222,7 @@ macro_rules! export_sophia_dataset {
             #[wasm_bindgen(js_name="match")]
             pub fn match_quad(&self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
                 object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> $rust_export_name {
-                let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
+                let m = $crate::dataset_macro::MatchRequestOnRcTerm::new(subject, predicate, object, graph);
 
                 let mut quads_iter = self.dataset.quads_matching(&m.s, &m.p, &m.o, &m.g);
 
@@ -302,7 +292,7 @@ macro_rules! export_sophia_dataset {
                 // this deleteMatches(optional Term, Optional Term, Optional Term, Optional Term)
                 // TODO : return this
                 
-                let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
+                let m = $crate::dataset_macro::MatchRequestOnRcTerm::new(subject, predicate, object, graph);
                 self.dataset.remove_matching(&m.s, &m.p, &m.o, &m.g).unwrap();
             }
             
@@ -569,11 +559,5 @@ macro_rules! export_sophia_dataset {
                 }
             }
         }
-        
-
     )
-
-
 }
-
-export_sophia_dataset!(WrapFastDataset, JsImportFastDataset, FastDataset, FastDataset);

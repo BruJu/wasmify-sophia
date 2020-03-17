@@ -24,6 +24,11 @@ use std::iter::empty;
 use sophia::dataset::DResult;
 use sophia::dataset::DQuad;
 
+/*
+#[macro_use] (?)
+use sophia::dataset::test_dataset_impl;
+*/
+
 
 const POS_GPS: usize = 0;
 const POS_GPO: usize = 1;
