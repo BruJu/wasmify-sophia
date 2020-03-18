@@ -7,22 +7,21 @@ use sophia::dataset::MutableDataset;
 use sophia::graph::inmem::TermIndexMapU;
 use sophia::quad::streaming_mode::ByValue;
 use sophia::quad::streaming_mode::StreamedQuad;
-use sophia::quad::Quad;
 use sophia::term::factory::RcTermFactory;
 use sophia::term::index_map::TermIndexMap;
 use sophia::term::RcTerm;
 use sophia::term::RefTerm;
 use sophia::term::Term;
 use sophia::term::TermData;
-use std::cell::Cell;
-use std::cell::Ref;
-use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::collections::hash_set::HashSet;
 use std::convert::Infallible;
 use std::iter::empty;
 use sophia::dataset::DResult;
 use sophia::dataset::DQuad;
+
+use crate::datamodel_quad::SophiaExportQuad;
+
 
 /*
 #[macro_use] (?)
@@ -479,11 +478,11 @@ impl<'a> Iterator for InflatedQuadsIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.base_iterator.next().map(|spog| {
-            let s = self.term_index.get_term(spog[0]).unwrap().clone();
-            let p = self.term_index.get_term(spog[1]).unwrap().clone();
-            let o = self.term_index.get_term(spog[2]).unwrap().clone();
-            let g = self.term_index.get_term(spog[3]).unwrap().clone();
-            Ok(StreamedQuad::by_value([s, p, o, g]))
+            let s = self.term_index.get_term(spog[0]).unwrap();
+            let p = self.term_index.get_term(spog[1]).unwrap();
+            let o = self.term_index.get_term(spog[2]).unwrap();
+            let g = self.term_index.get_graph_name(spog[3]).unwrap();
+            Ok(StreamedQuad::by_value(SophiaExportQuad::new(&s, &p, &o, g)))
         })
     }
 }
@@ -614,7 +613,7 @@ macro_rules! full_indexed_dataset_quads_with {
 
 
 impl Dataset for FullIndexDataset {
-    type Quad = ByValue<[RcTerm; 4]>;
+    type Quad = ByValue<SophiaExportQuad>;
     type Error = Infallible;
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {

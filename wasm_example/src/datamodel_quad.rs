@@ -84,7 +84,7 @@ pub struct SophiaExportQuad {
     /// Object of the quad
     #[wasm_bindgen(skip)]
     pub _object: RcTerm,
-    /// Grpah of the quad. The default graph is represented as None
+    /// Graph of the quad. The default graph is represented as None
     #[wasm_bindgen(skip)]
     pub _graph: Option<RcTerm>
 }
