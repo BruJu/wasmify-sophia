@@ -175,9 +175,6 @@ impl SophiaExportQuad {
                         }
                     }
                 }
-
-                // TODO : Make a SophiaExportTerm that don't clone the items to reuse code without destroying performances
-                // or use a cache mechanic (but it is worst)
             }
         }
     }
