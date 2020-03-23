@@ -236,16 +236,10 @@ impl SophiaExportTerm {
                     Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.value(),
                     Some(Literal(literal)) => 
                         other_term_type == "Literal" && x.value() == literal.value()
-                            && {
-                                crate::util::log("!!!!!!!");
-                                crate::util::log(x.language().as_str());
-                                crate::util::log("!!!!!!!");
-
-                                match literal.lang() {
-                                    Some(language) => language.as_ref() == x.language().as_str(),
-                                    None => x.language() == ""
-                                }
-                            }
+                            && literal.lang().map_or_else(
+                                || x.language() == "",
+                                |language| language.as_ref() == x.language().as_str()
+                            )
                             && literal.dt().value() == x.datatype().value()
                         ,
                     None => other_term_type == "DefaultGraph" // value should be "" if it is RDFJS compliant
