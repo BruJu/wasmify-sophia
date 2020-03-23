@@ -23,14 +23,10 @@ use sophia::quad::stream::QuadSource;
 use wasm_bindgen::prelude::*;
 
 use crate::fulldataset::FullIndexDataset;
-use crate::arrydataset::ArryDataset;
 
 #[macro_use]
 use crate::export_sophia_dataset;
 
-//export_sophia_dataset!(SophiaExportDataset, JsImportDataset, "Datasetcore", FastDataset);
+export_sophia_dataset!(SophiaExportFastDataset, JsImportFastDataset, "FastDatasetcore", FastDataset);
 
 export_sophia_dataset!(SophiaExportDataset, JsImportDataset, "Datasetcore", FullIndexDataset);
-
-//export_sophia_dataset!(SophiaExportDataset, JsImportDataset, "Datasetcore", ArryDataset);
-

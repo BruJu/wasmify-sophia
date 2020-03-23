@@ -6,7 +6,10 @@
 extern crate wasm_bindgen;
 
 use sophia::term::*;
-use std::rc::Rc;
+use sophia::term::Term::BNode;
+use sophia::term::Term::Iri;
+use sophia::term::Term::Literal;
+use sophia::term::Term::Variable;
 use wasm_bindgen::prelude::*;
 
 // ============================================================================
@@ -134,7 +137,7 @@ impl SophiaExportTerm {
         match &self.term {
             Some(Iri(_)) => "NamedNode".into(),
             Some(BNode(_)) => "BlankNode".into(),
-            Some(Literal(_1, _2)) => "Literal".into(),
+            Some(Literal(_)) => "Literal".into(),
             Some(Variable(_)) => "Variable".into(),
             None => "DefaultGraph".into()
         }
@@ -158,10 +161,13 @@ impl SophiaExportTerm {
                 RcTerm::Iri(_) => RcTerm::new_iri(new_value).unwrap(),
                 RcTerm::BNode(_) => RcTerm::new_bnode(new_value).unwrap(),
                 RcTerm::Variable(_) => RcTerm::new_variable(new_value).unwrap(),
-                RcTerm::Literal(_, Lang(lang)) => RcTerm::new_literal_lang(new_value, lang.clone()).unwrap(),
-                RcTerm::Literal(_, Datatype(dt)) =>
-                        RcTerm::new_literal_dt(new_value, RcTerm::new_iri(dt.to_string()).unwrap()).unwrap()
-                })
+                RcTerm::Literal(former_literal) => {
+                    match former_literal.lang() {
+                        None => RcTerm::new_literal_dt(new_value, &former_literal.dt()).unwrap(),
+                        Some(lang) => RcTerm::new_literal_lang_unchecked(new_value, lang.as_ref())
+                    }
+                }
+            })
         }
     }
 
@@ -169,7 +175,11 @@ impl SophiaExportTerm {
     #[wasm_bindgen(getter = language)]
     pub fn language(&self) -> String {
         match &self.term {
-            Some(Literal(_, Lang(language))) => language.to_string(),
+            Some(Literal(literal)) =>
+                match literal.lang() {
+                    Some(l) => l.to_string(),
+                    None => String::from("")
+                },
             _ => String::from("")
         }
     }
@@ -180,8 +190,8 @@ impl SophiaExportTerm {
         // In this implementation, if we set the language of a literal, it will be automatically
         // converted to the datatype langString regardless of its previous datatype.
         // Setting the language of any other term has no effect.
-        if let Some(Literal(old_value, _)) = &self.term {
-            self.term = Some(RcTerm::new_literal_lang(old_value.to_string(), language).unwrap());
+        if let Some(Literal(literal)) = &self.term {
+            self.term = Some(RcTerm::new_literal_lang(literal.value(), language).unwrap());
         }
     }
 
@@ -189,14 +199,10 @@ impl SophiaExportTerm {
     #[wasm_bindgen(getter)]
     pub fn datatype(&self) -> Option<SophiaExportTerm> {
         match &self.term {
-            Some(Literal(_1, Lang(_2))) =>
+            Some(Literal(literal)) =>
+                // TODO : check if iri always has a type (especially for string)
                 Option::Some(SophiaExportTerm {
-                    term: Some(RcTerm::new_iri_unchecked("http://www.w3.org/1999/02/22-rdf-syntax-ns#langString", true))
-                }),
-            // TODO : check if iri always has a type (especially for string)
-            Some(Literal(_1, Datatype(iri))) =>
-                Option::Some(SophiaExportTerm {
-                    term: Some(RcTerm::new_iri_unchecked(iri.value(), true))
+                    term: Some(RcTerm::new_iri_unchecked(literal.dt().value(), true))
                 }),
             _ => Option::None
         }
@@ -205,13 +211,7 @@ impl SophiaExportTerm {
     /// Modifies the dataset of this literal if applicable
     #[wasm_bindgen(method, setter)]
     pub fn set_datatype(&mut self, named_node: &JsImportTerm) {
-        if let Some(Literal(_, literal_kind)) = &self.term {
-            if let Lang(_) = literal_kind {
-                if named_node.value() == "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" {
-                    // Do not change datatype to langString of literals that are already langString
-                    return
-                }
-            }
+        if let Some(Literal(literal)) = &self.term {
             let new_node_value = self.value();
             let literal_type: RcTerm = RcTerm::new_iri(named_node.value()).unwrap();
             self.term = Some(RcTerm::new_literal_dt(new_node_value, literal_type).unwrap());
@@ -234,25 +234,23 @@ impl SophiaExportTerm {
                     Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.value(),
                     Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.value(),
                     Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.value(),
-                    Some(Literal(txt, literal_kind)) => 
-                        other_term_type == "Literal" && x.value() == txt.to_string()
-                            && SophiaExportTerm::equals_to_literal(literal_kind, &x),
+                    Some(Literal(literal)) => 
+                        other_term_type == "Literal" && x.value() == literal.value()
+                            && {
+                                crate::util::log("!!!!!!!");
+                                crate::util::log(x.language().as_str());
+                                crate::util::log("!!!!!!!");
+
+                                match literal.lang() {
+                                    Some(language) => language.as_ref() == x.language().as_str(),
+                                    None => x.language() == ""
+                                }
+                            }
+                            && literal.dt().value() == x.datatype().value()
+                        ,
                     None => other_term_type == "DefaultGraph" // value should be "" if it is RDFJS compliant
                 }
             }
-        }
-    }
-
-    fn equals_to_literal(literal_kind: &LiteralKind<Rc<str>>, other : &JsImportTerm) -> bool {
-        // The standard ensures us that other has the language and datatype attributes
-        
-        // Documentation questionning :
-        // Otherwise, if no datatype is explicitly specified, the datatype has the IRI
-        // "http://www.w3.org/2001/XMLSchema#string". -> ????
-        match literal_kind {
-            Lang(language) => language.to_string() == other.language()
-                && "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" == other.datatype().value(),
-            Datatype(iri) => other.language() == "" && other.datatype().value() == iri.value()
         }
     }
 
