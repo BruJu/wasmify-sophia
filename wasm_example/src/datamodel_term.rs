@@ -147,7 +147,7 @@ impl SophiaExportTerm {
     #[wasm_bindgen(getter = value)]
     pub fn value(&self) -> String {
         match &self.term {
-            Some(t) => t.value(),
+            Some(t) => t.value().as_ref().into(),
             None => "".into()
         }
     }
@@ -191,7 +191,7 @@ impl SophiaExportTerm {
         // converted to the datatype langString regardless of its previous datatype.
         // Setting the language of any other term has no effect.
         if let Some(Literal(literal)) = &self.term {
-            self.term = Some(RcTerm::new_literal_lang(literal.value(), language).unwrap());
+            self.term = Some(RcTerm::new_literal_lang(literal.value().as_ref(), language).unwrap());
         }
     }
 
@@ -202,7 +202,7 @@ impl SophiaExportTerm {
             Some(Literal(literal)) =>
                 // TODO : check if iri always has a type (especially for string)
                 Option::Some(SophiaExportTerm {
-                    term: Some(RcTerm::new_iri_unchecked(literal.dt().value(), true))
+                    term: Some(RcTerm::new_iri_unchecked(literal.dt().value().as_ref(), true))
                 }),
             _ => Option::None
         }
@@ -211,7 +211,7 @@ impl SophiaExportTerm {
     /// Modifies the dataset of this literal if applicable
     #[wasm_bindgen(method, setter)]
     pub fn set_datatype(&mut self, named_node: &JsImportTerm) {
-        if let Some(Literal(literal)) = &self.term {
+        if let Some(Literal(_)) = &self.term {
             let new_node_value = self.value();
             let literal_type: RcTerm = RcTerm::new_iri(named_node.value()).unwrap();
             self.term = Some(RcTerm::new_literal_dt(new_node_value, literal_type).unwrap());
@@ -231,16 +231,16 @@ impl SophiaExportTerm {
                 // We don't use the implementation of term_type / value to have better performances.
                 let other_term_type = x.term_type();
                 match &self.term {
-                    Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.value(),
-                    Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.value(),
-                    Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.value(),
+                    Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.value().as_ref(),
+                    Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.value().as_ref(),
+                    Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.value().as_ref(),
                     Some(Literal(literal)) => 
-                        other_term_type == "Literal" && x.value() == literal.value()
+                        other_term_type == "Literal" && x.value() == literal.value().as_ref()
                             && literal.lang().map_or_else(
                                 || x.language() == "",
                                 |language| language.as_ref() == x.language().as_str()
                             )
-                            && literal.dt().value() == x.datatype().value()
+                            && literal.dt().value().as_ref() == x.datatype().value()
                         ,
                     None => other_term_type == "DefaultGraph" // value should be "" if it is RDFJS compliant
                 }

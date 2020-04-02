@@ -14,11 +14,7 @@ pub mod dataset_core;
 // Debug / Log
 pub mod util;
 
-// Required by factory
-use crate::dataset_core::*;
-
 //pub mod latticedataset;
 pub mod fulldataset;
 
 pub mod dataset_macro;
-
