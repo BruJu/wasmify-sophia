@@ -24,7 +24,6 @@ use wasm_bindgen::prelude::*;
 
 use crate::fulldataset::FullIndexDataset;
 
-#[macro_use]
 use crate::export_sophia_dataset;
 
 export_sophia_dataset!(SophiaExportFastDataset, JsImportFastDataset, "FastDatasetcore", FastDataset);
