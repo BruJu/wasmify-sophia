@@ -23,10 +23,9 @@ use sophia::dataset::DQuad;
 use crate::datamodel_quad::SophiaExportQuad;
 
 
-/*
-#[macro_use] (?)
-use sophia::dataset::test_dataset_impl;
-*/
+#[cfg(test)]
+use sophia::test_dataset_impl;
+
 
 
 const POS_GPS: usize = 0;
@@ -709,7 +708,5 @@ impl MutableDataset for FullIndexDataset {
     }
 }
 
-/*
 #[cfg(test)]
-sophia::dataset::test_dataset_impl!(test_fulldataset, FullIndexDataset);
-*/
+sophia::test_dataset_impl!(test_fulldataset, FullIndexDataset);
