@@ -24,6 +24,7 @@ use crate::datamodel_quad::SophiaExportQuad;
 #[cfg(test)]
 use sophia::test_dataset_impl;
 
+#[derive(Debug)]
 pub enum TermKind {
     Subject,
     Predicate,
@@ -61,6 +62,8 @@ impl Block {
     }
 }
 
+
+
 pub struct BlockOrder {
     term_kinds: [TermKind; 4],
     to_block_index_to_destination: [usize; 4],
@@ -68,6 +71,17 @@ pub struct BlockOrder {
 }
 
 impl BlockOrder {
+    pub fn name(&self) -> String {
+        String::from(
+            format!("{:?} {:?} {:?} {:?}",
+            self.term_kinds[0],
+            self.term_kinds[1],
+            self.term_kinds[2],
+            self.term_kinds[3]
+        )
+    )
+    }
+
     /// Builds a block builder from an order of SPOG
     pub fn new(term_kinds: [TermKind; 4]) -> BlockOrder {
         let mut to_block_index_to_destination: [usize; 4] = [0, 0, 0, 0];
@@ -84,8 +98,8 @@ impl BlockOrder {
             let position = term_kinds.iter().position(|x| x == term_kind);
             let position = position.unwrap();
 
-            to_block_index_to_destination[*term_position] = position;
-            to_indices_index_to_destination[position] = *term_position;
+            to_indices_index_to_destination[*term_position] = position;
+            to_block_index_to_destination[position] = *term_position;
         }
         
         BlockOrder { term_kinds, to_block_index_to_destination, to_indices_index_to_destination }
@@ -132,8 +146,6 @@ impl BlockOrder {
         let mut min = [u32::min_value(), u32::min_value(), u32::min_value(), u32::min_value()];
         let mut max = [u32::max_value(), u32::max_value(), u32::max_value(), u32::max_value()];
 
-        print!("- Enter Range : {:?}\n", spog);
-        
         for (i, term_kind) in self.term_kinds.iter().enumerate() {
             let spog_position = term_kind.get_spog_position();
             
@@ -141,15 +153,11 @@ impl BlockOrder {
                 break;
             }
 
-            // let set_value = spog[spog_position].take().unwrap();
+            let set_value = spog[spog_position].take().unwrap();
 
-            min[i] = spog[spog_position].unwrap();
-            max[i] = spog[spog_position].unwrap();
+            min[i] = set_value;
+            max[i] = set_value;
         }
-        print!("min : {:?}\n", min);
-        print!("max : {:?}\n", max);
-
-        print!("- Exit Range : {:?}\n", spog);
 
         // Return range + spog that have to be filtered
         (Block::new(min)..=Block::new(max), spog[0], spog[1], spog[2], spog[3])
@@ -194,7 +202,9 @@ impl<'a> Iterator for QuadIndexFromSubTreeDataset<'a> {
             let next = self.range.next().map(|(block, _) | self.block_order.to_indices(block));
 
             match next.as_ref() {
-                Some(spog) => if self.term_filter.filter(spog) { return next; },
+                Some(spog) => if self.term_filter.filter(spog) {
+                    return next;
+                },
                 None => return None
             }
         }
@@ -207,6 +217,10 @@ pub struct SubBTreeDataset {
 }
 
 impl SubBTreeDataset {
+    pub fn name(&self) -> String {
+        self.block_order.name()
+    }
+
     pub fn new(terms_order: [TermKind; 4], initialized: bool) -> SubBTreeDataset {
         let block_order = BlockOrder::new(terms_order);
 
@@ -289,7 +303,6 @@ impl SubBTreeDataset {
 
     pub fn range(&self, subject: Option<u32>, predicate: Option<u32>, object: Option<u32>, graph: Option<u32>) -> QuadIndexFromSubTreeDataset {
         let (range, subject, predicate, object, graph) = self.block_order.range([subject, predicate, object, graph]);
-        print!("Tree content = {:?}", self.content.get().unwrap().to_string());
         let tree_range = self.content.get().unwrap().range(range);
 
         QuadIndexFromSubTreeDataset {
