@@ -73,13 +73,17 @@ impl BlockOrder {
 
     /// Builds a block builder from an order of SPOG
     pub fn new(term_roles: [TermRole; 4]) -> BlockOrder {
-        let mut to_block_index_to_destination: [usize; 4] = [0, 0, 0, 0];
-        let mut to_indices_index_to_destination: [usize; 4] = [0, 0, 0, 0];
+        debug_assert!({
+            let mut present = [false; 4];
+            for tr in term_roles.iter() {
+                present[*tr as usize] = true;
+            }
+            present.iter().all(|x| *x)
+        });
+        let mut to_block_index_to_destination = [0; 4];
+        let mut to_indices_index_to_destination = [0; 4];
 
-        for term_role in [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph].iter() {
-            let position = term_roles.iter().position(|x| x == term_role);
-            let position = position.unwrap();
-
+        for (position, term_role) in term_roles.iter().enumerate() {
             to_indices_index_to_destination[*term_role as usize] = position;
             to_block_index_to_destination[position] = *term_role as usize;
         }
@@ -112,37 +116,29 @@ impl BlockOrder {
     /// Returns the number of term kinds in the array request_terms that can be
     /// used as a prefix
     pub fn index_conformance(&self, request: &[&Option<u32>; 4]) -> usize {
-        for (i, term_role) in self.term_roles.iter().enumerate() {
-            let spog_position = *term_role as usize;
-            
-            if request[spog_position].is_none() {
-                return i;
-            }
-        }
-
-        self.term_roles.len()
+        self.term_roles
+            .iter()
+            .take_while(|tr| request[**tr as usize].is_some())
+            .count()
     }
 
     /// Returns a range on every block that matches the given spog. The range
     /// is restricted as much as possible. Returned indexes are the spog indexes
     /// that are not strictly filtered by the range (other spog that do not
     /// match can be returned)
-    pub fn range(&self, mut spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block>, Option<u32>, Option<u32>, Option<u32>, Option<u32>) {
+    pub fn range(&self, spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block>, Option<u32>, Option<u32>, Option<u32>, Option<u32>) {
         // Restrict range as much as possible
-        let mut min = [u32::min_value(), u32::min_value(), u32::min_value(), u32::min_value()];
-        let mut max = [u32::max_value(), u32::max_value(), u32::max_value(), u32::max_value()];
+        let mut min = [u32::min_value(); 4];
+        let mut max = [u32::max_value(); 4];
 
         for (i, term_role) in self.term_roles.iter().enumerate() {
-            let spog_position = *term_role as usize;
-            
-            if spog[spog_position].is_none() {
-                break;
+            match spog[*term_role as usize] {
+                None => { break; }
+                Some(set_value) => {
+                    min[i] = set_value;
+                    max[i] = set_value;
+                }
             }
-
-            let set_value = spog[spog_position].take().unwrap();
-
-            min[i] = set_value;
-            max[i] = set_value;
         }
 
         // Return range + spog that have to be filtered
@@ -224,7 +220,7 @@ impl TermFilter {
         }
     }
 
-    /// Returns true of the given spog is accepted by this filter (the non Some
+    /// Returns true if the given spog is accepted by this filter (the Some
     /// values of the filter are equals to the corresponding spog value)
     pub fn filter(&self, spog: &[u32; 4]) -> bool {
         for i in 0..self.filtered_position.len() {
@@ -269,7 +265,7 @@ impl<'a> Iterator for QuadIndexFromSubTreeDataset<'a> {
 /// A treed dataset is a forest of trees that implements the Dataset trait
 /// of Sophia.
 /// 
-/// It is composed of several trees, with a main tree and sveral optional
+/// It is composed of several trees, with a main tree and several optional
 /// subtrees.
 pub struct TreedDataset {
     /// The tree that is always instancied
