@@ -24,29 +24,12 @@ use crate::datamodel_quad::SophiaExportQuad;
 #[cfg(test)]
 use sophia::test_dataset_impl;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum TermRole {
-    Subject,
-    Predicate,
-    Object,
-    Graph
-}
-
-impl PartialEq for TermRole {
-    fn eq(&self, other: &Self) -> bool {
-        std::mem::discriminant(self) == std::mem::discriminant(other)
-    }
-}
-
-impl TermRole {
-    pub fn get_spog_position(&self) -> usize {
-        match self {
-            TermRole::Subject => 0,
-            TermRole::Predicate => 1,
-            TermRole::Object => 2,
-            TermRole::Graph => 3
-        }
-    }
+    Subject = 0,
+    Predicate = 1,
+    Object = 2,
+    Graph = 3,
 }
 
 /// A block is a structure that can be stored in a BTreeMap to store quads in
@@ -97,8 +80,8 @@ impl BlockOrder {
             let position = term_roles.iter().position(|x| x == term_role);
             let position = position.unwrap();
 
-            to_indices_index_to_destination[term_role.get_spog_position()] = position;
-            to_block_index_to_destination[position] = term_role.get_spog_position();
+            to_indices_index_to_destination[*term_role as usize] = position;
+            to_block_index_to_destination[position] = *term_role as usize;
         }
         
         BlockOrder { term_roles, to_block_index_to_destination, to_indices_index_to_destination }
@@ -130,7 +113,7 @@ impl BlockOrder {
     /// used as a prefix
     pub fn index_conformance(&self, request: &[&Option<u32>; 4]) -> usize {
         for (i, term_role) in self.term_roles.iter().enumerate() {
-            let spog_position = term_role.get_spog_position();
+            let spog_position = *term_role as usize;
             
             if request[spog_position].is_none() {
                 return i;
@@ -150,7 +133,7 @@ impl BlockOrder {
         let mut max = [u32::max_value(), u32::max_value(), u32::max_value(), u32::max_value()];
 
         for (i, term_role) in self.term_roles.iter().enumerate() {
-            let spog_position = term_role.get_spog_position();
+            let spog_position = *term_role as usize;
             
             if spog[spog_position].is_none() {
                 break;
