@@ -1,7 +1,6 @@
 ﻿use once_cell::unsync::OnceCell;
 use std::collections::BTreeMap;
 
-
 use sophia::dataset::MutableDataset;
 use std::convert::Infallible;
 use sophia::dataset::DQuadSource;
@@ -727,7 +726,6 @@ impl MutableDataset for TreedDataset {
         Ok(false)
     }
 }
-
 
 #[cfg(test)]
 sophia::test_dataset_impl!(test_fulldataset, TreedDataset);
