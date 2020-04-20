@@ -24,29 +24,12 @@ use crate::datamodel_quad::SophiaExportQuad;
 #[cfg(test)]
 use sophia::test_dataset_impl;
 
-#[derive(Debug)]
-pub enum TermKind {
-    Subject,
-    Predicate,
-    Object,
-    Graph
-}
-
-impl PartialEq for TermKind {
-    fn eq(&self, other: &Self) -> bool {
-        std::mem::discriminant(self) == std::mem::discriminant(other)
-    }
-}
-
-impl TermKind {
-    pub fn get_spog_position(&self) -> usize {
-        match self {
-            TermKind::Subject => 0,
-            TermKind::Predicate => 1,
-            TermKind::Object => 2,
-            TermKind::Graph => 3
-        }
-    }
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+pub enum TermRole {
+    Subject = 0,
+    Predicate = 1,
+    Object = 2,
+    Graph = 3,
 }
 
 /// A block is a structure that can be stored in a BTreeMap to store quads in
@@ -71,7 +54,7 @@ impl Block {
 /// by using functions that takes as input or returns an array of four u32
 /// representing the quad indexes
 pub struct BlockOrder {
-    term_kinds: [TermKind; 4],
+    term_roles: [TermRole; 4],
     to_block_index_to_destination: [usize; 4],
     to_indices_index_to_destination: [usize; 4]
 }
@@ -81,27 +64,31 @@ impl BlockOrder {
     pub fn name(&self) -> String {
         format!(
             "{:?} {:?} {:?} {:?}",
-            self.term_kinds[0],
-            self.term_kinds[1],
-            self.term_kinds[2],
-            self.term_kinds[3]
+            self.term_roles[0],
+            self.term_roles[1],
+            self.term_roles[2],
+            self.term_roles[3]
         )
     }
 
     /// Builds a block builder from an order of SPOG
-    pub fn new(term_kinds: [TermKind; 4]) -> BlockOrder {
-        let mut to_block_index_to_destination: [usize; 4] = [0, 0, 0, 0];
-        let mut to_indices_index_to_destination: [usize; 4] = [0, 0, 0, 0];
+    pub fn new(term_roles: [TermRole; 4]) -> BlockOrder {
+        debug_assert!({
+            let mut present = [false; 4];
+            for tr in term_roles.iter() {
+                present[*tr as usize] = true;
+            }
+            present.iter().all(|x| *x)
+        });
+        let mut to_block_index_to_destination = [0; 4];
+        let mut to_indices_index_to_destination = [0; 4];
 
-        for term_kind in [TermKind::Subject, TermKind::Predicate, TermKind::Object, TermKind::Graph].iter() {
-            let position = term_kinds.iter().position(|x| x == term_kind);
-            let position = position.unwrap();
-
-            to_indices_index_to_destination[term_kind.get_spog_position()] = position;
-            to_block_index_to_destination[position] = term_kind.get_spog_position();
+        for (position, term_role) in term_roles.iter().enumerate() {
+            to_indices_index_to_destination[*term_role as usize] = position;
+            to_block_index_to_destination[position] = *term_role as usize;
         }
         
-        BlockOrder { term_kinds, to_block_index_to_destination, to_indices_index_to_destination }
+        BlockOrder { term_roles, to_block_index_to_destination, to_indices_index_to_destination }
     }
 
     /// Builds a block from SPPOG indices
@@ -129,41 +116,33 @@ impl BlockOrder {
     /// Returns the number of term kinds in the array request_terms that can be
     /// used as a prefix
     pub fn index_conformance(&self, request: &[&Option<u32>; 4]) -> usize {
-        for (i, term_kind) in self.term_kinds.iter().enumerate() {
-            let spog_position = term_kind.get_spog_position();
-            
-            if request[spog_position].is_none() {
-                return i;
-            }
-        }
-
-        self.term_kinds.len()
+        self.term_roles
+            .iter()
+            .take_while(|tr| request[**tr as usize].is_some())
+            .count()
     }
 
     /// Returns a range on every block that matches the given spog. The range
     /// is restricted as much as possible. Returned indexes are the spog indexes
     /// that are not strictly filtered by the range (other spog that do not
     /// match can be returned)
-    pub fn range(&self, mut spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block>, Option<u32>, Option<u32>, Option<u32>, Option<u32>) {
+    pub fn range(&self, spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block>, [Option<u32>; 4]) {
         // Restrict range as much as possible
-        let mut min = [u32::min_value(), u32::min_value(), u32::min_value(), u32::min_value()];
-        let mut max = [u32::max_value(), u32::max_value(), u32::max_value(), u32::max_value()];
+        let mut min = [u32::min_value(); 4];
+        let mut max = [u32::max_value(); 4];
 
-        for (i, term_kind) in self.term_kinds.iter().enumerate() {
-            let spog_position = term_kind.get_spog_position();
-            
-            if spog[spog_position].is_none() {
-                break;
+        for (i, term_role) in self.term_roles.iter().enumerate() {
+            match spog[*term_role as usize] {
+                None => { break; }
+                Some(set_value) => {
+                    min[i] = set_value;
+                    max[i] = set_value;
+                }
             }
-
-            let set_value = spog[spog_position].take().unwrap();
-
-            min[i] = set_value;
-            max[i] = set_value;
         }
 
         // Return range + spog that have to be filtered
-        (Block::new(min)..=Block::new(max), spog[0], spog[1], spog[2], spog[3])
+        (Block::new(min)..=Block::new(max), spog)
     }
 
     /// Inserts the given quad in the passed tree, using this quad ordering
@@ -196,7 +175,7 @@ impl BlockOrder {
     }
 
     /// Inserts every quads in iterator in the passed tree
-    pub fn insert_all_into<'a>(&self, tree: &mut BTreeMap<Block, ()>, iterator: QuadIndexFromSubTreeDataset<'a>) {
+    pub fn insert_all_into<'a>(&self, tree: &mut BTreeMap<Block, ()>, iterator: FilteredIndexQuads<'a>) {
         for block in iterator.map(|spog| self.to_block(&spog)) {
             tree.insert(block, ());
         }
@@ -214,15 +193,15 @@ impl BlockOrder {
     /// two block order, the block order that returns the greater
     /// `index_conformance` will return an iterator that looks over less
     /// different quads.
-    pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block, ()>, spog: [Option<u32>; 4]) -> QuadIndexFromSubTreeDataset {
-        let (range, subject, predicate, object, graph) = self.range(spog);
+    pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block, ()>, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
+        let (range, spog) = self.range(spog);
         let tree_range = tree.range(range);
 
-        QuadIndexFromSubTreeDataset {
+        FilteredIndexQuads {
             range: tree_range,
             block_order: self,
             term_filter: TermFilter {
-                filtered_position: [subject, predicate, object, graph]
+                filtered_position: spog,
             }
         }
     }
@@ -241,7 +220,7 @@ impl TermFilter {
         }
     }
 
-    /// Returns true of the given spog is accepted by this filter (the non Some
+    /// Returns true if the given spog is accepted by this filter (the Some
     /// values of the filter are equals to the corresponding spog value)
     pub fn filter(&self, spog: &[u32; 4]) -> bool {
         for i in 0..self.filtered_position.len() {
@@ -257,7 +236,7 @@ impl TermFilter {
 }
 
 /// An iterator on a sub tree
-pub struct QuadIndexFromSubTreeDataset<'a> {
+pub struct FilteredIndexQuads<'a> {
     /// Iterator
     range: std::collections::btree_map::Range<'a, Block, ()>,
     /// Used block order
@@ -266,7 +245,7 @@ pub struct QuadIndexFromSubTreeDataset<'a> {
     term_filter: TermFilter
 }
 
-impl<'a> Iterator for QuadIndexFromSubTreeDataset<'a> {
+impl<'a> Iterator for FilteredIndexQuads<'a> {
     type Item = [u32; 4];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -286,7 +265,7 @@ impl<'a> Iterator for QuadIndexFromSubTreeDataset<'a> {
 /// A treed dataset is a forest of trees that implements the Dataset trait
 /// of Sophia.
 /// 
-/// It is composed of several trees, with a main tree and sveral optional
+/// It is composed of several trees, with a main tree and several optional
 /// subtrees.
 pub struct TreedDataset {
     /// The tree that is always instancied
@@ -302,26 +281,26 @@ impl TreedDataset {
     pub fn new() -> TreedDataset {
         TreedDataset {
             base_tree: (
-                BlockOrder::new([TermKind::Object, TermKind::Graph, TermKind::Predicate, TermKind::Subject]),
+                BlockOrder::new([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
                 BTreeMap::new()
             ),
             optional_trees: vec!(
-                (BlockOrder::new([TermKind::Graph, TermKind::Subject, TermKind::Predicate, TermKind::Object]), OnceCell::new())
+                (BlockOrder::new([TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object]), OnceCell::new())
             ),
             term_index: TermIndexMapU::new()
         }
     }
 
     /// Returns an iterator on quads represented by their indexes from the 
-    pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> QuadIndexFromSubTreeDataset {
+    pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
         // Find best index
-        let term_kinds = [&spog[0], &spog[1], &spog[2], &spog[3]];
+        let term_roles = [&spog[0], &spog[1], &spog[2], &spog[3]];
 
         let mut best_alt_tree_pos = None;
-        let mut best_index_score = self.base_tree.0.index_conformance(&term_kinds);
+        let mut best_index_score = self.base_tree.0.index_conformance(&term_roles);
         
         for i in 0..self.optional_trees.len() {
-            let score = self.optional_trees[i].0.index_conformance(&term_kinds);
+            let score = self.optional_trees[i].0.index_conformance(&term_roles);
             if score > best_index_score {
                 best_alt_tree_pos = Some(i);
                 best_index_score = score;
@@ -647,7 +626,7 @@ impl Dataset for TreedDataset {
 /// An adapter that transforms an iterator on four term indexes into an iterator
 /// of Sophia Quads
 pub struct InflatedQuadsIterator<'a> {
-    base_iterator: QuadIndexFromSubTreeDataset<'a>,
+    base_iterator: FilteredIndexQuads<'a>,
     term_index: &'a TermIndexMapU<u32, RcTermFactory>
 }
 
@@ -655,7 +634,7 @@ impl<'a> InflatedQuadsIterator<'a> {
     /// Builds a Box of InflatedQuadsIterator from an iterator on term indexes
     /// and a `TermIndexMap` to match the `DQuadSource` interface.
     pub fn new_box(
-        base_iterator: QuadIndexFromSubTreeDataset<'a>,
+        base_iterator: FilteredIndexQuads<'a>,
         term_index: &'a TermIndexMapU<u32, RcTermFactory>
     ) -> Box<InflatedQuadsIterator<'a>> {
         Box::new(InflatedQuadsIterator {
