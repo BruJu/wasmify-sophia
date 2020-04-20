@@ -175,7 +175,7 @@ impl BlockOrder {
     }
 
     /// Inserts every quads in iterator in the passed tree
-    pub fn insert_all_into<'a>(&self, tree: &mut BTreeMap<Block, ()>, iterator: QuadIndexFromSubTreeDataset<'a>) {
+    pub fn insert_all_into<'a>(&self, tree: &mut BTreeMap<Block, ()>, iterator: FilteredIndexQuads<'a>) {
         for block in iterator.map(|spog| self.to_block(&spog)) {
             tree.insert(block, ());
         }
@@ -193,11 +193,11 @@ impl BlockOrder {
     /// two block order, the block order that returns the greater
     /// `index_conformance` will return an iterator that looks over less
     /// different quads.
-    pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block, ()>, spog: [Option<u32>; 4]) -> QuadIndexFromSubTreeDataset {
+    pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block, ()>, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
         let (range, spog) = self.range(spog);
         let tree_range = tree.range(range);
 
-        QuadIndexFromSubTreeDataset {
+        FilteredIndexQuads {
             range: tree_range,
             block_order: self,
             term_filter: TermFilter {
@@ -236,7 +236,7 @@ impl TermFilter {
 }
 
 /// An iterator on a sub tree
-pub struct QuadIndexFromSubTreeDataset<'a> {
+pub struct FilteredIndexQuads<'a> {
     /// Iterator
     range: std::collections::btree_map::Range<'a, Block, ()>,
     /// Used block order
@@ -245,7 +245,7 @@ pub struct QuadIndexFromSubTreeDataset<'a> {
     term_filter: TermFilter
 }
 
-impl<'a> Iterator for QuadIndexFromSubTreeDataset<'a> {
+impl<'a> Iterator for FilteredIndexQuads<'a> {
     type Item = [u32; 4];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -292,7 +292,7 @@ impl TreedDataset {
     }
 
     /// Returns an iterator on quads represented by their indexes from the 
-    pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> QuadIndexFromSubTreeDataset {
+    pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
         // Find best index
         let term_roles = [&spog[0], &spog[1], &spog[2], &spog[3]];
 
@@ -626,7 +626,7 @@ impl Dataset for TreedDataset {
 /// An adapter that transforms an iterator on four term indexes into an iterator
 /// of Sophia Quads
 pub struct InflatedQuadsIterator<'a> {
-    base_iterator: QuadIndexFromSubTreeDataset<'a>,
+    base_iterator: FilteredIndexQuads<'a>,
     term_index: &'a TermIndexMapU<u32, RcTermFactory>
 }
 
@@ -634,7 +634,7 @@ impl<'a> InflatedQuadsIterator<'a> {
     /// Builds a Box of InflatedQuadsIterator from an iterator on term indexes
     /// and a `TermIndexMap` to match the `DQuadSource` interface.
     pub fn new_box(
-        base_iterator: QuadIndexFromSubTreeDataset<'a>,
+        base_iterator: FilteredIndexQuads<'a>,
         term_index: &'a TermIndexMapU<u32, RcTermFactory>
     ) -> Box<InflatedQuadsIterator<'a>> {
         Box::new(InflatedQuadsIterator {
