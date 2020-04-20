@@ -126,7 +126,7 @@ impl BlockOrder {
     /// is restricted as much as possible. Returned indexes are the spog indexes
     /// that are not strictly filtered by the range (other spog that do not
     /// match can be returned)
-    pub fn range(&self, spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block>, Option<u32>, Option<u32>, Option<u32>, Option<u32>) {
+    pub fn range(&self, spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block>, [Option<u32>; 4]) {
         // Restrict range as much as possible
         let mut min = [u32::min_value(); 4];
         let mut max = [u32::max_value(); 4];
@@ -142,7 +142,7 @@ impl BlockOrder {
         }
 
         // Return range + spog that have to be filtered
-        (Block::new(min)..=Block::new(max), spog[0], spog[1], spog[2], spog[3])
+        (Block::new(min)..=Block::new(max), spog)
     }
 
     /// Inserts the given quad in the passed tree, using this quad ordering
@@ -194,14 +194,14 @@ impl BlockOrder {
     /// `index_conformance` will return an iterator that looks over less
     /// different quads.
     pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block, ()>, spog: [Option<u32>; 4]) -> QuadIndexFromSubTreeDataset {
-        let (range, subject, predicate, object, graph) = self.range(spog);
+        let (range, spog) = self.range(spog);
         let tree_range = tree.range(range);
 
         QuadIndexFromSubTreeDataset {
             range: tree_range,
             block_order: self,
             term_filter: TermFilter {
-                filtered_position: [subject, predicate, object, graph]
+                filtered_position: spog,
             }
         }
     }
