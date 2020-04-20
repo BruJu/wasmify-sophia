@@ -25,26 +25,26 @@ use crate::datamodel_quad::SophiaExportQuad;
 use sophia::test_dataset_impl;
 
 #[derive(Debug)]
-pub enum TermKind {
+pub enum TermRole {
     Subject,
     Predicate,
     Object,
     Graph
 }
 
-impl PartialEq for TermKind {
+impl PartialEq for TermRole {
     fn eq(&self, other: &Self) -> bool {
         std::mem::discriminant(self) == std::mem::discriminant(other)
     }
 }
 
-impl TermKind {
+impl TermRole {
     pub fn get_spog_position(&self) -> usize {
         match self {
-            TermKind::Subject => 0,
-            TermKind::Predicate => 1,
-            TermKind::Object => 2,
-            TermKind::Graph => 3
+            TermRole::Subject => 0,
+            TermRole::Predicate => 1,
+            TermRole::Object => 2,
+            TermRole::Graph => 3
         }
     }
 }
@@ -71,7 +71,7 @@ impl Block {
 /// by using functions that takes as input or returns an array of four u32
 /// representing the quad indexes
 pub struct BlockOrder {
-    term_kinds: [TermKind; 4],
+    term_roles: [TermRole; 4],
     to_block_index_to_destination: [usize; 4],
     to_indices_index_to_destination: [usize; 4]
 }
@@ -81,27 +81,27 @@ impl BlockOrder {
     pub fn name(&self) -> String {
         format!(
             "{:?} {:?} {:?} {:?}",
-            self.term_kinds[0],
-            self.term_kinds[1],
-            self.term_kinds[2],
-            self.term_kinds[3]
+            self.term_roles[0],
+            self.term_roles[1],
+            self.term_roles[2],
+            self.term_roles[3]
         )
     }
 
     /// Builds a block builder from an order of SPOG
-    pub fn new(term_kinds: [TermKind; 4]) -> BlockOrder {
+    pub fn new(term_roles: [TermRole; 4]) -> BlockOrder {
         let mut to_block_index_to_destination: [usize; 4] = [0, 0, 0, 0];
         let mut to_indices_index_to_destination: [usize; 4] = [0, 0, 0, 0];
 
-        for term_kind in [TermKind::Subject, TermKind::Predicate, TermKind::Object, TermKind::Graph].iter() {
-            let position = term_kinds.iter().position(|x| x == term_kind);
+        for term_role in [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph].iter() {
+            let position = term_roles.iter().position(|x| x == term_role);
             let position = position.unwrap();
 
-            to_indices_index_to_destination[term_kind.get_spog_position()] = position;
-            to_block_index_to_destination[position] = term_kind.get_spog_position();
+            to_indices_index_to_destination[term_role.get_spog_position()] = position;
+            to_block_index_to_destination[position] = term_role.get_spog_position();
         }
         
-        BlockOrder { term_kinds, to_block_index_to_destination, to_indices_index_to_destination }
+        BlockOrder { term_roles, to_block_index_to_destination, to_indices_index_to_destination }
     }
 
     /// Builds a block from SPPOG indices
@@ -129,15 +129,15 @@ impl BlockOrder {
     /// Returns the number of term kinds in the array request_terms that can be
     /// used as a prefix
     pub fn index_conformance(&self, request: &[&Option<u32>; 4]) -> usize {
-        for (i, term_kind) in self.term_kinds.iter().enumerate() {
-            let spog_position = term_kind.get_spog_position();
+        for (i, term_role) in self.term_roles.iter().enumerate() {
+            let spog_position = term_role.get_spog_position();
             
             if request[spog_position].is_none() {
                 return i;
             }
         }
 
-        self.term_kinds.len()
+        self.term_roles.len()
     }
 
     /// Returns a range on every block that matches the given spog. The range
@@ -149,8 +149,8 @@ impl BlockOrder {
         let mut min = [u32::min_value(), u32::min_value(), u32::min_value(), u32::min_value()];
         let mut max = [u32::max_value(), u32::max_value(), u32::max_value(), u32::max_value()];
 
-        for (i, term_kind) in self.term_kinds.iter().enumerate() {
-            let spog_position = term_kind.get_spog_position();
+        for (i, term_role) in self.term_roles.iter().enumerate() {
+            let spog_position = term_role.get_spog_position();
             
             if spog[spog_position].is_none() {
                 break;
@@ -302,11 +302,11 @@ impl TreedDataset {
     pub fn new() -> TreedDataset {
         TreedDataset {
             base_tree: (
-                BlockOrder::new([TermKind::Object, TermKind::Graph, TermKind::Predicate, TermKind::Subject]),
+                BlockOrder::new([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
                 BTreeMap::new()
             ),
             optional_trees: vec!(
-                (BlockOrder::new([TermKind::Graph, TermKind::Subject, TermKind::Predicate, TermKind::Object]), OnceCell::new())
+                (BlockOrder::new([TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object]), OnceCell::new())
             ),
             term_index: TermIndexMapU::new()
         }
@@ -315,13 +315,13 @@ impl TreedDataset {
     /// Returns an iterator on quads represented by their indexes from the 
     pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> QuadIndexFromSubTreeDataset {
         // Find best index
-        let term_kinds = [&spog[0], &spog[1], &spog[2], &spog[3]];
+        let term_roles = [&spog[0], &spog[1], &spog[2], &spog[3]];
 
         let mut best_alt_tree_pos = None;
-        let mut best_index_score = self.base_tree.0.index_conformance(&term_kinds);
+        let mut best_index_score = self.base_tree.0.index_conformance(&term_roles);
         
         for i in 0..self.optional_trees.len() {
-            let score = self.optional_trees[i].0.index_conformance(&term_kinds);
+            let score = self.optional_trees[i].0.index_conformance(&term_roles);
             if score > best_index_score {
                 best_alt_tree_pos = Some(i);
                 best_index_score = score;
