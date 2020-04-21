@@ -277,7 +277,47 @@ pub struct TreedDataset {
 }
 
 impl TreedDataset {
-    pub fn new() -> TreedDataset {
+    pub fn new_with_indexes(default_initialized: &Vec<[TermRole; 4]>, optional_indexes: Option<&Vec<[TermRole; 4]>>) -> TreedDataset {
+        assert!(!default_initialized.is_empty());
+
+        // Base tree
+        let base_tree = (
+            BlockOrder::new(default_initialized[0]),
+            BTreeMap::new()
+        );
+
+        // Redundant trees
+        let mut optional_trees = Vec::new();
+
+        // Default initialized
+        for i in 1..default_initialized.len() {
+            let cell = OnceCell::new();
+            let set_result = cell.set(BTreeMap::new());
+            assert!(set_result.is_ok());
+
+            let new_tree = (
+                BlockOrder::new(default_initialized[i]),
+                cell
+            );
+
+            optional_trees.push(new_tree);
+        }
+
+        // Optionals
+        if let Some(optional_indexes) = optional_indexes {
+            for optional_index in optional_indexes {
+                optional_trees.push((BlockOrder::new(*optional_index), OnceCell::new()));
+            }
+        }
+
+        TreedDataset {
+            base_tree: base_tree,
+            optional_trees: optional_trees,
+            term_index: TermIndexMapU::new()
+        }
+    }
+
+    pub fn default() -> TreedDataset {
         TreedDataset {
             base_tree: (
                 BlockOrder::new([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
@@ -288,6 +328,19 @@ impl TreedDataset {
             ),
             term_index: TermIndexMapU::new()
         }
+    }
+
+    pub fn new() -> TreedDataset {
+        TreedDataset::new_with_indexes(
+            &vec!([TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph]),
+            Some(&vec!(
+                [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
+                [TermRole::Object, TermRole::Graph, TermRole::Subject, TermRole::Predicate],
+                [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
+                [TermRole::Graph, TermRole::Predicate, TermRole::Subject, TermRole::Object],
+                [TermRole::Object, TermRole::Subject, TermRole::Graph, TermRole::Predicate]
+            ))
+        )
     }
 
     /// Returns an iterator on quads represented by their indexes from the 
