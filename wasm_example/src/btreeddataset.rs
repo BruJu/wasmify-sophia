@@ -1,5 +1,5 @@
 ﻿use once_cell::unsync::OnceCell;
-use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 use sophia::dataset::MutableDataset;
 use std::convert::Infallible;
@@ -31,7 +31,7 @@ pub enum TermRole {
     Graph = 3,
 }
 
-/// A block is a structure that can be stored in a BTreeMap to store quads in
+/// A block is a structure that can be stored in a BTreeSet to store quads in
 /// a certain order
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug)]
 pub struct Block<T> {
@@ -69,7 +69,7 @@ impl <T> Block<T> where T: Clone + PartialEq {
 /// A block order enables to convert a SPOG quad into a block and get back
 /// the SPOG quad.
 /// 
-/// It provides methods to manipulate the elements of a `BTreeMap<Block, ()>`
+/// It provides methods to manipulate the elements of a `BTreeSet<Block>`
 /// by using functions that takes as input or returns an array of four u32
 /// representing the quad indexes
 pub struct BlockOrder {
@@ -179,36 +179,29 @@ impl BlockOrder {
     /// Inserts the given quad in the passed tree, using this quad ordering
     /// 
     /// Returns true if the quad was already present
-    pub fn insert_into(&self, tree: &mut BTreeMap<Block<u32>, ()>, spog: &[u32; 4]) -> bool {
+    pub fn insert_into(&self, tree: &mut BTreeSet<Block<u32>>, spog: &[u32; 4]) -> bool {
         let block = self.to_block(spog);
-
-        let insert_result = tree.insert(block, ());
-
-        insert_result.is_some()
+        !tree.insert(block)
     }
 
     /// Deletes the given quad from the passed tree, using this quad ordering
     /// 
     /// Returns true if the quad has been deleted
-    pub fn delete_from(&self, tree: &mut BTreeMap<Block<u32>, ()>, spog: &[u32; 4]) -> bool {
+    pub fn delete_from(&self, tree: &mut BTreeSet<Block<u32>>, spog: &[u32; 4]) -> bool {
         let block = self.to_block(spog);
-
-        let delete_result = tree.remove(&block);
-
-        delete_result.is_some()
+        tree.remove(&block)
     }
 
     /// Returns true if the passed tree contains the passed quad
-    pub fn contains(&self, tree: &BTreeMap<Block<u32>, ()>, spog: &[u32; 4]) -> bool {
+    pub fn contains(&self, tree: &BTreeSet<Block<u32>>, spog: &[u32; 4]) -> bool {
         let block = self.to_block(spog);
-
-        tree.contains_key(&block)
+        tree.contains(&block)
     }
 
     /// Inserts every quads in iterator in the passed tree
-    pub fn insert_all_into<'a>(&self, tree: &mut BTreeMap<Block<u32>, ()>, iterator: FilteredIndexQuads<'a>) {
+    pub fn insert_all_into<'a>(&self, tree: &mut BTreeSet<Block<u32>>, iterator: FilteredIndexQuads<'a>) {
         for block in iterator.map(|spog| self.to_block(&spog)) {
-            tree.insert(block, ());
+            tree.insert(block);
         }
     }
 
@@ -224,7 +217,7 @@ impl BlockOrder {
     /// two block order, the block order that returns the greater
     /// `index_conformance` will return an iterator that looks over less
     /// different quads.
-    pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block<u32>, ()>, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
+    pub fn filter<'a>(&'a self, tree: &'a BTreeSet<Block<u32>>, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
         let (range, term_filter) = self.range(spog);
         let tree_range = tree.range(range);
 
@@ -239,7 +232,7 @@ impl BlockOrder {
 /// An iterator on a sub tree
 pub struct FilteredIndexQuads<'a> {
     /// Iterator
-    range: std::collections::btree_map::Range<'a, Block<u32>, ()>,
+    range: std::collections::btree_set::Range<'a, Block<u32>>,
     /// Used block order
     block_order: &'a BlockOrder,
     /// Term filter for quads that can't be restricted by the range
@@ -255,7 +248,7 @@ impl<'a> Iterator for FilteredIndexQuads<'a> {
 
             match next.as_ref() {
                 None => { return None; },
-                Some((block, _)) => {
+                Some(block) => {
                     if block.match_option_block(&self.term_filter) {
                         return Some(self.block_order.to_indices(block));
                     }
@@ -272,10 +265,10 @@ impl<'a> Iterator for FilteredIndexQuads<'a> {
 /// subtrees.
 pub struct TreedDataset {
     /// The tree that is always instancied
-    base_tree: (BlockOrder, BTreeMap<Block<u32>, ()>),
+    base_tree: (BlockOrder, BTreeSet<Block<u32>>),
     /// A list of optional trees that can be instancied ot improve look up
     /// performances at the cost of further insert and deletions
-    optional_trees: Vec<(BlockOrder, OnceCell<BTreeMap<Block<u32>, ()>>)>,
+    optional_trees: Vec<(BlockOrder, OnceCell<BTreeSet<Block<u32>>>)>,
     /// A term index map that matches RcTerms with u32 indexes
     term_index: TermIndexMapU<u32, RcTermFactory>
 }
@@ -287,7 +280,7 @@ impl TreedDataset {
         // Base tree
         let base_tree = (
             BlockOrder::new(default_initialized[0]),
-            BTreeMap::new()
+            BTreeSet::new()
         );
 
         // Redundant trees
@@ -296,7 +289,7 @@ impl TreedDataset {
         // Default initialized
         for i in 1..default_initialized.len() {
             let cell = OnceCell::new();
-            let set_result = cell.set(BTreeMap::new());
+            let set_result = cell.set(BTreeSet::new());
             assert!(set_result.is_ok());
 
             let new_tree = (
@@ -325,7 +318,7 @@ impl TreedDataset {
         TreedDataset {
             base_tree: (
                 BlockOrder::new([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
-                BTreeMap::new()
+                BTreeSet::new()
             ),
             optional_trees: vec!(
                 (BlockOrder::new([TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object]), OnceCell::new())
@@ -374,7 +367,7 @@ impl TreedDataset {
                     alternative_tree_description.1.get_or_init(|| {
                         let content = self.base_tree.0.filter(&self.base_tree.1, [None, None, None, None]);
 
-                        let mut map = BTreeMap::new();
+                        let mut map = BTreeSet::new();
                         alternative_tree_description.0.insert_all_into(&mut map, content);
                         map
                     })
