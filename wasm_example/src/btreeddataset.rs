@@ -43,10 +43,6 @@ impl <T> Block<T> where T: Clone {
     pub fn new(values: [T; 4]) -> Block<T> {
         Block { data: values }
     }
-
-    pub fn empty_optional() -> Block<Option<T>> {
-        Block { data: [None, None, None, None] }
-    }
 }
 
 impl <T> Block<T> where T: Clone + PartialEq {
@@ -64,7 +60,6 @@ impl <T> Block<T> where T: Clone + PartialEq {
         true
     }
 }
-
 
 /// A block order enables to convert a SPOG quad into a block and get back
 /// the SPOG quad.
@@ -233,7 +228,7 @@ impl BlockOrder {
 pub struct FilteredIndexQuads<'a> {
     /// Iterator
     range: std::collections::btree_set::Range<'a, Block<u32>>,
-    /// Used block order
+    /// Used block order to retrived SPOG quad indexes
     block_order: &'a BlockOrder,
     /// Term filter for quads that can't be restricted by the range
     term_filter: Block<Option<u32>>
@@ -329,12 +324,12 @@ impl TreedDataset {
 
     pub fn new() -> TreedDataset {
         TreedDataset::new_with_indexes(
-            &vec!([TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph]),
+            &vec!([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
             Some(&vec!(
-                [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
-                [TermRole::Object, TermRole::Graph, TermRole::Subject, TermRole::Predicate],
-                [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
                 [TermRole::Graph, TermRole::Predicate, TermRole::Subject, TermRole::Object],
+                [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
+                [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
+                [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
                 [TermRole::Object, TermRole::Subject, TermRole::Graph, TermRole::Predicate]
             ))
         )
