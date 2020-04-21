@@ -33,15 +33,35 @@ pub enum TermRole {
 
 /// A block is a structure that can be stored in a BTreeMap to store quads in
 /// a certain order
-#[derive(PartialEq, PartialOrd, Eq, Ord)]
-pub struct Block {
-    data: [u32; 4],
+#[derive(PartialEq, PartialOrd, Eq, Ord, Debug)]
+pub struct Block<T> {
+    data: [T; 4],
 }
 
-impl Block {
+impl <T> Block<T> where T: Clone {
     /// Creates a block with the given values
-    pub fn new(values: [u32; 4]) -> Block {
+    pub fn new(values: [T; 4]) -> Block<T> {
         Block { data: values }
+    }
+
+    pub fn empty_optional() -> Block<Option<T>> {
+        Block { data: [None, None, None, None] }
+    }
+}
+
+impl <T> Block<T> where T: Clone + PartialEq {
+    /// Returns true if the non None values of the given filter_block are equals
+    /// to the values of this block
+    pub fn match_option_block(&self, filter_block: &Block<Option<T>>) -> bool {
+        for i in 0..filter_block.data.len() {
+            if let Some(filter_data) = filter_block.data[i].as_ref() {
+                if self.data[i] != *filter_data {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 }
 
@@ -90,8 +110,20 @@ impl BlockOrder {
         BlockOrder { term_roles, to_block_index_to_destination, to_indices_index_to_destination }
     }
 
-    /// Builds a block from SPPOG indices
-    pub fn to_block(&self, indices: &[u32; 4]) -> Block {
+    /// Builds a block from SPOG indices
+    pub fn to_block<T>(&self, indices: &[T; 4]) -> Block<T> where T: Copy {
+        Block{
+            data: [
+                indices[self.to_block_index_to_destination[0]],
+                indices[self.to_block_index_to_destination[1]],
+                indices[self.to_block_index_to_destination[2]],
+                indices[self.to_block_index_to_destination[3]]
+            ]
+        }
+    }
+
+    /// Builds a block from SPOG indices
+    pub fn to_filter_block<T>(&self, indices: &[Option<T>; 4]) -> Block<Option<T>> where T: Copy + PartialEq {
         Block{
             data: [
                 indices[self.to_block_index_to_destination[0]],
@@ -103,7 +135,7 @@ impl BlockOrder {
     }
 
     /// Buids SPOG indices from a block
-    pub fn to_indices(&self, block: &Block) -> [u32; 4] {
+    pub fn to_indices<T>(&self, block: &Block<T>) -> [T; 4] where T: Copy {
         return [
             block.data[self.to_indices_index_to_destination[0]],
             block.data[self.to_indices_index_to_destination[1]],
@@ -125,7 +157,7 @@ impl BlockOrder {
     /// is restricted as much as possible. Returned indexes are the spog indexes
     /// that are not strictly filtered by the range (other spog that do not
     /// match can be returned)
-    pub fn range(&self, spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block>, [Option<u32>; 4]) {
+    pub fn range(&self, spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block<u32>>, Block<Option<u32>>) {
         // Restrict range as much as possible
         let mut min = [u32::min_value(); 4];
         let mut max = [u32::max_value(); 4];
@@ -140,14 +172,14 @@ impl BlockOrder {
             }
         }
 
-        // Return range + spog that have to be filtered
-        (Block::new(min)..=Block::new(max), spog)
+	    // Return range + filter block
+	    (Block::new(min)..=Block::new(max), self.to_filter_block(&spog))
     }
 
     /// Inserts the given quad in the passed tree, using this quad ordering
     /// 
     /// Returns true if the quad was already present
-    pub fn insert_into(&self, tree: &mut BTreeMap<Block, ()>, spog: &[u32; 4]) -> bool {
+    pub fn insert_into(&self, tree: &mut BTreeMap<Block<u32>, ()>, spog: &[u32; 4]) -> bool {
         let block = self.to_block(spog);
 
         let insert_result = tree.insert(block, ());
@@ -158,7 +190,7 @@ impl BlockOrder {
     /// Deletes the given quad from the passed tree, using this quad ordering
     /// 
     /// Returns true if the quad has been deleted
-    pub fn delete_from(&self, tree: &mut BTreeMap<Block, ()>, spog: &[u32; 4]) -> bool {
+    pub fn delete_from(&self, tree: &mut BTreeMap<Block<u32>, ()>, spog: &[u32; 4]) -> bool {
         let block = self.to_block(spog);
 
         let delete_result = tree.remove(&block);
@@ -167,14 +199,14 @@ impl BlockOrder {
     }
 
     /// Returns true if the passed tree contains the passed quad
-    pub fn contains(&self, tree: &BTreeMap<Block, ()>, spog: &[u32; 4]) -> bool {
+    pub fn contains(&self, tree: &BTreeMap<Block<u32>, ()>, spog: &[u32; 4]) -> bool {
         let block = self.to_block(spog);
 
         tree.contains_key(&block)
     }
 
     /// Inserts every quads in iterator in the passed tree
-    pub fn insert_all_into<'a>(&self, tree: &mut BTreeMap<Block, ()>, iterator: FilteredIndexQuads<'a>) {
+    pub fn insert_all_into<'a>(&self, tree: &mut BTreeMap<Block<u32>, ()>, iterator: FilteredIndexQuads<'a>) {
         for block in iterator.map(|spog| self.to_block(&spog)) {
             tree.insert(block, ());
         }
@@ -192,56 +224,26 @@ impl BlockOrder {
     /// two block order, the block order that returns the greater
     /// `index_conformance` will return an iterator that looks over less
     /// different quads.
-    pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block, ()>, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
-        let (range, spog) = self.range(spog);
+    pub fn filter<'a>(&'a self, tree: &'a BTreeMap<Block<u32>, ()>, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
+        let (range, term_filter) = self.range(spog);
         let tree_range = tree.range(range);
 
         FilteredIndexQuads {
             range: tree_range,
             block_order: self,
-            term_filter: TermFilter {
-                filtered_position: spog,
-            }
+            term_filter: term_filter
         }
-    }
-}
-
-/// A filter on indexes
-pub struct TermFilter {
-    pub filtered_position: [Option<u32>; 4]
-}
-
-impl TermFilter {
-    /// Returns an empty term filter
-    pub fn empty() -> TermFilter {
-        TermFilter {
-            filtered_position: [ None, None, None, None ]
-        }
-    }
-
-    /// Returns true if the given spog is accepted by this filter (the Some
-    /// values of the filter are equals to the corresponding spog value)
-    pub fn filter(&self, spog: &[u32; 4]) -> bool {
-        for i in 0..self.filtered_position.len() {
-            if let Some(term) = self.filtered_position[i] {
-                if spog[i] != term {
-                    return false;
-                }
-            }
-        }
-
-        true
     }
 }
 
 /// An iterator on a sub tree
 pub struct FilteredIndexQuads<'a> {
     /// Iterator
-    range: std::collections::btree_map::Range<'a, Block, ()>,
+    range: std::collections::btree_map::Range<'a, Block<u32>, ()>,
     /// Used block order
     block_order: &'a BlockOrder,
     /// Term filter for quads that can't be restricted by the range
-    term_filter: TermFilter
+    term_filter: Block<Option<u32>>
 }
 
 impl<'a> Iterator for FilteredIndexQuads<'a> {
@@ -249,13 +251,15 @@ impl<'a> Iterator for FilteredIndexQuads<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let next = self.range.next().map(|(block, _) | self.block_order.to_indices(block));
+            let next = self.range.next();
 
             match next.as_ref() {
-                Some(spog) => if self.term_filter.filter(spog) {
-                    return next;
-                },
-                None => return None
+                None => { return None; },
+                Some((block, _)) => {
+                    if block.match_option_block(&self.term_filter) {
+                        return Some(self.block_order.to_indices(block));
+                    }
+                }
             }
         }
     }
@@ -268,10 +272,10 @@ impl<'a> Iterator for FilteredIndexQuads<'a> {
 /// subtrees.
 pub struct TreedDataset {
     /// The tree that is always instancied
-    base_tree: (BlockOrder, BTreeMap<Block, ()>),
+    base_tree: (BlockOrder, BTreeMap<Block<u32>, ()>),
     /// A list of optional trees that can be instancied ot improve look up
     /// performances at the cost of further insert and deletions
-    optional_trees: Vec<(BlockOrder, OnceCell<BTreeMap<Block, ()>>)>,
+    optional_trees: Vec<(BlockOrder, OnceCell<BTreeMap<Block<u32>, ()>>)>,
     /// A term index map that matches RcTerms with u32 indexes
     term_index: TermIndexMapU<u32, RcTermFactory>
 }
