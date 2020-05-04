@@ -451,11 +451,19 @@ pub struct FullIndexDataset {
     data: Data,
 }
 
-/// An adapter that transforms an iterator on term indexes into an iterator of
-/// Sophia Quads
+/// A dataset that can lazily build every possible indexes
+pub struct FullIndexDataset {
+    term_index: TermIndexMapU<u32, RcTermFactory>,
+    data: Data,
+}
+
+/// An adapter that transforms an iterator on four term indexes into an iterator
+/// of Sophia Quads
 pub struct InflatedQuadsIterator<'a> {
     base_iterator: Box<dyn Iterator<Item = [u32; 4]> + 'a>,
-    term_index: &'a TermIndexMapU<u32, RcTermFactory>
+    term_index: &'a TermIndexMapU<u32, RcTermFactory>,
+    last_tuple: Option<[(u32, &'a RcTerm); 3]>,
+    last_graph: Option<(u32, &'a RcTerm)>
 }
 
 impl<'a> InflatedQuadsIterator<'a> {
@@ -467,7 +475,9 @@ impl<'a> InflatedQuadsIterator<'a> {
     ) -> Box<InflatedQuadsIterator<'a>> {
         Box::new(InflatedQuadsIterator {
             base_iterator: base_iterator,
-            term_index: term_index
+            term_index: term_index,
+            last_tuple: None,
+            last_graph: None
         })
     }
 }
@@ -477,10 +487,31 @@ impl<'a> Iterator for InflatedQuadsIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.base_iterator.next().map(|spog| {
-            let s = self.term_index.get_term(spog[0]).unwrap();
-            let p = self.term_index.get_term(spog[1]).unwrap();
-            let o = self.term_index.get_term(spog[2]).unwrap();
-            let g = self.term_index.get_graph_name(spog[3]).unwrap();
+            let s = match self.last_tuple {
+                Some([(a, x), _, _]) if a == spog[0] => x,
+                _ => self.term_index.get_term(spog[0]).unwrap()
+            };
+            let p = match self.last_tuple {
+                Some([_, (a, x), _]) if a == spog[1] => x,
+                _ => self.term_index.get_term(spog[1]).unwrap()
+            };
+            let o = match self.last_tuple {
+                Some([_, _, (a, x)]) if a == spog[2] => x,
+                _ => self.term_index.get_term(spog[2]).unwrap()
+            };
+
+            self.last_tuple = Some([(spog[0], s), (spog[1], p), (spog[2], o)]);
+
+            let g = match (spog[3], self.last_graph) {
+                (x, _) if x == TermIndexMapU::<u32, RcTermFactory>::NULL_INDEX => None,
+                (x, Some((y, value))) if x == y => Some(value),
+                (_, _) => {
+                    let g = self.term_index.get_graph_name(spog[3]).unwrap();
+                    self.last_graph = Some((spog[3], g.unwrap()));
+                    g
+                }
+            };
+
             Ok(StreamedQuad::by_value(SophiaExportQuad::new(&s, &p, &o, g)))
         })
     }
