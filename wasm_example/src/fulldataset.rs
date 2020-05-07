@@ -451,12 +451,6 @@ pub struct FullIndexDataset {
     data: Data,
 }
 
-/// A dataset that can lazily build every possible indexes
-pub struct FullIndexDataset {
-    term_index: TermIndexMapU<u32, RcTermFactory>,
-    data: Data,
-}
-
 /// An adapter that transforms an iterator on four term indexes into an iterator
 /// of Sophia Quads
 pub struct InflatedQuadsIterator<'a> {

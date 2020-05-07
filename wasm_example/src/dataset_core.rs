@@ -16,6 +16,7 @@ use maybe_owned::MaybeOwned;
 use sophia::dataset::Dataset;
 use sophia::dataset::MutableDataset;
 use sophia::dataset::inmem::FastDataset;
+use sophia::dataset::inmem::LightDataset;
 use sophia::term::*;
 use sophia::quad::Quad;
 use sophia::quad::stream::QuadSource;
@@ -24,9 +25,13 @@ use wasm_bindgen::prelude::*;
 
 use crate::btreeddataset::TreedDataset;
 use crate::export_sophia_dataset;
-
-//export_sophia_dataset!(SophiaExportDataset, JsImportDataset, "Datasetcore", FastDataset);
-
-export_sophia_dataset!(SophiaExportFastDataset, JsImportFastDataset, "FastDatasetcore", FastDataset);
+use crate::fulldataset::FullIndexDataset;
 
 export_sophia_dataset!(SophiaExportDataset, JsImportDataset, "Datasetcore", TreedDataset);
+
+
+export_sophia_dataset!(SophiaExportTreeDataset, JsImportTreeDataset, "TreeDataset", TreedDataset);
+export_sophia_dataset!(SophiaExportFastDataset, JsImportFastDataset, "FastDataset", FastDataset);
+export_sophia_dataset!(SophiaExportLightDataset, JsImportLightDataset, "LightDataset", LightDataset);
+export_sophia_dataset!(SophiaExportFullDataset, JsImportFullDataset, "FullDataset", FullIndexDataset);
+

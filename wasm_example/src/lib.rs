@@ -15,5 +15,8 @@ pub mod dataset_core;
 pub mod util;
 
 pub mod btreeddataset;
+pub mod fulldataset;
 
 pub mod dataset_macro;
+
+pub mod intvect;
