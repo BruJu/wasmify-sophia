@@ -336,6 +336,50 @@ impl TreedDataset {
         )
     }
 
+    pub fn new_anti(s: bool, p: bool, o: bool, g: bool) -> TreedDataset {
+        // Index conformance expects an [&Option<u32>, 4]
+        let zero = Some(0 as u32);
+        let none = None;
+        
+        let term_roles = [
+            if s { &none } else { &zero },
+            if p { &none } else { &zero },
+            if o { &none } else { &zero },
+            if g { &none } else { &zero }
+        ];
+
+        // Possible blocks
+        let mut block_candidates = vec!(
+            [TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject],
+            [TermRole::Graph, TermRole::Predicate, TermRole::Subject, TermRole::Object],
+            [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
+            [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
+            [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
+            [TermRole::Object, TermRole::Subject, TermRole::Graph, TermRole::Predicate]
+        );
+
+        let mut best_tree = 0;
+        let mut best_tree_score = 0;
+
+        for i in 0..block_candidates.len() {
+            let block_order = BlockOrder::new(block_candidates[i]);
+            let score = block_order.index_conformance(&term_roles);
+
+            if score > best_tree_score {
+                best_tree_score = score;
+                best_tree = i;
+            }
+        }
+
+        let init_block = block_candidates[best_tree];
+        block_candidates.remove(best_tree);
+
+        TreedDataset::new_with_indexes(
+            &vec!(init_block),
+            Some(&block_candidates)
+        )
+    }
+
     /// Returns an iterator on quads represented by their indexes from the 
     pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
         // Find best index

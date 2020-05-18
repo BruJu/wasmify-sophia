@@ -59,8 +59,13 @@ impl MatchRequestOnRcTerm {
 
 #[macro_export]
 macro_rules! export_sophia_dataset {
-    ($rust_export_name:ident, $rust_import_name: ident, $js_name: expr,
-        $wrapped_dataset: ident) => (
+    ($rust_export_name: ident, $rust_import_name: ident, $js_name: expr, $wrapped_dataset: ident) =>
+        { export_sophia_dataset!($rust_export_name, $rust_import_name, $js_name, $wrapped_dataset, $rust_export_name, $wrapped_dataset); };
+
+    ($rust_export_name:ident, $rust_import_name: ident, $js_name: expr, $wrapped_dataset: ident, $rust_match_export: ident, $rust_match_wrapped: ident) =>
+        { export_sophia_dataset!($rust_export_name, $rust_import_name, $js_name, $wrapped_dataset, $rust_export_name, $wrapped_dataset, |_s, _o, _p, _g| { $wrapped_dataset::new() }); };
+    
+    ($rust_export_name:ident, $rust_import_name: ident, $js_name: expr, $wrapped_dataset: ident, $rust_match_export: ident, $rust_match_wrapped: ident, $rust_match_wrapped_make: expr) => (
         // =====================================================================
         //   ---- IMPORT ---- IMPORT ---- IMPORT ---- IMPORT ---- IMPORT ----
         #[wasm_bindgen]
@@ -221,15 +226,21 @@ macro_rules! export_sophia_dataset {
             /// Returns a new dataset that contains every quad that matches the passed arguments.
             #[wasm_bindgen(js_name="match")]
             pub fn match_quad(&self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
-                object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> $rust_export_name {
+                object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> $rust_match_export {
+                
+                let s_is_some = subject.is_some();
+                let p_is_some = predicate.is_some();
+                let o_is_some = object.is_some();
+                let g_is_some = graph.is_some();
+
                 let m = $crate::dataset_macro::MatchRequestOnRcTerm::new(subject, predicate, object, graph);
 
                 let mut quads_iter = self.dataset.quads_matching(&m.s, &m.p, &m.o, &m.g);
 
-                let mut dataset = $wrapped_dataset::new();
+                let mut dataset = $rust_match_wrapped_make(s_is_some, p_is_some, o_is_some, g_is_some);
                 quads_iter.in_dataset(&mut dataset).unwrap();
                 
-                $rust_export_name{ dataset: dataset }
+                $rust_match_export{ dataset: dataset }
             }
         }
 

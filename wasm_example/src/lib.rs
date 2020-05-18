@@ -17,6 +17,7 @@ pub mod util;
 pub mod btreeddataset;
 pub mod fulldataset;
 
+pub mod arrydataset;
 pub mod dataset_macro;
 
-pub mod intvect;
+// pub mod intvect;
