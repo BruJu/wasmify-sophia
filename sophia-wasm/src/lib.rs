@@ -41,3 +41,5 @@ pub mod dataset_macro;
 
 pub mod intvect;
 
+pub mod sortabledataset;
+
