@@ -428,9 +428,7 @@ impl TreedDataset {
             return false;
         }
 
-        for i in 0..self.optional_trees.len() {
-            let optional_tree_tuple = &mut self.optional_trees[i];
-
+        for optional_tree_tuple in self.optional_trees.iter_mut() {
             if let Some(instancied_tree) = optional_tree_tuple.1.get_mut() {
                 optional_tree_tuple.0.insert_into(instancied_tree, &spog); // assert false
             }
@@ -448,9 +446,7 @@ impl TreedDataset {
             return false;
         }
 
-        for i in 0..self.optional_trees.len() {
-            let optional_tree_tuple = &mut self.optional_trees[i];
-
+        for optional_tree_tuple in self.optional_trees.iter_mut() {
             if let Some(instancied_tree) = optional_tree_tuple.1.get_mut() {
                 optional_tree_tuple.0.delete_from(instancied_tree, &spog); // assert true
             }
