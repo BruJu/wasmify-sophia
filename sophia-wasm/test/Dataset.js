@@ -517,6 +517,32 @@ function runTests (rdf) {
         assert(built_graph.equals(graph))
       })
 
+      it('should iterate once for each quads', () => {
+        const quad1 = rdf.quad(ex.subject1, ex.predicate, ex.object)
+        const quad2 = rdf.quad(ex.subject2, ex.predicate5, ex.object7)
+        const quad3 = rdf.quad(ex.subject3, ex.predicate5, ex.object7)
+        const quad4 = rdf.quad(ex.subject4, ex.predicate5, ex.object7)
+        const graph = rdf.dataset([quad1, quad2, quad3])
+
+        const seen_quads = []
+
+        graph.forEach((quad) => {
+          if (quad.equals(quad1)) {
+            quad.subject = ex.subject777;
+          }
+
+          seen_quads.push(quad);
+        })
+
+        assert.strictEqual(seen_quads.length, 3)
+        const built_graph = rdf.dataset(seen_quads)
+
+        const base_quad1 = rdf.quad(ex.subject1, ex.predicate, ex.object)
+        const modified_quad1 = rdf.quad(ex.subject777, ex.predicate, ex.object)
+        assert(built_graph.equals(rdf.dataset([modified_quad1, quad2, quad3])))
+        assert(graph.equals(rdf.dataset([base_quad1, quad2, quad3])))
+      })
+
       it('should iterate on each quad once', () => {
         const quad1 = rdf.quad(ex.subject1, ex.predicate, ex.object)
         const quad2 = rdf.quad(ex.subject2, ex.predicate5, ex.object7)

@@ -69,10 +69,10 @@ impl MutableDataset for ArryDataset {
 
     fn remove<T, U, V, W>(
         &mut self,
-        s: &Term<T>,
-        p: &Term<U>,
-        o: &Term<V>,
-        g: Option<&Term<W>>,
+        _s: &Term<T>,
+        _p: &Term<U>,
+        _o: &Term<V>,
+        _g: Option<&Term<W>>,
     ) -> MDResult<Self, bool>
     where
         T: TermData,

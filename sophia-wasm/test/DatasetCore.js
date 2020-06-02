@@ -100,6 +100,21 @@ function runTests (rdf) {
         assert(dataset.has(quad2))
       })
 
+/*
+      it('should be chainable', () => {
+        const quad1 = rdf.quad(ex.subject, ex.predicate, ex.object1)
+        const quad2 = rdf.quad(ex.subject, ex.predicate, ex.object2)
+        const dataset = rdf.dataset([quad1, quad2])
+
+        dataset.delete(quad1).delete(quad2)
+
+        assert(!dataset.has(quad1))
+        assert(!dataset.has(quad2))
+
+        assert.strictEqual(dataset.size, 0)
+      })
+*/
+
       it('should remove the Quad with the same SPOG as the given Quad', () => {
         const quad = rdf.quad(ex.subject, ex.predicate, ex.object)
         const quadCloned = rdf.quad(quad.subject, quad.predicate, quad.object, quad.graph)

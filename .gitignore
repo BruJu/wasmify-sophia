@@ -1,3 +1,12 @@
 notes.md
 ignore/
 .vscode/
+# https://github.com/BruJu/WasmTreeDataset
+rusttree/
+# A copy of this now deleted folder that I keep because I never committed some
+# experiments
+wasm_example/
+# My script that compiles and copy rusttree files into sophia-wasm to make
+# easier to benchmark the performances of both
+copysophialess.sh
+
