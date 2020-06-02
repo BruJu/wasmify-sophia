@@ -53,7 +53,7 @@ impl SophiaExportDataFactory {
     /// spefification il will be used as the language. If undefined, it will be
     /// string.
     #[wasm_bindgen(js_name="literal")]
-    pub fn literal(value_string: Option<String>, language_or_datatype: JsValue) -> SophiaExportTerm {
+    pub fn literal(value_string: Option<String>, language_or_datatype: &JsValue) -> SophiaExportTerm {
         let value = match value_string.as_ref() {
             None => "",
             Some(contained_value) => contained_value.as_str()
@@ -65,7 +65,10 @@ impl SophiaExportDataFactory {
         } else {
             match language_or_datatype.as_string() {
                 Some(language) => Self::literal_from_string(value, language.as_str()),
-                None => Self::literal_from_named_node(value, language_or_datatype.into())
+                None => {
+                    let language_or_datatype = language_or_datatype.clone();
+                    Self::literal_from_named_node(value, &language_or_datatype.into())
+                }
             }
         }
     }
@@ -80,8 +83,8 @@ impl SophiaExportDataFactory {
 
     /// Builds a literal of passed the datatype
     #[wasm_bindgen(js_name="literalFromNamedNode")]
-    pub fn literal_from_named_node(value: &str, named_node: JsImportTerm) -> SophiaExportTerm {
-        let rcterm = build_rcterm_from_js_import_term(&named_node);
+    pub fn literal_from_named_node(value: &str, named_node: &JsImportTerm) -> SophiaExportTerm {
+        let rcterm = build_rcterm_from_js_import_term(named_node);
         SophiaExportTerm { term: Some(RcTerm::new_literal_dt(value, rcterm.unwrap()).unwrap()) }
     }
 
@@ -106,14 +109,15 @@ impl SophiaExportDataFactory {
     /// predicate, object and graph. If no graph is passed, the default graph
     /// will be used.
     #[wasm_bindgen(js_name="quad")]
-    pub fn quad(subject: JsImportTerm, predicate: JsImportTerm, object: JsImportTerm, graph: Option<JsImportTerm>) -> SophiaExportQuad {
+    pub fn quad(subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) -> SophiaExportQuad {
         SophiaExportQuad {
-            _subject: build_rcterm_from_js_import_term(&subject).unwrap(),
-            _predicate: build_rcterm_from_js_import_term(&predicate).unwrap(),
-            _object: build_rcterm_from_js_import_term(&object).unwrap(),
-            _graph: match graph {
-                None => None,
-                Some(g) => build_rcterm_from_js_import_term(&g)
+            _subject: build_rcterm_from_js_import_term(subject).unwrap(),
+            _predicate: build_rcterm_from_js_import_term(predicate).unwrap(),
+            _object: build_rcterm_from_js_import_term(object).unwrap(),
+            _graph: if graph.is_null() || graph.is_undefined() {
+                None
+            } else {
+                build_rcterm_from_js_import_term(graph)
             }
         }
     }
@@ -121,11 +125,11 @@ impl SophiaExportDataFactory {
     /// Returns a quad managed by Sophia's back end with the given subject,
     /// predicate and object. The assigned graph will be the default graph.
     #[wasm_bindgen(js_name="triple")]
-    pub fn triple(subject: JsImportTerm, predicate: JsImportTerm, object: JsImportTerm) -> SophiaExportQuad {
+    pub fn triple(subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm) -> SophiaExportQuad {
         SophiaExportQuad {
-            _subject: build_rcterm_from_js_import_term(&subject).unwrap(),
-            _predicate: build_rcterm_from_js_import_term(&predicate).unwrap(),
-            _object: build_rcterm_from_js_import_term(&object).unwrap(),
+            _subject: build_rcterm_from_js_import_term(subject).unwrap(),
+            _predicate: build_rcterm_from_js_import_term(predicate).unwrap(),
+            _object: build_rcterm_from_js_import_term(object).unwrap(),
             _graph: None
         }
     }
@@ -133,23 +137,23 @@ impl SophiaExportDataFactory {
     /// Returns a new term managed by Sophia's back end that is identical wrt
     /// RDF.JS specification
     #[wasm_bindgen(js_name="fromTerm")]
-    pub fn from_term(original: JsImportTerm) -> SophiaExportTerm {
+    pub fn from_term(original: &JsImportTerm) -> SophiaExportTerm {
         if original.term_type().as_str() == "DefaultGraph" {
             SophiaExportDataFactory::default_graph()
         } else {
-            SophiaExportTerm { term: build_rcterm_from_js_import_term(&original) }
+            SophiaExportTerm { term: build_rcterm_from_js_import_term(original) }
         }
     }
 
     /// Returns a new quad managed by Sophia's back end that is identical wrt
     /// RDF.JS specification
     #[wasm_bindgen(js_name="fromQuad")]
-    pub fn from_quad(original: JsImportQuad) -> SophiaExportQuad {
+    pub fn from_quad(original: &JsImportQuad) -> SophiaExportQuad {
         Self::quad(
-            original.subject(),
-            original.predicate(),
-            original.object(),
-            Some(original.graph())
+            &original.subject(),
+            &original.predicate(),
+            &original.object(),
+            &original.graph()
         )
     }
 
@@ -158,18 +162,19 @@ impl SophiaExportDataFactory {
     /// isn't undefined, the returned dataset will contain every quad in the
     /// given argument.
     #[wasm_bindgen(js_name="dataset")]
-    pub fn dataset(parameter: JsValue) -> SophiaExportDataset {
+    pub fn dataset(parameter: &JsValue) -> SophiaExportDataset {
         let mut ds = SophiaExportDataset::new();
 
         if !parameter.is_null() && !parameter.is_undefined() {
             // TODO : Error Management - Do we want to crash if the parameter is not an array ?
             // TODO : Manage every iterable (js_array::Array probably only manager javascript arrays)
-            let js_array: js_sys::Array = parameter.into();
+            let parameter_copy: JsValue = parameter.clone();
+            let js_array: js_sys::Array = parameter_copy.into();
 
             js_array.iter().for_each(|js_value| {
                 // TODO : Error Management - What if the cast from JsValue to JsImportQuad fails ?
                 let js_quad: JsImportQuad = js_value.into();
-                ds.add(js_quad);
+                ds.add(&js_quad);
             });
         }
 

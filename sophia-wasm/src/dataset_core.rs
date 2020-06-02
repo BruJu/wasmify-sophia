@@ -29,7 +29,7 @@ use crate::fulldataset::FullIndexDataset;
 
 use crate::arrydataset::ArryDataset;
 
-use crate::sortabledataset::SortableDataset;
+//use crate::sortabledataset::SortableDataset;
 
 export_sophia_dataset!(SophiaExportDataset, JsImportDataset, "Datasetcore", TreedDataset);
 
@@ -61,6 +61,7 @@ export_sophia_dataset!(SophiaExportFastDataset2, JsImportFastDataset2, "FastData
 export_sophia_dataset!(SophiaExportLightDataset2, JsImportLightDataset2, "LightDatasetToA", LightDataset, SophiaExportArrayDataset, ArryDataset);
 export_sophia_dataset!(SophiaExportFullDataset2, JsImportFullDataset2, "FullDatasetToA", FullIndexDataset, SophiaExportArrayDataset, ArryDataset);
 
+/*
 export_sophia_dataset!(SophiaExportSDataset, JsImportSDataset, "SDataset", SortableDataset,
     SophiaExportSDataset, SortableDataset,
 
@@ -79,10 +80,8 @@ export_sophia_dataset!(SophiaExportSDataset, JsImportSDataset, "SDataset", Sorta
 
         dataset
     }
-
-
 );
-
+*/
 
 
 

@@ -12,20 +12,19 @@ use sophia::term::matcher::AnyOrExactly;
 // -----------------------------------------------------
 // ==== Implementation Detail : Match Request Conversion
 
-fn build_anyorexactly_for_term(js_parameter: Option<JsImportTerm>) -> AnyOrExactly<RcTerm> {
-    match js_parameter {
-        None => AnyOrExactly::Any,
-        Some(js_term) => AnyOrExactly::Exactly(build_rcterm_from_js_import_term(&js_term).unwrap())
+fn build_anyorexactly_for_term(js_parameter: &JsImportTerm) -> AnyOrExactly<RcTerm> {
+    if js_parameter.is_null() || js_parameter.is_undefined() {
+        AnyOrExactly::Any
+    } else {
+        AnyOrExactly::Exactly(build_rcterm_from_js_import_term(js_parameter).unwrap())
     }
 }
 
-fn build_anyorexactly_for_graph(js_parameter: Option<JsImportTerm>) -> AnyOrExactly<Option<RcTerm>> {
-    match js_parameter {
-        None => AnyOrExactly::Any,
-        Some(js_term) => match build_rcterm_from_js_import_term(&js_term) {
-            Some(re_js_term) => AnyOrExactly::Exactly(Some(re_js_term)),
-            None => AnyOrExactly::Exactly(None)
-        }
+fn build_anyorexactly_for_graph(js_parameter: &JsImportTerm) -> AnyOrExactly<Option<RcTerm>> {
+    if js_parameter.is_null() || js_parameter.is_undefined() {
+        AnyOrExactly::Any
+    } else {
+        AnyOrExactly::Exactly(build_rcterm_from_js_import_term(js_parameter))
     }
 }
 
@@ -44,8 +43,7 @@ pub struct MatchRequestOnRcTerm {
 
 impl MatchRequestOnRcTerm {
     /// Builds a `MatchRequestOnRcTerm` from `JsImportTerms`
-    pub fn new(subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
-        object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> MatchRequestOnRcTerm {
+    pub fn new(subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) -> MatchRequestOnRcTerm {
         
         MatchRequestOnRcTerm {
             s: build_anyorexactly_for_term(subject),
@@ -162,8 +160,8 @@ macro_rules! export_sophia_dataset {
 
                 /// Returns a new dataset that contains every quad that matches the passed arguments.
                 #[wasm_bindgen(js_name="match")]
-                pub fn match_quad(&mut self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
-                    object: Option<JsImportTerm>, graph: Option<JsImportTerm>) -> $rust_match_export {
+                pub fn match_quad(&mut self, subject: &JsImportTerm, predicate: &JsImportTerm,
+                    object: &JsImportTerm, graph: &JsImportTerm) -> $rust_match_export {
                     
                     let m = $crate::dataset_macro::MatchRequestOnRcTerm::new(subject, predicate, object, graph);
     
@@ -255,23 +253,27 @@ macro_rules! export_sophia_dataset {
                 // a.values() is not supported by every version of nodejs so we are forced to design our own iterator
                 RustExportIterator::new(self.quads())
             }
+        }
 
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Adds the given quad to this dataset
             #[wasm_bindgen(js_name="add")]
-            pub fn add(&mut self, quad: JsImportQuad) {
+            pub fn add(&mut self, quad: &JsImportQuad) {
                 self.dataset.insert(
                     &build_stringterm_from_js_import_term(&quad.subject()).unwrap(),
                     &build_stringterm_from_js_import_term(&quad.predicate()).unwrap(),
                     &build_stringterm_from_js_import_term(&quad.object()).unwrap(),
                     build_stringterm_from_js_import_term(&quad.graph()).as_ref(),
                 ).unwrap();
-
-                // TODO : return this
             }
+        }
 
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Deletes the passed quad from this dataset
             #[wasm_bindgen(js_name="delete")]
-            pub fn delete(&mut self, quad: JsImportQuad) {
+            pub fn delete(&mut self, quad: &JsImportQuad) {
                 let sophia_quad = SophiaExportDataFactory::from_quad(quad);
                 self.dataset.remove(
                     &sophia_quad._subject,
@@ -285,10 +287,13 @@ macro_rules! export_sophia_dataset {
 
                 // TODO : return this
             }
-            
-            /// Returns `true` if this dataset have the passed quad
+        }
+
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
+            /// Returns `true` if this dataset has the passed quad
             #[wasm_bindgen(js_name="has")]
-            pub fn has_quad(&self, quad: JsImportQuad) -> bool {
+            pub fn has_quad(&self, quad: &JsImportQuad) -> bool {
                 let sophia_quad = SophiaExportDataFactory::from_quad(quad);
                 self.dataset.contains(
                     &sophia_quad._subject,
@@ -301,13 +306,12 @@ macro_rules! export_sophia_dataset {
                 ).unwrap()
             }
         }
-
                 
         #[wasm_bindgen(js_class=$js_name)]
         impl $rust_export_name {
             /// Adds every quad contained in the passed dataset or sequence
             #[wasm_bindgen(js_name="addAll")]
-            pub fn add_all(&mut self, quads_as_jsvalue: JsValue) {
+            pub fn add_all(&mut self, quads_as_jsvalue: &JsValue) {
                 // this addAll ((Dataset or sequence<Quad>) quads);
                 // TODO : return this
                 if quads_as_jsvalue.is_null() || quads_as_jsvalue.is_undefined() {
@@ -315,7 +319,7 @@ macro_rules! export_sophia_dataset {
                 }
 
                 // Try to detect a SophiaExportDataset
-                let imported_dataset = $rust_import_name::from(quads_as_jsvalue);
+                let imported_dataset = $rust_import_name::from(quads_as_jsvalue.clone());
 
                 match $rust_export_name::try_from(&imported_dataset) {
                     Some(exported) => {
@@ -332,7 +336,7 @@ macro_rules! export_sophia_dataset {
                             Ok(Some(iter)) => {
                                 for js_value in iter {
                                     match js_value {
-                                        Ok(some_value) => self.add(some_value.into()),
+                                        Ok(some_value) => self.add(&some_value.into()),
                                         _ => {}
                                     }
                                 }
@@ -345,7 +349,10 @@ macro_rules! export_sophia_dataset {
                     }
                 }
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns true if imported_dataset is contained by this dataset
             #[wasm_bindgen(js_name="contains")]
             pub fn contains(&self, imported_dataset: &$rust_import_name) -> bool {
@@ -353,18 +360,23 @@ macro_rules! export_sophia_dataset {
                 let maybe_dataset = $rust_export_name::extract_dataset(imported_dataset);
                 self.contains_dataset(maybe_dataset.as_ref())
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Delete every quad that matches the given quad components
             #[wasm_bindgen(js_name="deleteMatches")]
-            pub fn delete_matches(&mut self, subject: Option<JsImportTerm>, predicate: Option<JsImportTerm>,
-                object: Option<JsImportTerm>, graph: Option<JsImportTerm>) {
+            pub fn delete_matches(&mut self, subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) {
                 // this deleteMatches(optional Term, Optional Term, Optional Term, Optional Term)
                 // TODO : return this
                 
                 let m = $crate::dataset_macro::MatchRequestOnRcTerm::new(subject, predicate, object, graph);
                 self.dataset.remove_matching(&m.s, &m.p, &m.o, &m.g).unwrap();
             }
-            
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns a new dataset which contains the elements of this dataset that are not included in the imported_dataset
             #[wasm_bindgen(js_name="difference")]
             pub fn difference(&self, imported_dataset: &$rust_import_name) -> $rust_export_name {
@@ -381,7 +393,10 @@ macro_rules! export_sophia_dataset {
 
                 $rust_export_name { dataset: ds }
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns true if the two datasets are equals
             #[wasm_bindgen(js_name="equals")]
             pub fn equals(&self, imported_dataset: &$rust_import_name) -> bool {
@@ -390,7 +405,10 @@ macro_rules! export_sophia_dataset {
                 self.get_size() == other.quads().into_iter().count()
                     && self.contains_dataset(&other)
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns a dataset with the elements that are contained by both dataset
             #[wasm_bindgen(js_name="intersection")]
             pub fn intersection(&self, imported_dataset: &$rust_import_name) -> $rust_export_name {
@@ -407,7 +425,10 @@ macro_rules! export_sophia_dataset {
 
                 $rust_export_name { dataset: ds }
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns a dataset that contains all quads from the two graphs
             #[wasm_bindgen(js_name="union")]
             pub fn union(&self, imported_dataset: &$rust_import_name) -> $rust_export_name {
@@ -420,7 +441,10 @@ macro_rules! export_sophia_dataset {
 
                 $rust_export_name { dataset: ds }
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Produces an action for each quad of the dataset
             #[wasm_bindgen(js_name="forEach")]
             pub fn for_each(&self, quad_run_iteratee: &js_sys::Function) {
@@ -433,7 +457,10 @@ macro_rules! export_sophia_dataset {
                     quad_run_iteratee.call1(&JsValue::NULL, &js_value).unwrap();
                 });
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns true if the result of `filter_function` is true for at least
             /// one quad of the dataset
             #[wasm_bindgen(js_name="some")]
@@ -447,7 +474,10 @@ macro_rules! export_sophia_dataset {
                     filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
                 })
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns true if the result of the passed function is true for every
             /// quad of the dataset
             #[wasm_bindgen(js_name="every")]
@@ -461,7 +491,10 @@ macro_rules! export_sophia_dataset {
                     filter_function.call1(&JsValue::NULL, &js_value).unwrap().is_truthy()
                 })
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns a new dataset which contains every quads of this dataset that
             /// verifies the `filter_functio`
             #[wasm_bindgen(js_name="filter")]
@@ -479,8 +512,10 @@ macro_rules! export_sophia_dataset {
 
                 $rust_export_name { dataset: ds }
             }
-
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Builds a new dataset which contains quads that have been built by
             /// applying the map function to every quad of this dataset
             #[wasm_bindgen(js_name="map")]
@@ -493,19 +528,25 @@ macro_rules! export_sophia_dataset {
                         let js_value = JsValue::from(export_quad);
                         let mapped_js_quad = map_function.call1(&JsValue::NULL, &js_value).unwrap();
                         let mapped_quad = JsImportQuad::from(mapped_js_quad);
-                        ds.add(mapped_quad);
+                        ds.add(&mapped_quad);
                     })
                     .unwrap();
 
                 ds
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns an array that contains every quad contained by this dataset
             #[wasm_bindgen(js_name="toArray")]
             pub fn to_array(&self) -> js_sys::Array {
                 self.quads()
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Returns a string representation of the quads contained in the dataset
             #[wasm_bindgen(js_name="toString")]
             pub fn to_string(&self) -> String {
@@ -522,15 +563,18 @@ macro_rules! export_sophia_dataset {
                     .unwrap()
                     .join("\n")
             }
-
+        }
+                
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
             /// Reduces the whole dataset to a single element
             /// 
             /// The behavior of this function matches the `Array.prototype.reduce`
             /// function from EcmaScript.
             #[wasm_bindgen(js_name="reduce")]
-            pub fn reduce(&self, reducer: js_sys::Function, initial_value: JsValue) -> JsValue {
+            pub fn reduce(&self, reducer: js_sys::Function, initial_value: &JsValue) -> JsValue {
                 let mut iterator = self.dataset.quads();
-                let mut accumulated_value = initial_value;
+                let mut accumulated_value = initial_value.clone();
 
                 if accumulated_value.as_ref().is_undefined() {
                     let first_iter = iterator.next();
@@ -563,7 +607,6 @@ macro_rules! export_sophia_dataset {
             // Not implemented : String toCanonical ();
             // Not implemented : Stream toStream ();
         }
-
 
         impl $rust_export_name {
             /// Returns true if this dataset contained the passed `FastDataset`
@@ -613,7 +656,7 @@ macro_rules! export_sophia_dataset {
                         Ok(Some(iter)) => {
                             for js_value in iter {
                                 match js_value {
-                                    Ok(some_value) => exported_dataset.add(some_value.into()),
+                                    Ok(some_value) => exported_dataset.add(&some_value.into()),
                                     _ => {}
                                 }
                             }

@@ -139,7 +139,10 @@ impl SophiaExportQuad {
             Some(term) => SophiaExportTerm::new(term)
         }
     }
+}
 
+#[wasm_bindgen(js_class = Quad)]
+impl SophiaExportQuad {
     /// Returns a N-Quad representation of the quad 
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
@@ -148,37 +151,42 @@ impl SophiaExportQuad {
             None    => format!("{0} {1} {2} ."    , self._subject, self._predicate, self._object)
         }
     }
+}
 
+#[wasm_bindgen(js_class = Quad)]
+impl SophiaExportQuad {
     /// Returns true if the passed quad is identical to this quad according to
     /// RDF.JS specification ie the subject, predicate, object and graph are
     /// the same.
     #[wasm_bindgen(js_name = equals)]
-    pub fn equals(&self, other: Option<JsImportQuad>) -> bool {
-        match &other {
-            None => false,
-            Some(other_quad) => {
-                let ptr = &other_quad.quads_get_rust_ptr();
-                if ptr.is_null() {
-                    self.subject().equals(Some(other_quad.subject()))
-                    && self.predicate().equals(Some(other_quad.predicate()))
-                    && self.object().equals(Some(other_quad.object()))
-                    && self.graph().equals(Some(other_quad.graph()))
-                } else {
-                    unsafe {
-                        if let Some(exported_rust_quad) = ptr.as_ref() {
-                            self._subject == exported_rust_quad._subject
-                            && self._predicate == exported_rust_quad._predicate
-                            && self._object == exported_rust_quad._object
-                            && self._graph == exported_rust_quad._graph
-                        } else {
-                            false
-                        }
+    pub fn equals(&self, other: &JsImportQuad) -> bool {
+        if other.is_null() {
+            false
+        } else {
+            let ptr = other.quads_get_rust_ptr();
+            if ptr.is_null() {
+                self.subject().equals(&other.subject())
+                && self.predicate().equals(&other.predicate())
+                && self.object().equals(&other.object())
+                && self.graph().equals(&other.graph())
+            } else {
+                unsafe {
+                    if let Some(exported_rust_quad) = ptr.as_ref() {
+                        self._subject == exported_rust_quad._subject
+                        && self._predicate == exported_rust_quad._predicate
+                        && self._object == exported_rust_quad._object
+                        && self._graph == exported_rust_quad._graph
+                    } else {
+                        false
                     }
                 }
             }
         }
     }
+}
 
+#[wasm_bindgen(js_class = Quad)]
+impl SophiaExportQuad {
     /// Modifies the subject of this quad
     #[wasm_bindgen(method, setter)]
     pub fn set_subject(&mut self, other: &JsImportTerm) {
@@ -202,7 +210,10 @@ impl SophiaExportQuad {
     pub fn set_graph(&mut self, other: &JsImportTerm) {
         self._graph = build_rcterm_from_js_import_term(other);
     }
+}
 
+#[wasm_bindgen(js_class = Quad)]
+impl SophiaExportQuad {
     /// Returns a pointer to this quad.
     /// 
     /// This is mainly used to be able to detect a Rust managed quad from an

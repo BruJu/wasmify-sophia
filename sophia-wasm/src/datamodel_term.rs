@@ -142,7 +142,10 @@ impl SophiaExportTerm {
             None => "DefaultGraph".into()
         }
     }
+}
 
+#[wasm_bindgen(js_class="Term")]
+impl SophiaExportTerm {
     /// Returns the value of this term
     #[wasm_bindgen(getter = value)]
     pub fn value(&self) -> String {
@@ -170,7 +173,10 @@ impl SophiaExportTerm {
             })
         }
     }
+}
 
+#[wasm_bindgen(js_class="Term")]
+impl SophiaExportTerm {
     /// Returns the language of this term or an empty string if not applicable
     #[wasm_bindgen(getter = language)]
     pub fn language(&self) -> String {
@@ -194,7 +200,10 @@ impl SophiaExportTerm {
             self.term = Some(RcTerm::new_literal_lang(literal.value().as_ref(), language).unwrap());
         }
     }
+}
 
+#[wasm_bindgen(js_class="Term")]
+impl SophiaExportTerm {
     /// Returns the datatype of this term if applicable
     #[wasm_bindgen(getter)]
     pub fn datatype(&self) -> Option<SophiaExportTerm> {
@@ -217,37 +226,42 @@ impl SophiaExportTerm {
             self.term = Some(RcTerm::new_literal_dt(new_node_value, literal_type).unwrap());
         }
     }
+}
 
+#[wasm_bindgen(js_class="Term")]
+impl SophiaExportTerm {
     /// Returns true if this term and the given term are equals according to
     /// RDF.JS specification.
     /// 
     /// Two terms are identical if their termType, value and eventual language
     /// or datatype are the same.
     #[wasm_bindgen(js_name = equals)]
-    pub fn equals(&self, other: Option<JsImportTerm>) -> bool {
-        match other {
-            None => false,
-            Some(x) => {
-                // We don't use the implementation of term_type / value to have better performances.
-                let other_term_type = x.term_type();
-                match &self.term {
-                    Some(Iri(txt)) => other_term_type == "NamedNode" && x.value() == txt.value().as_ref(),
-                    Some(BNode(txt)) => other_term_type == "BlankNode" && x.value() == txt.value().as_ref(),
-                    Some(Variable(txt)) => other_term_type == "Variable" && x.value() == txt.value().as_ref(),
-                    Some(Literal(literal)) => 
-                        other_term_type == "Literal" && x.value() == literal.value().as_ref()
-                            && literal.lang().map_or_else(
-                                || x.language() == "",
-                                |language| language.as_ref() == x.language().as_str()
-                            )
-                            && literal.dt().value().as_ref() == x.datatype().value()
-                        ,
-                    None => other_term_type == "DefaultGraph" // value should be "" if it is RDFJS compliant
-                }
+    pub fn equals(&self, other: &JsImportTerm) -> bool {
+        if other.is_null() || other.is_undefined() {
+            false
+        } else {
+            // We do not always use the implementation of our term_type / value methods to have better performances.
+            let other_term_type = other.term_type();
+            match &self.term {
+                Some(Iri(txt)) => other_term_type == "NamedNode" && other.value() == txt.value().as_ref(),
+                Some(BNode(txt)) => other_term_type == "BlankNode" && other.value() == txt.value().as_ref(),
+                Some(Variable(txt)) => other_term_type == "Variable" && other.value() == txt.value().as_ref(),
+                Some(Literal(literal)) => 
+                    other_term_type == "Literal" && other.value() == literal.value().as_ref()
+                        && literal.lang().map_or_else(
+                            || other.language() == "",
+                            |language| language.as_ref() == other.language().as_str()
+                        )
+                        && literal.dt().value().as_ref() == other.datatype().value()
+                    ,
+                None => other_term_type == "DefaultGraph" // value should be "" if it is RDFJS compliant
             }
         }
     }
+}
 
+#[wasm_bindgen(js_class="Term")]
+impl SophiaExportTerm {
     /// Returns the n3 representation of this term
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
