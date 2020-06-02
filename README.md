@@ -14,9 +14,10 @@ As I am still exploring Rust / Web Assembly / tryining to learn web
 technologies, this repository does not currently expose a clear tool with a
 proper README.
 
-## Sophia interface that matches rdF.js.org specification
 
-The first goal is to enable javascript users to use *Sophia* as a backend.
+## Sophia interface that matches rdf.js.org specification
+
+The first goal was to enable javascript users to use *Sophia* as a backend.
 
 ### Getting Started
 
@@ -54,6 +55,14 @@ reinstall rls vscode plugin
 
 `rustup update` and restart VSCode
 
+
+## Wasm based datasets
+
+I wrote [this gist which is a compilation of links about why Web Assembly or Javascript is faster than the other one](https://gist.github.com/BruJu/351bbb74216cee6d34aae7938586dca7).
+
+I have yet to explore all the solutions.
+
+But as strings are slow in my benchmark, I (successfully) wrote a [RDF JS compliant DatasetCore class ](https://github.com/BruJu/WasmTreeDataset) which uses both Javascript and Rust.
 
 
 ---
