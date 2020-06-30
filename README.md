@@ -199,43 +199,6 @@ T : Graph + Foo,
 To answer the question "where does TermData comes from ?"
 
 
-> As Rust is expression oriented, we can always refactor code like this
-
-```rust
-    pub fn quad(&self, subject: JssTerm, predicate: JssTerm, object: JssTerm, graph: Option<JssTerm>) -> BJQuad {
-        match graph {
-            None => BJQuad::new_by_move(
-                build_rcterm_from_jss_term(&subject).unwrap(),
-                build_rcterm_from_jss_term(&predicate).unwrap(),
-                build_rcterm_from_jss_term(&object).unwrap(),
-                None
-            ),
-            Some(g) => BJQuad::new_by_move(
-                build_rcterm_from_jss_term(&subject).unwrap(),
-                build_rcterm_from_jss_term(&predicate).unwrap(),
-                build_rcterm_from_jss_term(&object).unwrap(),
-                build_rcterm_from_jss_term(&graph));
-            )
-        }
-    }
-```
-
-into
-
-```rust
-    pub fn quad(&self, subject: JssTerm, predicate: JssTerm, object: JssTerm, graph: Option<JssTerm>) -> BJQuad {
-        BJQuad::new_by_move(
-            build_rcterm_from_jss_term(&subject).unwrap(),
-            build_rcterm_from_jss_term(&predicate).unwrap(),
-            build_rcterm_from_jss_term(&object).unwrap(),
-            match graph {
-                None => None,
-                Some(g) => build_rcterm_from_jss_term(&g)
-            }
-        )
-    }
-```
-
 > I would like to optimize the operations on JsImport if the received object is
 a RustExport
 
