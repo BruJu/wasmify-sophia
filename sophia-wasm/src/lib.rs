@@ -24,3 +24,5 @@ pub mod fulldataset;
 
 pub mod arrydataset;
 pub mod dataset_macro;
+
+pub mod dataset_exportableds;
