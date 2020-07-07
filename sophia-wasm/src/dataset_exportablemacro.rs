@@ -4,7 +4,41 @@ use wasm_bindgen::prelude::*;
 
 // This file provides a macro to export Sophia's dataset in Javascript
 
+/// A macro that constructs a struct named `$wrapper_dataset` which relies on a
+/// `$sophia_dataset` with every default implementation to be exported as an
+/// (almost) RDF.JS compliant dataset
+#[macro_export]
+macro_rules! make_basic_wrapper {
+    ($sophia_dataset: ident, $wrapper_dataset: ident) => {
+        struct $wrapper_dataset {
+            base: $sophia_dataset
+        }
+        
+        impl Default for $wrapper_dataset {
+            fn default() -> Self {
+                Self { base: $sophia_dataset::default() }
+            }
+        }
+        
+        impl crate::dataset_exportableds::ExportableDataset<$sophia_dataset> for $wrapper_dataset {
+            fn dataset(&self) -> &$sophia_dataset {
+                &self.base
+            }
+        
+            fn mutable_dataset(&mut self) -> &mut $sophia_dataset {
+                &mut self.base
+            }
+        
+            fn wrap(base: $sophia_dataset) -> Self {
+                Self { base }
+            }
+        }
+    };
 
+}
+
+/// Exports with wasm_bindgen an ExportableDataset as a new struct named
+/// `$rust_export_name`
 #[macro_export]
 macro_rules! export_sophia_ds {
     ($base_class: ident, $rust_export_name: ident, $js_name: expr) => {
@@ -147,8 +181,8 @@ macro_rules! export_sophia_ds {
     };
 }
 
-type BLAHFastDataset = crate::dataset_exportableds::ExportableDatasetBase<FastDataset>;
+make_basic_wrapper!(FastDataset, FastDataserWrapperImpl);
 
-//export_sophia_ds!(BLAHFastDataset, SophiaExportDataset, "FFastDataset");
+// export_sophia_ds!(FastDataserWrapperImpl, SophiaExportDataset, "FFastDataset");
 
-export_sophia_ds!(BLAHFastDataset, BLOUFastDataset, "FFastDataset");
+export_sophia_ds!(FastDataserWrapperImpl, BLOUFastDataset, "FFastDataset");

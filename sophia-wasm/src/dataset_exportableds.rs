@@ -57,208 +57,22 @@ impl MatchRequestOnRcTerm {
     }
 }
 
-
-pub struct ExportableDatasetBase<D> where D: Dataset + Default {
-    pub inner_dataset: D
-}
-
 pub trait ExportableDataset<D>: Default
     where D: MutableDataset + Default,
         <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
         <D as MutableDataset>::MutationError: From<std::convert::Infallible> {
-    fn mutable_inner(&mut self) -> &mut ExportableDatasetBase<D>;
-    fn inner(&self) -> &ExportableDatasetBase<D>;
-
+    
     fn wrap(dataset: D) -> Self;
-
-    fn rewrap(wrapped_dataset: ExportableDatasetBase<D>) -> Self {
-        Self::wrap(wrapped_dataset.inner_dataset)
-    }
+    fn mutable_dataset(&mut self) -> &mut D;
+    fn dataset(&self) -> &D;
 
     // wasm_bindgenned function with basic implementation that resorts to the inner exported dataset
     // They are all defined in the ExportableDatasetBase class and can be reimplemented
     // by implementing this trait, returning a wrapped ExportableDatasetBase in the mutable_inner and
     // inner functions, and reimplement the desired functions (and only them)
-    // TODO : move this explanation in the trait description
+    // TODO : move this explanation in the trait description and remove exportabledatasetbase references
 
     // RDF.JS functions
-
-    fn match_quad(&self, subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) -> Self {
-        let wrapped_match = self.inner().match_quad(subject, predicate, object, graph);
-        Self::wrap(wrapped_match.inner_dataset)
-    }
-
-    fn size(&self) -> usize {
-        self.inner().size()
-    }
-
-    fn add(&mut self, quad: &JsImportQuad) {
-        self.mutable_inner().add(quad);
-    }
-
-    fn delete(&mut self, quad: &JsImportQuad) {
-        self.mutable_inner().delete(quad);
-    }
-
-    fn has_quad(&self, quad: &JsImportQuad) -> bool {
-        self.inner().has_quad(quad)
-    }
-
-    fn add_all(&mut self, quads_as_jsvalue: &JsValue) {
-        self.mutable_inner().add_all(quads_as_jsvalue);
-    }
-
-    fn contains(&self, imported: &JsValue) -> bool {
-        self.inner().contains(imported)
-    }
-
-    fn delete_matches(&mut self, subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) {
-        self.mutable_inner().delete_matches(subject, predicate, object, graph);
-    }
-
-    fn difference(&self, imported: &JsValue) -> Self {
-        Self::rewrap(self.inner().difference(imported))
-    }
-    
-    fn intersection(&self, imported: &JsValue) -> Self {
-        Self::rewrap(self.inner().intersection(imported))
-    }
-
-    fn union(&self, imported: &JsValue) -> Self {
-        Self::rewrap(self.inner().union(imported))
-    }
-
-    fn equals(&self, imported: &JsValue) -> bool {
-        self.inner().equals(imported)
-    }
-
-    fn for_each(&self, quad_run_iteratee: &js_sys::Function) {
-        self.inner().for_each(quad_run_iteratee);
-    }
-
-    fn some(&self, filter_function: &js_sys::Function) -> bool {
-        self.inner().some(filter_function)
-    }
-
-    fn every(&self, filter_function: &js_sys::Function) -> bool {
-        self.inner().every(filter_function)
-    }
-
-    fn filter(&self, filter_function: &js_sys::Function) -> Self {
-        Self::rewrap(self.inner().filter(filter_function))
-    }
-
-    fn reduce(&self, reducer: js_sys::Function, initial_value: &JsValue) -> JsValue {
-        self.inner().reduce(reducer, initial_value)
-    }
-
-    fn map(&self, map_function: &js_sys::Function) -> Self {
-        Self::rewrap(self.inner().map(map_function))
-    }
-
-    fn to_string(&self) -> String {
-        self.inner().to_string()
-    }
-
-    // Non RDF.JS exported functions
-
-    fn quads(&self) -> js_sys::Array {
-        self.inner().quads()
-    }
-
-    fn get_iterator(&self) -> RustExportIterator {
-        self.inner().get_iterator()
-    }
-
-    
-
-    // ==== Utility functions
-    fn mutable_dataset(&mut self) -> &mut D {
-        &mut self.mutable_inner().inner_dataset
-    }
-
-    fn dataset(&self) -> &D {
-        &self.inner().inner_dataset
-    }
-
-    fn try_from<'a>(imported: &'a JsValue) -> Option<&'a Self> {
-        // TODO : in trait, put method get_uniqueid which is exported and compared here
-
-        let rust_managed = Reflect::get(imported, &JsValue::from_str("rust_managed"));
-        if rust_managed.is_err() {
-            return None;
-        }
-
-        let rust_managed = rust_managed.unwrap();
-        let rust_managed = rust_managed.as_f64().unwrap() as u32;
-
-        unsafe {
-            let ptr: *const Self = rust_managed as *const Self;
-            
-            if !ptr.is_null() {
-                ptr.as_ref()
-            } else {
-                None
-            }
-        }
-    }
-
-    fn extract_dataset<'a>(imported: &'a JsValue) -> MaybeOwned<'a, Self> {
-        let that = Self::try_from(imported);
-
-        match that {
-            Some(value) => MaybeOwned::Borrowed(value),
-            None => {
-                // TODO : there is probably a better dataset structure to just add quads and then iterate on
-                let mut exported_dataset = Self::default();
-                
-                // We use the fact that we can iterate on the dataset
-                let import_as_js_value = JsValue::from(imported);
-                let iterator = js_sys::try_iter(&import_as_js_value);
-                match iterator {
-                    Ok(Some(iter)) => {
-                        for js_value in iter {
-                            match js_value {
-                                Ok(some_value) => exported_dataset.add(&some_value.into()),
-                                _ => {}
-                            }
-                        }
-                    },
-                    _ => {
-                        // We panic as we should have received a RDF JS compliant graph
-                        panic!("SophiaExportDataset::extract_dataset : Didn't receive an iterable");
-                    }
-                }
-            
-                MaybeOwned::Owned(exported_dataset)
-            }
-        }
-    }
-}
-
-impl<D> Default for ExportableDatasetBase<D>
-    where D: Dataset + Default {
-    fn default() -> Self {
-        Self { inner_dataset: D::default() }
-    }
-}
-
-impl<D> ExportableDataset<D> for ExportableDatasetBase<D>
-    where D: MutableDataset + Default,
-        <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
-        <D as MutableDataset>::MutationError: From<std::convert::Infallible> {
-
-    fn mutable_inner(&mut self) -> &mut ExportableDatasetBase<D> {
-        self
-    }
-
-    fn inner(&self) -> &ExportableDatasetBase<D> {
-        self
-    }
-
-    fn wrap(dataset: D) -> Self {
-        Self { inner_dataset: dataset }
-    }
 
     fn match_quad(&self, subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) -> Self {
         let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
@@ -367,7 +181,7 @@ impl<D> ExportableDataset<D> for ExportableDatasetBase<D>
 
         Self::wrap(dest)
     }
-
+    
     fn intersection(&self, imported: &JsValue) -> Self {
         let other = Self::extract_dataset(imported);
 
@@ -396,7 +210,6 @@ impl<D> ExportableDataset<D> for ExportableDatasetBase<D>
 
     fn equals(&self, imported: &JsValue) -> bool {
         let other = Self::extract_dataset(imported);
-
         self.size() == other.size() && self.contains_dataset(other.dataset())
     }
 
@@ -448,38 +261,6 @@ impl<D> ExportableDataset<D> for ExportableDatasetBase<D>
         Self::wrap(ds)
     }
 
-    fn map(&self, map_function: &js_sys::Function) -> Self {
-        let mut ds = Self::default();
-
-        self.dataset().quads()
-            .for_each_quad(|quad| {
-                let export_quad = SophiaExportQuad::new_from_quad(&quad);
-                let js_value = JsValue::from(export_quad);
-                let mapped_js_quad = map_function.call1(&JsValue::NULL, &js_value).unwrap();
-                let mapped_quad = JsImportQuad::from(mapped_js_quad);
-                ds.add(&mapped_quad);
-            })
-            .unwrap();
-
-        ds
-    }
-
-    fn to_string(&self) -> String {
-        // TODO : use a parser
-        self.dataset()
-            .quads()
-            .map_quads(|q| 
-                match q.g().as_ref() {
-                    None    => format!("{0} {1} {2} .",     q.s(), q.p(), q.o()),
-                    Some(g) => format!("{0} {1} {2} {3} .", q.s(), q.p(), q.o(), g)
-                }
-            )
-            .into_iter()
-            .collect::<Result<Vec<String>, _>>()
-            .unwrap()
-            .join("\n")
-    }
-
     fn reduce(&self, reducer: js_sys::Function, initial_value: &JsValue) -> JsValue {
         let mut iterator = self.dataset().quads();
         let mut accumulated_value = initial_value.clone();
@@ -507,6 +288,40 @@ impl<D> ExportableDataset<D> for ExportableDatasetBase<D>
         accumulated_value
     }
 
+    fn map(&self, map_function: &js_sys::Function) -> Self {
+        let mut ds = Self::wrap(D::default());
+
+        self.dataset().quads()
+            .for_each_quad(|quad| {
+                let export_quad = SophiaExportQuad::new_from_quad(&quad);
+                let js_value = JsValue::from(export_quad);
+                let mapped_js_quad = map_function.call1(&JsValue::NULL, &js_value).unwrap();
+                let mapped_quad = JsImportQuad::from(mapped_js_quad);
+                ds.add(&mapped_quad);
+            })
+            .unwrap();
+
+        ds
+    }
+
+    fn to_string(&self) -> String {
+        // TODO : use a N-Quads serializer
+        self.dataset()
+            .quads()
+            .map_quads(|q| 
+                match q.g().as_ref() {
+                    None    => format!("{0} {1} {2} .",     q.s(), q.p(), q.o()),
+                    Some(g) => format!("{0} {1} {2} {3} .", q.s(), q.p(), q.o(), g)
+                }
+            )
+            .into_iter()
+            .collect::<Result<Vec<String>, _>>()
+            .unwrap()
+            .join("\n")
+    }
+
+    // Non RDF.JS exported functions
+
     fn quads(&self) -> js_sys::Array {
         self.dataset()
             .quads()
@@ -522,25 +337,82 @@ impl<D> ExportableDataset<D> for ExportableDatasetBase<D>
     fn get_iterator(&self) -> RustExportIterator {
         RustExportIterator::new(self.quads())
     }
-}
 
+    // ==== Utility functions
 
-impl<D> ExportableDatasetBase<D> where D: Dataset + Default {
-    pub fn contains_dataset<OD>(&self, other_dataset: &OD) -> bool
+    fn try_from<'a>(imported: &'a JsValue) -> Option<&'a Self> {
+        // TODO : in trait, put method get_uniqueid which is exported and compared here
+
+        let rust_managed = Reflect::get(imported, &JsValue::from_str("rust_managed"));
+        if rust_managed.is_err() {
+            return None;
+        }
+
+        let rust_managed = rust_managed.unwrap();
+        let rust_managed = rust_managed.as_f64().unwrap() as u32;
+
+        unsafe {
+            let ptr: *const Self = rust_managed as *const Self;
+            
+            if !ptr.is_null() {
+                ptr.as_ref()
+            } else {
+                None
+            }
+        }
+    }
+
+    fn extract_dataset<'a>(imported: &'a JsValue) -> MaybeOwned<'a, Self> {
+        let that = Self::try_from(imported);
+
+        match that {
+            Some(value) => MaybeOwned::Borrowed(value),
+            None => {
+                // TODO : there is probably a better dataset structure to just add quads and then iterate on
+                let mut exported_dataset = Self::wrap( D::default() );
+                
+                // We use the fact that we can iterate on the dataset
+                let import_as_js_value = JsValue::from(imported);
+                let iterator = js_sys::try_iter(&import_as_js_value);
+                match iterator {
+                    Ok(Some(iter)) => {
+                        for js_value in iter {
+                            match js_value {
+                                Ok(some_value) => exported_dataset.add(&some_value.into()),
+                                _ => {}
+                            }
+                        }
+                    },
+                    _ => {
+                        // We panic as we should have received a RDF JS compliant graph
+                        panic!("SophiaExportDataset::extract_dataset : Didn't receive an iterable");
+                    }
+                }
+            
+                MaybeOwned::Owned(exported_dataset)
+            }
+        }
+    }
+
+    ///
+    /// 
+    /// Used in contains and equals basic implementation
+    fn contains_dataset<OD>(&self, other_dataset: &OD) -> bool
         where OD: Dataset {
         other_dataset.quads()
-            .into_iter()
-            .all(|element_result| {
-                let element = element_result.unwrap();
-                self.inner_dataset.contains(
-                    element.s(),
-                    element.p(),
-                    element.o(),
-                    element.g()
-                ).unwrap()
-            })
-    }
+        .into_iter()
+        .all(|element_result| {
+            let element = element_result.unwrap();
+            self.dataset().contains(
+                element.s(),
+                element.p(),
+                element.o(),
+                element.g()
+            ).unwrap()
+        })
 }
+}
+
 
 // TODO : new_from_trig
 // TODO : add_trigs
