@@ -66,7 +66,7 @@ extern "C" {
     /// Using this method can be very unsafe because it supposes only this
     /// object has a method called getRustPtr in the Javascript world. 
     #[wasm_bindgen(method, getter=getRustPtr)]
-    pub fn quads_get_rust_ptr(this: &JsImportQuad) -> *const SophiaExportQuad;
+    pub fn quads_get_rust_ptr(this: &JsImportQuad) -> JsValue;
 }
 
 
@@ -186,22 +186,27 @@ impl SophiaExportQuad {
         if other.is_null() {
             false
         } else {
-            let ptr = other.quads_get_rust_ptr();
-            if ptr.is_null() {
-                self.subject().equals(&other.subject())
-                && self.predicate().equals(&other.predicate())
-                && self.object().equals(&other.object())
-                && self.graph().equals(&other.graph())
-            } else {
-                unsafe {
-                    if let Some(exported_rust_quad) = ptr.as_ref() {
+            let ptr = other.quads_get_rust_ptr().as_f64();
+
+            let ptr = match ptr {
+                None => None,
+                Some(ptr_val) => {
+                    let ptr_u32 = ptr_val as u32;
+                    let ptr_ptr = ptr_u32 as *const SophiaExportQuad;
+                    unsafe { ptr_ptr.as_ref() }
+                }
+            };
+
+            match ptr {
+                None => self.subject().equals(&other.subject())
+                        && self.predicate().equals(&other.predicate())
+                        && self.object().equals(&other.object())
+                        && self.graph().equals(&other.graph()),
+                Some(exported_rust_quad) => {
                         self._subject == exported_rust_quad._subject
                         && self._predicate == exported_rust_quad._predicate
                         && self._object == exported_rust_quad._object
                         && self._graph == exported_rust_quad._graph
-                    } else {
-                        false
-                    }
                 }
             }
         }
