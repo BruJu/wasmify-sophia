@@ -26,4 +26,6 @@ pub mod arrydataset;
 pub mod dataset_macro;
 
 pub mod dataset_exportableds;
+pub mod dataset_exportableconcrete;
 pub mod dataset_exportablemacro;
+

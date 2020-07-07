@@ -31,7 +31,7 @@ use crate::arrydataset::ArryDataset;
 
 //use crate::sortabledataset::SortableDataset;
 
-export_sophia_dataset!(SophiaExportDataset, JsImportDataset, "Datasetcore", TreedDataset);
+export_sophia_dataset!(SophiaExportTDataset, JsImportDataset, "Datasetcore", TreedDataset);
 
 
 export_sophia_dataset!(SophiaExportTreeDataset, JsImportTreeDataset, "TreeDataset", TreedDataset,
