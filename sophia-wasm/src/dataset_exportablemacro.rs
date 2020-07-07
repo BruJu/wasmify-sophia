@@ -1,7 +1,8 @@
+//! This module let users use a macro to export any Sophia Dataset into an
+//! almost RDF.JS compliant web assembly class.
 
-use wasm_bindgen::prelude::*;
-
-// This file provides a macro to export Sophia's dataset in Javascript
+// TODO : either document that we expect user to use wasm_bindgen::prelude::*
+// or remove the need to
 
 /// Exports with wasm_bindgen an ExportableDataset as a new struct named
 /// `$rust_export_name`
@@ -156,9 +157,19 @@ macro_rules! export_sophia_ds {
     };
 }
 
-type FastDataserWrapperImpl = crate::dataset_exportableconcrete::ExportableConcreteDataset<sophia::dataset::inmem::FastDataset>;
+#[macro_export]
+macro_rules! wasm_bindgen_dataset {
+    ($sophia_dataset: ident, $js_name: expr) => {
+        paste::item! {
+            wasm_bindgen_dataset!($sophia_dataset, $js_name,
+                [<SophiaWasmBindgenWrapper $sophia_dataset>],
+                [<SophiaWasmBindgenExport $sophia_dataset>]
+            );
+        }
+    };
 
-
-export_sophia_ds!(FastDataserWrapperImpl, SophiaExportDataset, "FFastDataset");
-
-// export_sophia_ds!(FastDataserWrapperImpl, BLOUFastDataset, "FFastDataset");
+    ($sophia_dataset: ident, $js_name: expr, $wrapped_class: ident, $exported_class: ident) => {
+        type $wrapped_class = crate::dataset_exportableconcrete::ExportableConcreteDataset<$sophia_dataset>;
+        crate::export_sophia_ds!($wrapped_class, $exported_class, $js_name);
+    };
+}

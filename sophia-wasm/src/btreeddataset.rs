@@ -269,6 +269,21 @@ pub struct TreedDataset {
     term_index: TermIndexMapU<u32, RcTermFactory>
 }
 
+impl Default for TreedDataset {
+    fn default() -> TreedDataset {
+        TreedDataset {
+            base_tree: (
+                BlockOrder::new([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
+                BTreeSet::new()
+            ),
+            optional_trees: vec!(
+                (BlockOrder::new([TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object]), OnceCell::new())
+            ),
+            term_index: TermIndexMapU::new()
+        }
+    }
+}
+
 impl TreedDataset {
     pub fn new_with_indexes(default_initialized: &Vec<[TermRole; 4]>, optional_indexes: Option<&Vec<[TermRole; 4]>>) -> TreedDataset {
         assert!(!default_initialized.is_empty());
@@ -306,19 +321,6 @@ impl TreedDataset {
         TreedDataset {
             base_tree: base_tree,
             optional_trees: optional_trees,
-            term_index: TermIndexMapU::new()
-        }
-    }
-
-    pub fn default() -> TreedDataset {
-        TreedDataset {
-            base_tree: (
-                BlockOrder::new([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
-                BTreeSet::new()
-            ),
-            optional_trees: vec!(
-                (BlockOrder::new([TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object]), OnceCell::new())
-            ),
             term_index: TermIndexMapU::new()
         }
     }
