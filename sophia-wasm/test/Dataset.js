@@ -48,21 +48,6 @@ function runTests (rdf) {
             assert(dst.has(quad3))
           })
 
-  
-        it('should add the given dataset', () => {
-            const quad1 = rdf.quad(ex.subject, ex.predicate, ex.object1)
-            const quad2 = rdf.quad(ex.subject, ex.predicate, ex.object2)
-            const quad3 = rdf.quad(ex.subject, ex.predicate, ex.object3)
-  
-            const dst = rdf.dataset([quad1])
-            const src = rdf.dataset([quad2, quad3])
-
-            dst.addAll(src)
-            assert(dst.has(quad1))
-            assert(dst.has(quad2))
-            assert(dst.has(quad3))
-          })
-
         /*
         it('should not add duplicate Quads', () => {
           const quadA = rdf.quad(ex.subject, ex.predicate, ex.object)

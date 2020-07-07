@@ -145,6 +145,14 @@ macro_rules! export_sophia_ds {
                 crate::dataset_exportableds::ExportableDataset::get_iterator(&self.base)
             }
         }
+
+        #[wasm_bindgen(js_class=$js_name)]
+        impl $rust_export_name {
+            #[wasm_bindgen(method, getter)]
+            pub fn rust_managed(&self) -> *const $rust_export_name {
+                self as *const $rust_export_name
+            }
+        }
     };
 }
 

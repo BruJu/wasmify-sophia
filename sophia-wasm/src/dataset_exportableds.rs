@@ -130,7 +130,7 @@ pub trait ExportableDataset<D>: Default
         }
 
         // Try to detect a SophiaExportDataset
-        match Self::try_from(&quads_as_jsvalue.clone()) {
+        match Self::try_from(&quads_as_jsvalue) {
             Some(exported) => {
                 exported.dataset().quads().in_dataset(self.mutable_dataset()).unwrap();
             },
@@ -150,7 +150,7 @@ pub trait ExportableDataset<D>: Default
                     },
                     _ => {
                         // TODO : error management
-                        // log("SophiaExportDataset::add_all did not receive an iterable");
+                        crate::util::log("ExportableDataset::add_all did not receive an iterable");
                     }
                 }
             }
@@ -348,16 +348,18 @@ pub trait ExportableDataset<D>: Default
             return None;
         }
 
-        let rust_managed = rust_managed.unwrap();
-        let rust_managed = rust_managed.as_f64().unwrap() as u32;
+        let rust_managed = rust_managed.unwrap().as_f64();
 
-        unsafe {
-            let ptr: *const Self = rust_managed as *const Self;
-            
-            if !ptr.is_null() {
-                ptr.as_ref()
-            } else {
-                None
+        match rust_managed {
+            None => None,
+            Some(rust_managed) => unsafe {
+                let ptr: *const Self = (rust_managed as u32) as *const Self;
+                
+                if !ptr.is_null() {
+                    ptr.as_ref()
+                } else {
+                    None
+                }
             }
         }
     }
@@ -410,7 +412,7 @@ pub trait ExportableDataset<D>: Default
                 element.g()
             ).unwrap()
         })
-}
+    }
 }
 
 
