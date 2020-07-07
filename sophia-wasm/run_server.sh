@@ -7,7 +7,7 @@ if [ $# -ne 0  ]
 then
   if [ $1 == "test" ]
   then
-    wasm-pack build --target nodejs
+    wasm-pack build --target nodejs --dev
     mocha
 #  elif [ $1 == "run" ]
 #  then

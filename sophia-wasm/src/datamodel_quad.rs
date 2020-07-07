@@ -116,8 +116,8 @@ impl SophiaExportQuad {
         where Q: Quad<TermData = Rc<str>> {
         SophiaExportQuad {
             _subject: quad.s().clone(),
-            _predicate: quad.o().clone(),
-            _object: quad.p().clone(),
+            _predicate: quad.p().clone(),
+            _object: quad.o().clone(),
             _graph: quad.g().cloned()
         }
     }
@@ -127,8 +127,8 @@ impl SophiaExportQuad {
         where Q: Quad {
         SophiaExportQuad {
             _subject: quad.s().into(),
-            _predicate: quad.o().into(),
-            _object: quad.p().into(),
+            _predicate: quad.p().into(),
+            _object: quad.o().into(),
             _graph: quad.g().clone().map(|t| t.into())
         }
     }
