@@ -62,7 +62,7 @@ pub struct ExportableDatasetBase<D> where D: Dataset + Default {
     pub inner_dataset: D
 }
 
-trait ExportableDataset<D>: Default
+pub trait ExportableDataset<D>: Default
     where D: MutableDataset + Default,
         <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
         <D as MutableDataset>::MutationError: From<std::convert::Infallible> {
