@@ -10,6 +10,7 @@ use crate::datamodel_term::*;
 use sophia::term::*;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
+use sophia::quad::Quad;
 
 
 // ============================================================================
@@ -107,6 +108,28 @@ impl SophiaExportQuad {
             _predicate: p.clone(),
             _object: o.clone(),
             _graph: g.cloned()
+        }
+    }
+
+    /// Creates a new SophiaExportQuad from a Quad which terms are RcTerm
+    pub fn new_from_rcquad<Q>(quad: &Q) -> SophiaExportQuad
+        where Q: Quad<TermData = Rc<str>> {
+        SophiaExportQuad {
+            _subject: quad.s().clone(),
+            _predicate: quad.o().clone(),
+            _object: quad.p().clone(),
+            _graph: quad.g().cloned()
+        }
+    }
+
+    /// Creates a new quad from a Sophia Quad
+    pub fn new_from_quad<Q>(quad: &Q) -> SophiaExportQuad
+        where Q: Quad {
+        SophiaExportQuad {
+            _subject: quad.s().into(),
+            _predicate: quad.o().into(),
+            _object: quad.p().into(),
+            _graph: quad.g().clone().map(|t| t.into())
         }
     }
 }
