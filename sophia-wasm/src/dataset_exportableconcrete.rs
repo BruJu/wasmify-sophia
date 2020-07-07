@@ -3,15 +3,13 @@ use crate::dataset_exportableds::ExportableDataset;
 use sophia::dataset::MutableDataset;
 use sophia::dataset::Dataset;
 
-
-/// A macro that constructs a struct named `$wrapper_dataset` which relies on a
-/// `$sophia_dataset` with every default implementation to be exported as an
-/// (almost) RDF.JS compliant dataset
-
+/// A basic implementation of `ExportableDataset` that uses a `Dataset` from
+/// Sophia and uses the naive implementation of every exported methods
 pub struct ExportableConcreteDataset<D>
     where D: MutableDataset + Default,
     <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
     <D as MutableDataset>::MutationError: From<std::convert::Infallible> {
+    /// The Sophia Dataset that actually contains the quads
     base: D
 }
 
@@ -24,7 +22,7 @@ impl<D> Default for ExportableConcreteDataset<D>
     }
 }
 
-impl<D> crate::dataset_exportableds::ExportableDataset<D>
+impl<D> ExportableDataset<D>
     for ExportableConcreteDataset<D>
     where D: MutableDataset + Default,
     <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
