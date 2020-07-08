@@ -17,9 +17,10 @@ use crate::arrydataset::ArryDataset;
 use crate::btreeddataset::TreedDataset;
 use crate::btreeddataset_anti::BTreedDatasetAntiWrapper;
 use crate::fulldataset::FullIndexDataset;
+use crate::dataset_into_vector_wrapper::VecOrDatasetWrapper;
 
 
-// Dataset structure crated by the factory
+// Dataset structure created by the factory
 wasm_bindgen_dataset!(TreedDataset, "TreedDataset", SophiaExportDataset);
 
 // Other usable datasets
@@ -32,10 +33,12 @@ wasm_bindgen_dataset!(FullIndexDataset, "FullDataset");
 wasm_bindgen_wrappeddataset!(BTreedDatasetAntiWrapper, "AntiTreedDataset");
 
 // Datasets that fills an array instead of the cbase complicated structure
-// TODO
-/*
-export_sophia_dataset!(SophiaExportTreeDataset2, JsImportTreeDataset2, "TreeDatasetToA", TreedDataset, SophiaExportArrayDataset, ArryDataset);
-export_sophia_dataset!(SophiaExportFastDataset2, JsImportFastDataset2, "FastDatasetToA", FastDataset, SophiaExportArrayDataset, ArryDataset);
-export_sophia_dataset!(SophiaExportLightDataset2, JsImportLightDataset2, "LightDatasetToA", LightDataset, SophiaExportArrayDataset, ArryDataset);
-export_sophia_dataset!(SophiaExportFullDataset2, JsImportFullDataset2, "FullDatasetToA", FullIndexDataset, SophiaExportArrayDataset, ArryDataset);
-*/
+type TreedDatasetIntoArrayWrapper = VecOrDatasetWrapper<TreedDataset>;
+type FastDatasetIntoArrayWrapper = VecOrDatasetWrapper<FastDataset>;
+type LightDatasetIntoArrayWrapper = VecOrDatasetWrapper<LightDataset>;
+type FullIndexDatasetIntoArrayWrapper = VecOrDatasetWrapper<FullIndexDataset>;
+
+wasm_bindgen_wrappeddataset!(TreedDatasetIntoArrayWrapper, "TreedDatasetToA");
+wasm_bindgen_wrappeddataset!(FastDatasetIntoArrayWrapper, "FastDatasetToA");
+wasm_bindgen_wrappeddataset!(LightDatasetIntoArrayWrapper, "LightDatasetToA");
+wasm_bindgen_wrappeddataset!(FullIndexDatasetIntoArrayWrapper, "FullDatasetToA");

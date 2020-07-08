@@ -28,3 +28,6 @@ pub mod arrydataset;
 pub mod dataset_exportableds;
 pub mod dataset_exportableconcrete;
 pub mod dataset_exportablemacro;
+
+pub mod vecordataset;
+pub mod dataset_into_vector_wrapper;
