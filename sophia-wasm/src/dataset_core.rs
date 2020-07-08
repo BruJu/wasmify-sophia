@@ -12,12 +12,13 @@ use wasm_bindgen::prelude::*;
 
 use sophia::dataset::inmem::FastDataset;
 use sophia::dataset::inmem::LightDataset;
+use sophia::term::BoxTerm;
 
-use crate::arrydataset::ArryDataset;
 use crate::btreeddataset::TreedDataset;
 use crate::btreeddataset_anti::BTreedDatasetAntiWrapper;
 use crate::fulldataset::FullIndexDataset;
 use crate::dataset_into_vector_wrapper::VecOrDatasetWrapper;
+
 
 
 // Dataset structure created by the factory
@@ -26,13 +27,17 @@ wasm_bindgen_dataset!(TreedDataset, "TreedDataset", SophiaExportDataset);
 // Other usable datasets
 wasm_bindgen_dataset!(FastDataset, "FastDataset");
 wasm_bindgen_dataset!(LightDataset, "LightDataset");
-wasm_bindgen_dataset!(ArryDataset, "ArrayDataset");
 wasm_bindgen_dataset!(FullIndexDataset, "FullDataset");
+
+// Array Dataset (which is not a real set)
+type ArryDataset = Vec<([BoxTerm; 3], Option<BoxTerm>)>;
+wasm_bindgen_dataset!(ArryDataset, "ArrayDataset");
+
 
 // A dataset that redefines the match method
 wasm_bindgen_wrappeddataset!(BTreedDatasetAntiWrapper, "AntiTreedDataset");
 
-// Datasets that fills an array instead of the cbase complicated structure
+// Datasets that fills an array instead of the base complicated structure
 type TreedDatasetIntoArrayWrapper = VecOrDatasetWrapper<TreedDataset>;
 type FastDatasetIntoArrayWrapper = VecOrDatasetWrapper<FastDataset>;
 type LightDatasetIntoArrayWrapper = VecOrDatasetWrapper<LightDataset>;
