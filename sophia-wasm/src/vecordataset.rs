@@ -46,14 +46,360 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
     fn quads(&self) -> DQuadSource<Self> {
         match &self {
             VecOrDataset::Vector(vect) => {
-                let qs = vect.into_iter()
-                    .map(|q| SophiaExportQuad::new_from_quad(q))
+                let qs = vect.quads()
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
             },
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads()
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_g<'s, TG>(&'s self, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_g(g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_g(g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_o<'s, TO>(&'s self, o: &'s Term<TO>) -> DQuadSource<'s, Self>
+    where TO: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_o(o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_o(o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_og<'s, TO, TG>(&'s self, o: &'s Term<TO>, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TO: TermData, TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_og(o, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_og(o, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_p<'s, TP>(&'s self, p: &'s Term<TP>) -> DQuadSource<'s, Self>
+    where TP: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_p(p)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_p(p)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_pg<'s, TP, TG>(&'s self, p: &'s Term<TP>, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TP: TermData, TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_pg(p, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_pg(p, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_po<'s, TP, TO>(&'s self, p: &'s Term<TP>, o: &'s Term<TO>) -> DQuadSource<'s, Self>
+    where TP: TermData, TO: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_po(p, o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_po(p, o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_pog<'s, TP, TO, TG>(&'s self, p: &'s Term<TP>, o: &'s Term<TO>, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TP: TermData, TO: TermData, TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_pog(p, o, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_pog(p, o, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_s<'s, TS>(&'s self, s: &'s Term<TS>) -> DQuadSource<'s, Self>
+    where TS: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_s(s)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_s(s)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_sg<'s, TS, TG>(&'s self, s: &'s Term<TS>, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TS: TermData, TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_sg(s, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_sg(s, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_so<'s, TS, TO>(&'s self, s: &'s Term<TS>, o: &'s Term<TO>) -> DQuadSource<'s, Self>
+    where TS: TermData, TO: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_so(s, o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_so(s, o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_sog<'s, TS, TO, TG>(&'s self, s: &'s Term<TS>, o: &'s Term<TO>, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TS: TermData, TO: TermData, TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_sog(s, o, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_sog(s, o, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_sp<'s, TS, TP>(&'s self, s: &'s Term<TS>, p: &'s Term<TP>) -> DQuadSource<'s, Self>
+    where TS: TermData, TP: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_sp(s, p)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_sp(s, p)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_spg<'s, TS, TP, TG>(&'s self, s: &'s Term<TS>, p: &'s Term<TP>, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TS: TermData, TP: TermData, TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_spg(s, p, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_spg(s, p, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_spo<'s, TS, TP, TO>(&'s self, s: &'s Term<TS>, p: &'s Term<TP>, o: &'s Term<TO>) -> DQuadSource<'s, Self>
+    where TS: TermData, TP: TermData, TO: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_spo(s, p, o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_spo(s, p, o)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            }
+        }
+    }
+
+    fn quads_with_spog<'s, TS, TP, TO, TG>(&'s self, s: &'s Term<TS>, p: &'s Term<TP>, o: &'s Term<TO>, g: Option<&'s Term<TG>>) -> DQuadSource<'s, Self>
+    where TS: TermData, TP: TermData, TO: TermData, TG: TermData
+    {
+        match &self {
+            VecOrDataset::Vector(vect) => {
+                let qs = vect.quads_with_spog(s, p, o, g)
+                    .map(|q| q.unwrap())
+                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| Ok(StreamedQuad::by_value(q)));
+
+                Box::new(qs)
+            },
+            VecOrDataset::Dataset(d) => {
+                let qs = d.quads_with_spog(s, p, o, g)
                     .map(|q| q.unwrap())
                     .map(|q| SophiaExportQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
