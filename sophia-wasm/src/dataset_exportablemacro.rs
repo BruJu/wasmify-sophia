@@ -7,8 +7,16 @@
 /// Exports with wasm_bindgen an ExportableDataset as a new struct named
 /// `$rust_export_name`
 #[macro_export]
-macro_rules! export_sophia_ds {
-    ($base_class: ident, $rust_export_name: ident, $js_name: expr) => {
+macro_rules! wasm_bindgen_wrappeddataset {
+    ($base_class: ident, $js_name: expr) => {
+        paste::item! {
+            wasm_bindgen_wrappeddataset!($base_class, $js_name,
+                [<SophiaWasmBindgenExportAlreadyWrapped $base_class>]
+            );
+        }
+    };
+
+    ($base_class: ident, $js_name: expr, $rust_export_name: ident) => {
         #[wasm_bindgen(js_name=$js_name)]
         pub struct $rust_export_name {
             base: $base_class
@@ -162,14 +170,21 @@ macro_rules! wasm_bindgen_dataset {
     ($sophia_dataset: ident, $js_name: expr) => {
         paste::item! {
             wasm_bindgen_dataset!($sophia_dataset, $js_name,
-                [<SophiaWasmBindgenWrapper $sophia_dataset>],
                 [<SophiaWasmBindgenExport $sophia_dataset>]
             );
         }
     };
 
-    ($sophia_dataset: ident, $js_name: expr, $wrapped_class: ident, $exported_class: ident) => {
+    ($sophia_dataset: ident, $js_name: expr, $exported_class: ident) => {
+        paste::item! {
+            wasm_bindgen_dataset!($sophia_dataset, $js_name, $exported_class,
+                [<SophiaWasmBindgenWrapper $sophia_dataset>]
+            );
+        }
+    };
+
+    ($sophia_dataset: ident, $js_name: expr, $exported_class: ident, $wrapped_class: ident) => {
         type $wrapped_class = crate::dataset_exportableconcrete::ExportableConcreteDataset<$sophia_dataset>;
-        crate::export_sophia_ds!($wrapped_class, $exported_class, $js_name);
+        crate::wasm_bindgen_wrappeddataset!($wrapped_class, $js_name, $exported_class);
     };
 }

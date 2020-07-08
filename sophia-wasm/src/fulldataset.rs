@@ -521,6 +521,12 @@ impl FullIndexDataset {
     }
 }
 
+impl Default for FullIndexDataset {
+    fn default() -> Self {
+        FullIndexDataset::new()
+    }
+}
+
 macro_rules! full_indexed_dataset_quads_with {
     ($function_name: ident, $position: expr, 1) => (
         fn $function_name<'s, T1>(&'s self, t1: &'s Term<T1>) -> DQuadSource<'s, Self>

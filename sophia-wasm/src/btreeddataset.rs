@@ -270,17 +270,17 @@ pub struct TreedDataset {
 }
 
 impl Default for TreedDataset {
-    fn default() -> TreedDataset {
-        TreedDataset {
-            base_tree: (
-                BlockOrder::new([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
-                BTreeSet::new()
-            ),
-            optional_trees: vec!(
-                (BlockOrder::new([TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object]), OnceCell::new())
-            ),
-            term_index: TermIndexMapU::new()
-        }
+    fn default() -> Self {
+        TreedDataset::new_with_indexes(
+            &vec!([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
+            Some(&vec!(
+                [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
+                [TermRole::Graph, TermRole::Predicate, TermRole::Subject, TermRole::Object],
+                [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
+                [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
+                [TermRole::Object, TermRole::Subject, TermRole::Graph, TermRole::Predicate]
+            ))
+        )
     }
 }
 

@@ -4,63 +4,35 @@
 
 //#![deny(missing_docs)]
 
+use crate::wasm_bindgen_dataset;
+use crate::wasm_bindgen_wrappeddataset;
+
 extern crate wasm_bindgen;
-
-use crate::datamodel_term::*;
-use crate::datamodel_quad::*;
-use crate::datamodel_factory::*;
-use crate::exportiterator::RustExportIterator;
-use crate::util::*;
-
-use maybe_owned::MaybeOwned;
-use sophia::dataset::Dataset;
-use sophia::dataset::MutableDataset;
-use sophia::dataset::inmem::FastDataset;
-use sophia::dataset::inmem::LightDataset;
-use sophia::term::*;
-use sophia::quad::Quad;
-use sophia::quad::stream::QuadSource;
-
 use wasm_bindgen::prelude::*;
 
-use crate::btreeddataset::TreedDataset;
-use crate::fulldataset::FullIndexDataset;
+use sophia::dataset::inmem::FastDataset;
+use sophia::dataset::inmem::LightDataset;
 
 use crate::arrydataset::ArryDataset;
+use crate::btreeddataset::TreedDataset;
+use crate::btreeddataset_anti::BTreedDatasetAntiWrapper;
+use crate::fulldataset::FullIndexDataset;
 
-use crate::wasm_bindgen_dataset;
 
+// Dataset structure crated by the factory
+wasm_bindgen_dataset!(TreedDataset, "TreedDataset", SophiaExportDataset);
 
-wasm_bindgen_dataset!(TreedDataset, "TreedDataset", BlouBliBla, SophiaExportDataset);
+// Other usable datasets
 wasm_bindgen_dataset!(FastDataset, "FastDataset");
 wasm_bindgen_dataset!(LightDataset, "LightDataset");
-//wasm_bindgen_dataset!(ArryDataset, "ArrayDataset"); // TODO : ArryDataset impl default
-//wasm_bindgen_dataset!(FullIndexDataset, "FullDataset"); // TODO : FullDataset impl default
+wasm_bindgen_dataset!(ArryDataset, "ArrayDataset");
+wasm_bindgen_dataset!(FullIndexDataset, "FullDataset");
 
+// A dataset that redefines the match method
+wasm_bindgen_wrappeddataset!(BTreedDatasetAntiWrapper, "AntiTreedDataset");
 
-// TODO : non default implementation of AntiTreeDataset
-/*
-
-export_sophia_dataset!(SophiaExportTreeDataset, JsImportTreeDataset, "TreeDataset", TreedDataset,
-    SophiaExportTreeDataset, TreedDataset,
-    |that: &mut SophiaExportTreeDataset, m: crate::dataset_macro::MatchRequestOnRcTerm| {
-        let s_is_some = match &m.s { sophia::term::matcher::AnyOrExactly::Any => false, _ => true };
-        let p_is_some = match &m.p { sophia::term::matcher::AnyOrExactly::Any => false, _ => true };
-        let o_is_some = match &m.o { sophia::term::matcher::AnyOrExactly::Any => false, _ => true };
-        let g_is_some = match &m.g { sophia::term::matcher::AnyOrExactly::Any => false, _ => true };
-        
-        let mut quads_iter = that.dataset.quads_matching(&m.s, &m.p, &m.o, &m.g);
-
-        let mut dataset = TreedDataset::new_anti(s_is_some, p_is_some, o_is_some, g_is_some);
-        quads_iter.in_dataset(&mut dataset).unwrap();
-
-        dataset
-    }
-);
-*/
-
-
-// TODO : ArryConvertibleDataset<D>
+// Datasets that fills an array instead of the cbase complicated structure
+// TODO
 /*
 export_sophia_dataset!(SophiaExportTreeDataset2, JsImportTreeDataset2, "TreeDatasetToA", TreedDataset, SophiaExportArrayDataset, ArryDataset);
 export_sophia_dataset!(SophiaExportFastDataset2, JsImportFastDataset2, "FastDatasetToA", FastDataset, SophiaExportArrayDataset, ArryDataset);

@@ -12,6 +12,7 @@ use sophia::quad::streaming_mode::StreamedQuad;
 use crate::datamodel_quad::SophiaExportQuad;
 
 
+#[derive(Default)]
 pub struct ArryDataset {
     s: Vec<SophiaExportQuad>
 }
