@@ -306,19 +306,7 @@ pub trait ExportableDataset<D>: Default
     }
 
     fn to_string(&self) -> String {
-        // TODO : use a N-Quads serializer
-        self.dataset()
-            .quads()
-            .map_quads(|q| 
-                match q.g().as_ref() {
-                    None    => format!("{0} {1} {2} .",     q.s(), q.p(), q.o()),
-                    Some(g) => format!("{0} {1} {2} {3} .", q.s(), q.p(), q.o(), g)
-                }
-            )
-            .into_iter()
-            .collect::<Result<Vec<String>, _>>()
-            .unwrap()
-            .join("\n")
+        self.tonquads()
     }
 
     // Non RDF.JS exported functions
@@ -413,6 +401,31 @@ pub trait ExportableDataset<D>: Default
                 element.g()
             ).unwrap()
         })
+    }
+
+
+    // ====
+    // For the wrapper approach
+
+    fn addnquad(&mut self, nquads: &str) {
+        let mut source = sophia::parser::nq::parse_str(nquads);
+        source.in_dataset(self.mutable_dataset()).unwrap();
+    }
+    
+    fn tonquads(&self) -> String {
+        // TODO : use a N-Quads serializer
+        self.dataset()
+            .quads()
+            .map_quads(|q| 
+                match q.g().as_ref() {
+                    None    => format!("{0} {1} {2} .",     q.s(), q.p(), q.o()),
+                    Some(g) => format!("{0} {1} {2} {3} .", q.s(), q.p(), q.o(), g)
+                }
+            )
+            .into_iter()
+            .collect::<Result<Vec<String>, _>>()
+            .unwrap()
+            .join("\n")
     }
 }
 
