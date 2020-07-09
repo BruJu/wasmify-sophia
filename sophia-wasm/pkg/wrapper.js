@@ -7,36 +7,48 @@
 let n3 = require("n3");
 
 function rebuild_quad(quad) {
-    return n3.DataFactory.fromQuad(quad);
+    //return n3.DataFactory.fromQuad(quad);
+    return n3.DataFactory.quad(
+        quad.subject,
+        quad.predicate,
+        quad.object,
+        quad.graph
+    );
 }
 
 function remakeFilter(filterFunction) {
-    return wasm_quad => {
+    return function (wasm_quad) {
         let js_quad = rebuild_quad(wasm_quad);
         wasm_quad.free();
         return filterFunction(js_quad);
     }
 }
 
-export class SophiaDatasetWrapper {
-    constructor(wrappedClass) {
-        this.base = new wrappedClass();
+class SophiaDatasetWrapper {
+    constructor(wrapped) {
+        this.base = wrapped;
     }
 
     // == Improve
     addAll(quads) {
-        this.base.addAll(quads);
-        //const writer = //new N3.Writer({ format: 'N-Quads' });
-        //for (let quad of quads) {
-            // TODO
-        //}
+        const writer = new n3.Writer({ format: 'N-Quads' });
+        for (let quad of quads) {
+            writer.addQuad(quad);
+        }
+        let content = undefined;
+        writer.end((_err, result) => { content = result; })
 
-        // this.base.addNQuads(writer.content)
+        while (content === undefined) {
+            // We should never pass here as N3.Writer without an output stream should be synchrone
+        }
+
+        this.base.addNQuads(content);
     }
 
     toArray() {
         let nquads = this.base.toNQuads();
-        return n3.Parser({ format: 'N-Quads' }).parse(nquads);
+        let k = new n3.Parser({ format: 'N-Quads' }).parse(nquads);
+        return k;
     }
 
     forEach(quadRunIteratee) {
@@ -47,7 +59,7 @@ export class SophiaDatasetWrapper {
     
     // == Create
     [Symbol.iterator]() {
-        return toArray()[Symbol.iterator];
+        return this.toArray()[Symbol.iterator]();
     }
 
     // == Fix
@@ -102,7 +114,7 @@ export class SophiaDatasetWrapper {
     }
 
     get size() {
-        return this.base.size();
+        return this.base.size;
     }
 
     toString() {
@@ -141,3 +153,4 @@ export class SophiaDatasetWrapper {
 }
 
 
+module.exports.SophiaDatasetWrapper = SophiaDatasetWrapper;
