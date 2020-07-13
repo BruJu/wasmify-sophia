@@ -41,7 +41,7 @@ Currently, [WasmTree] is faster than the tested exportations. So if you want to 
 
 ## License and funding
 
-This work is distributed under the [MIT License](LICENSE.md).
+This work is distributed under the [MIT License](LICENSE).
 
 This project has been funded by the [REPID Project](https://projet.liris.cnrs.fr/repid/) during my internship in the [TWEAK team](https://liris.cnrs.fr/equipe/tweak) at [LIRIS](https://liris.cnrs.fr/).
 
