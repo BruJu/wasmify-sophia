@@ -11,3 +11,4 @@ wasm_example/
 copysophialess.sh
 
 target/
+Cargo.lock
