@@ -166,8 +166,13 @@ macro_rules! wasm_bindgen_wrappeddataset {
         #[wasm_bindgen(js_class=$js_name)]
         impl $rust_export_name {
             #[wasm_bindgen(js_name="addNQuads")]
-            pub fn addnquad(&mut self, nquads: &str) {
-                crate::dataset_exportableds::ExportableDataset::addnquad(&mut self.base, nquads)
+            pub fn add_nquads(&mut self, nquads: &str) {
+                crate::dataset_exportableds::ExportableDataset::add_nquads(&mut self.base, nquads)
+            }
+
+            #[wasm_bindgen(js_name="addTriG")]
+            pub fn add_trig(&mut self, text: &str) {
+                crate::dataset_exportableds::ExportableDataset::add_trig(&mut self.base, text)
             }
             
             #[wasm_bindgen(js_name="toNQuads")]

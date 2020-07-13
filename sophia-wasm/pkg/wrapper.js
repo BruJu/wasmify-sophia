@@ -45,6 +45,14 @@ class SophiaDatasetWrapper {
         this.base.addNQuads(content);
     }
 
+    addTriG(trigString) {
+        this.base.addTriG(trigString);
+    }
+
+    addNQuads(nQuadsString) {
+        this.base.addNQuads(nQuadsString);
+    }
+
     toArray() {
         let nquads = this.base.toNQuads();
         let k = new n3.Parser({ format: 'N-Quads' }).parse(nquads);

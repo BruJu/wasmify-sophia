@@ -12,6 +12,8 @@ use wasm_bindgen::JsValue;
 use sophia::quad::Quad;
 use maybe_owned::MaybeOwned;
 use crate::exportiterator::RustExportIterator;
+use sophia::serializer::QuadSerializer;
+use sophia::serializer::Stringifier;
 
 use js_sys::Reflect;
 
@@ -46,8 +48,7 @@ pub struct MatchRequestOnRcTerm {
 
 impl MatchRequestOnRcTerm {
     /// Builds a `MatchRequestOnRcTerm` from `JsImportTerms`
-    pub fn new(subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) -> MatchRequestOnRcTerm {
-        
+    pub fn new(subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) -> MatchRequestOnRcTerm {       
         MatchRequestOnRcTerm {
             s: build_anyorexactly_for_term(subject),
             p: build_anyorexactly_for_term(predicate),
@@ -57,23 +58,36 @@ impl MatchRequestOnRcTerm {
     }
 }
 
-
+/// A trait that describes a wrapper that implements the logic to exports a 
+/// Sophia Dataset to a RDF.JS Dataset
+/// 
+/// This trait is intended to wrap a structure that implements the `Dataset` from
+/// the Sophia library and implement the logic for every operation that is expected
+/// for a RDF.JS Dataset.
+/// 
+/// This structure is expected to be wrapped by another structure using the
+/// `wasm_bindgen_wrappeddataset` macro.
+/// 
+/// Default implementations are provided for every method, so the only operation
+/// the developer is expected to provide are the access operations to the dataset.
+/// 
+/// If no operation is redefined, the `wasm_bindgen_dataset` macro can be used
+/// instead, which builds both a default implementation for this trait and an export
+/// for wasm_bindgen.
 pub trait ExportableDataset<D>: Default
     where D: MutableDataset + Default,
         <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
         <D as MutableDataset>::MutationError: From<std::convert::Infallible> {
     
+    /// Builds an instance that wraps the given dataset
     fn wrap(dataset: D) -> Self;
+
+    /// Returns a mutable reference of the contained dataset
     fn mutable_dataset(&mut self) -> &mut D;
+
+    /// Returns a const reference to the contained dataset
     fn dataset(&self) -> &D;
 
-    // wasm_bindgenned function with basic implementation that resorts to the inner exported dataset
-    // They are all defined in the ExportableDatasetBase class and can be reimplemented
-    // by implementing this trait, returning a wrapped ExportableDatasetBase in the mutable_inner and
-    // inner functions, and reimplement the desired functions (and only them)
-    // TODO : move this explanation in the trait description and remove exportabledatasetbase references
-
-    // RDF.JS functions
 
     fn match_quad(&self, subject: &JsImportTerm, predicate: &JsImportTerm, object: &JsImportTerm, graph: &JsImportTerm) -> Self {
         let m = MatchRequestOnRcTerm::new(subject, predicate, object, graph);
@@ -407,30 +421,22 @@ pub trait ExportableDataset<D>: Default
     // ====
     // For the wrapper approach
 
-    fn addnquad(&mut self, nquads: &str) {
+    /// Adds every quads from `nquads` (which is a N-Quad serialization of the quads to add)
+    fn add_nquads(&mut self, nquads: &str) {
         let mut source = sophia::parser::nq::parse_str(nquads);
         source.in_dataset(self.mutable_dataset()).unwrap();
     }
+
+    /// Adds every quads from `text` (which is a TriG serialization of the quads)
+    fn add_trig(&mut self, text: &str) {
+        let mut source = sophia::parser::trig::parse_str(text);
+        source.in_dataset(self.mutable_dataset()).unwrap();
+    }
     
+    /// Returns a N-Quad serialization of the contained dataset
     fn tonquads(&self) -> String {
-        // TODO : use a N-Quads serializer
-        self.dataset()
-            .quads()
-            .map_quads(|q| 
-                match q.g().as_ref() {
-                    None    => format!("{0} {1} {2} .",     q.s(), q.p(), q.o()),
-                    Some(g) => format!("{0} {1} {2} {3} .", q.s(), q.p(), q.o(), g)
-                }
-            )
-            .into_iter()
-            .collect::<Result<Vec<String>, _>>()
-            .unwrap()
-            .join("\n")
+        let mut serializer = sophia::serializer::nq::NqSerializer::new_stringifier();
+        serializer.serialize_dataset(self.dataset()).unwrap();
+        serializer.to_string()
     }
 }
-
-
-// TODO : new_from_trig
-// TODO : add_trigs
-// TODO : export_trig
-
