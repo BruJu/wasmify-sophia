@@ -64,6 +64,10 @@ impl BlockOrder {
         )
     }
 
+    pub fn get_term_roles(&self) -> &[TermRole; 4] {
+        &self.term_roles
+    }
+
     /// Builds a block builder from an order of SPOG
     pub fn new(term_roles: [TermRole; 4]) -> BlockOrder {
         debug_assert!({
@@ -257,10 +261,10 @@ impl<'a> Iterator for FilteredIndexQuads<'a> {
 /// default
 pub struct IndexTrees {
     /// The tree that is always instancied
-    base_tree: (BlockOrder, BTreeSet<Block<u32>>),
+    pub base_tree: (BlockOrder, BTreeSet<Block<u32>>),
     /// A list of optional trees that can be instancied ot improve look up
     /// performances at the cost of further insert and deletions
-    optional_trees: Vec<(BlockOrder, OnceCell<BTreeSet<Block<u32>>>)>,
+    pub optional_trees: Vec<(BlockOrder, OnceCell<BTreeSet<Block<u32>>>)>,
 }
 
 impl Default for IndexTrees {
@@ -375,8 +379,11 @@ impl IndexTrees {
         )
     }
 
-    /// Returns an iterator on quads represented by their indexes from the 
-    pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
+    /// Returns an iterator on quads represented by their indexes from the dataset
+    /// 
+    /// This function can potentially build a new tree in the structure if the `can_build_new_tree` parameter is
+    /// equal to true.
+    pub fn search_all_matching_quads<'a>(&'a self, spog: [Option<u32>; 4], can_build_new_tree: bool) -> FilteredIndexQuads {
         // Find best index
         let term_roles = [&spog[0], &spog[1], &spog[2], &spog[3]];
 
@@ -384,10 +391,12 @@ impl IndexTrees {
         let mut best_index_score = self.base_tree.0.index_conformance(&term_roles);
         
         for i in 0..self.optional_trees.len() {
-            let score = self.optional_trees[i].0.index_conformance(&term_roles);
-            if score > best_index_score {
-                best_alt_tree_pos = Some(i);
-                best_index_score = score;
+            if can_build_new_tree || self.optional_trees[i].1.get().is_some() {
+                let score = self.optional_trees[i].0.index_conformance(&term_roles);
+                if score > best_index_score {
+                    best_alt_tree_pos = Some(i);
+                    best_index_score = score;
+                }
             }
         }
 
@@ -412,6 +421,15 @@ impl IndexTrees {
         };
 
         tree_description.0.filter(&tree_description.1, spog)
+    }
+
+    /// Returns an iterator on quads represented by their indexes from the dataset
+    /// 
+    /// This function will always build a new tree if a better indexation is possible for this
+    /// tree. If you do not want to pay the potential cost of building a new tree, call the
+    /// `search_all_matching_quads` function.
+    pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
+        self.search_all_matching_quads(spog, true)
     }
 
     /// Inserts in the dataset the quad described by the given array of indexes.
