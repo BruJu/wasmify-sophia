@@ -2,12 +2,12 @@
 use sophia::dataset::Dataset;
 use sophia::dataset::MutableDataset;
 use sophia::term::matcher::AnyOrExactly;
-use crate::datamodel_term::*;
+use crate::datamodel::term::*;
 use sophia::term::RcTerm;
 use std::default::Default;
 use sophia::quad::stream::QuadSource;
-use crate::datamodel_quad::*;
-use crate::datamodel_factory::*;
+use crate::datamodel::quad::*;
+use crate::datamodel::factory::*;
 use wasm_bindgen::JsValue;
 use sophia::quad::Quad;
 use maybe_owned::MaybeOwned;

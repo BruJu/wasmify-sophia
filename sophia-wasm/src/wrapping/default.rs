@@ -1,11 +1,11 @@
 
-use crate::dataset_exportableds::ExportableDataset;
+use crate::wrapping::ExportableDataset;
 use sophia::dataset::MutableDataset;
 use sophia::dataset::Dataset;
 
 /// A basic implementation of `ExportableDataset` that uses a `Dataset` from
 /// Sophia and uses the naive implementation of every exported methods
-pub struct ExportableConcreteDataset<D>
+pub struct DefaultExporter<D>
     where D: MutableDataset + Default,
     <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
     <D as MutableDataset>::MutationError: From<std::convert::Infallible> {
@@ -13,7 +13,7 @@ pub struct ExportableConcreteDataset<D>
     base: D
 }
 
-impl<D> Default for ExportableConcreteDataset<D>
+impl<D> Default for DefaultExporter<D>
     where D: MutableDataset + Default,
     <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
     <D as MutableDataset>::MutationError: From<std::convert::Infallible> {
@@ -22,8 +22,7 @@ impl<D> Default for ExportableConcreteDataset<D>
     }
 }
 
-impl<D> ExportableDataset<D>
-    for ExportableConcreteDataset<D>
+impl<D> ExportableDataset<D> for DefaultExporter<D>
     where D: MutableDataset + Default,
     <D as MutableDataset>::MutationError: From<<D as Dataset>::Error>,
     <D as MutableDataset>::MutationError: From<std::convert::Infallible> {

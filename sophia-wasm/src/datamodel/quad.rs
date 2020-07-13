@@ -5,7 +5,7 @@
 
 extern crate wasm_bindgen;
 
-use crate::datamodel_term::*;
+use crate::datamodel::term::*;
 
 use sophia::term::*;
 use std::rc::Rc;

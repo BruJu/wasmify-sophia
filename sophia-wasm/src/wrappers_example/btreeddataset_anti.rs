@@ -1,8 +1,8 @@
 
 use bjdatasets::treeddataset::TreedDataset;
-use crate::dataset_exportableds::MatchRequestOnRcTerm;
-use crate::dataset_exportableds::ExportableDataset;
-use crate::datamodel_term::JsImportTerm;
+use crate::wrapping::MatchRequestOnRcTerm;
+use crate::wrapping::ExportableDataset;
+use crate::datamodel::term::JsImportTerm;
 use sophia::dataset::Dataset;
 use sophia::quad::stream::QuadSource;
 

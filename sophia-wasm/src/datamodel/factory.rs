@@ -5,9 +5,9 @@
 
 extern crate wasm_bindgen;
 
-use crate::datamodel_term::*;
-use crate::datamodel_quad::*;
-use crate::dataset_core::SophiaExportDataset;
+use crate::datamodel::term::*;
+use crate::datamodel::quad::*;
+use crate::dataset::SophiaExportDataset;
 
 use sophia::term::*;
 use uuid::Uuid;

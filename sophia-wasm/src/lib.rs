@@ -5,24 +5,21 @@
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-// TODO : find how to use folder instead of using _
 
-// Data Model
-pub mod datamodel_term;
-pub mod datamodel_quad;
-pub mod datamodel_factory;
+/// Datamodel implementation
+pub mod datamodel;
 
-// Dataset Core
+/// DatasetCore / Dataset implementations
+pub mod dataset;
+
+/// Examples of partial redefined implementations
+pub mod wrappers_example;
+
+/// Iterator that contains exported elements
 pub mod exportiterator;
-pub mod dataset_core;
 
-// Debug / Log
+/// Convenience debug and log functions
 pub mod util;
 
-pub mod btreeddataset_anti;
-
-pub mod dataset_exportableds;
-pub mod dataset_exportableconcrete;
-pub mod dataset_exportablemacro;
-
-pub mod dataset_into_vector_wrapper;
+/// This modules exposes the details to export a Sophia Dataset to Web Assembly
+pub mod wrapping;

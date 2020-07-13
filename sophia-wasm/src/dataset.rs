@@ -1,4 +1,4 @@
-//! This file implements the DatasetCore interface from the RDF.JS
+//! This modules implements the DatasetCore interface from the RDF.JS
 //! specification. The implementation also offers many services from the
 //! Dataset class.
 
@@ -6,6 +6,7 @@
 
 use crate::wasm_bindgen_dataset;
 use crate::wasm_bindgen_wrappeddataset;
+use crate::wrappers_example::{ BTreedDatasetAntiWrapper, VecOrDatasetWrapper };
 
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
@@ -16,9 +17,6 @@ use sophia::term::BoxTerm;
 
 use bjdatasets::treeddataset::TreedDataset;
 use bjdatasets::fulldataset::FullIndexDataset;
-use crate::btreeddataset_anti::BTreedDatasetAntiWrapper;
-use crate::dataset_into_vector_wrapper::VecOrDatasetWrapper;
-
 
 
 // Dataset structure created by the factory

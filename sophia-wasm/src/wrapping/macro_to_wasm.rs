@@ -34,31 +34,31 @@ macro_rules! wasm_bindgen_wrappeddataset {
         /// RDF.JS DatasetCore
         #[wasm_bindgen(js_class=$js_name)]
         impl $rust_export_name {
-            pub fn add(&mut self, quad: &crate::datamodel_quad::JsImportQuad) {
-                crate::dataset_exportableds::ExportableDataset::add(&mut self.base, quad);
+            pub fn add(&mut self, quad: &crate::datamodel::quad::JsImportQuad) {
+                crate::wrapping::ExportableDataset::add(&mut self.base, quad);
             }
 
-            pub fn delete(&mut self, quad: &crate::datamodel_quad::JsImportQuad) {
-                crate::dataset_exportableds::ExportableDataset::delete(&mut self.base, quad);
+            pub fn delete(&mut self, quad: &crate::datamodel::quad::JsImportQuad) {
+                crate::wrapping::ExportableDataset::delete(&mut self.base, quad);
             }
 
-            pub fn has(&self, quad: &crate::datamodel_quad::JsImportQuad) -> bool {
-                crate::dataset_exportableds::ExportableDataset::has_quad(&self.base, quad)
+            pub fn has(&self, quad: &crate::datamodel::quad::JsImportQuad) -> bool {
+                crate::wrapping::ExportableDataset::has_quad(&self.base, quad)
             }
 
             #[wasm_bindgen(getter)]
             pub fn size(&self) -> usize {
-                crate::dataset_exportableds::ExportableDataset::size(&self.base)
+                crate::wrapping::ExportableDataset::size(&self.base)
             }
 
             #[wasm_bindgen(js_name="match")]
             pub fn match_quad(&self,
-                subject: &crate::datamodel_term::JsImportTerm,
-                predicate: &crate::datamodel_term::JsImportTerm,
-                object: &crate::datamodel_term::JsImportTerm,
-                graph: &crate::datamodel_term::JsImportTerm) -> Self {
+                subject: &crate::datamodel::term::JsImportTerm,
+                predicate: &crate::datamodel::term::JsImportTerm,
+                object: &crate::datamodel::term::JsImportTerm,
+                graph: &crate::datamodel::term::JsImportTerm) -> Self {
                 Self { base: 
-                    crate::dataset_exportableds::ExportableDataset::match_quad(&self.base, subject, predicate, object, graph)
+                    crate::wrapping::ExportableDataset::match_quad(&self.base, subject, predicate, object, graph)
                 }
             }
         }
@@ -67,43 +67,43 @@ macro_rules! wasm_bindgen_wrappeddataset {
         #[wasm_bindgen(js_class=$js_name)]
         impl $rust_export_name {
             pub fn difference(&self, imported: &JsValue) -> Self {
-                Self { base: crate::dataset_exportableds::ExportableDataset::difference(&self.base, imported) }
+                Self { base: crate::wrapping::ExportableDataset::difference(&self.base, imported) }
             }
 
             pub fn intersection(&self, imported: &JsValue) -> Self {
-                Self { base: crate::dataset_exportableds::ExportableDataset::intersection(&self.base, imported) }
+                Self { base: crate::wrapping::ExportableDataset::intersection(&self.base, imported) }
             }
 
             pub fn union(&self, imported: &JsValue) -> Self {
-                Self { base: crate::dataset_exportableds::ExportableDataset::union(&self.base, imported) }
+                Self { base: crate::wrapping::ExportableDataset::union(&self.base, imported) }
             }
 
             pub fn equals(&self, imported: &JsValue) -> bool {
-                crate::dataset_exportableds::ExportableDataset::equals(&self.base, imported)
+                crate::wrapping::ExportableDataset::equals(&self.base, imported)
             }
 
             pub fn some(&self, filter_function: &js_sys::Function) -> bool {
-                crate::dataset_exportableds::ExportableDataset::some(&self.base, filter_function)
+                crate::wrapping::ExportableDataset::some(&self.base, filter_function)
             }
 
             pub fn every(&self, filter_function: &js_sys::Function) -> bool {
-                crate::dataset_exportableds::ExportableDataset::every(&self.base, filter_function)
+                crate::wrapping::ExportableDataset::every(&self.base, filter_function)
             }
 
             pub fn filter(&self, filter_function: &js_sys::Function) -> Self {
-                Self { base: crate::dataset_exportableds::ExportableDataset::filter(&self.base, filter_function) }
+                Self { base: crate::wrapping::ExportableDataset::filter(&self.base, filter_function) }
             }
 
             pub fn map(&self, map_function: &js_sys::Function) -> Self {
-                Self { base: crate::dataset_exportableds::ExportableDataset::map(&self.base, map_function) }
+                Self { base: crate::wrapping::ExportableDataset::map(&self.base, map_function) }
             }
 
             pub fn contains(&self, imported: &JsValue) -> bool {
-                crate::dataset_exportableds::ExportableDataset::contains(&self.base, imported)
+                crate::wrapping::ExportableDataset::contains(&self.base, imported)
             }
 
             pub fn reduce(&self, reducer: js_sys::Function, initial_value: &JsValue) -> JsValue {
-                crate::dataset_exportableds::ExportableDataset::reduce(&self.base, reducer, initial_value)
+                crate::wrapping::ExportableDataset::reduce(&self.base, reducer, initial_value)
             }
         }
 
@@ -112,31 +112,31 @@ macro_rules! wasm_bindgen_wrappeddataset {
         impl $rust_export_name {
             #[wasm_bindgen(js_name="addAll")]
             pub fn add_all(&mut self, quads_as_jsvalue: &JsValue) {
-                crate::dataset_exportableds::ExportableDataset::add_all(&mut self.base, quads_as_jsvalue);
+                crate::wrapping::ExportableDataset::add_all(&mut self.base, quads_as_jsvalue);
             }
 
             #[wasm_bindgen(js_name="deleteMatches")]
             pub fn delete_matches(&mut self,
-                subject: &crate::datamodel_term::JsImportTerm,
-                predicate: &crate::datamodel_term::JsImportTerm,
-                object: &crate::datamodel_term::JsImportTerm,
-                graph: &crate::datamodel_term::JsImportTerm) {
-                crate::dataset_exportableds::ExportableDataset::delete_matches(&mut self.base, subject, predicate, object, graph);
+                subject: &crate::datamodel::term::JsImportTerm,
+                predicate: &crate::datamodel::term::JsImportTerm,
+                object: &crate::datamodel::term::JsImportTerm,
+                graph: &crate::datamodel::term::JsImportTerm) {
+                crate::wrapping::ExportableDataset::delete_matches(&mut self.base, subject, predicate, object, graph);
             }
 
             #[wasm_bindgen(js_name="forEach")]
             pub fn for_each(&self, quad_run_iteratee: &js_sys::Function) {
-                crate::dataset_exportableds::ExportableDataset::for_each(&self.base, quad_run_iteratee)
+                crate::wrapping::ExportableDataset::for_each(&self.base, quad_run_iteratee)
             }
 
             #[wasm_bindgen(js_name="toArray")]
             pub fn to_array(&self) -> js_sys::Array {
-                crate::dataset_exportableds::ExportableDataset::quads(&self.base)
+                crate::wrapping::ExportableDataset::quads(&self.base)
             }
 
             #[wasm_bindgen(js_name="toString")]
             pub fn to_string(&self) -> String {
-                crate::dataset_exportableds::ExportableDataset::to_string(&self.base)
+                crate::wrapping::ExportableDataset::to_string(&self.base)
             }
 
         }
@@ -146,12 +146,12 @@ macro_rules! wasm_bindgen_wrappeddataset {
         impl $rust_export_name {
             #[wasm_bindgen]
             pub fn quads(&self) -> js_sys::Array {
-                crate::dataset_exportableds::ExportableDataset::quads(&self.base)
+                crate::wrapping::ExportableDataset::quads(&self.base)
             }
 
             #[wasm_bindgen(js_name="getIterator")]
             pub fn get_iterator(&self) -> crate::exportiterator::RustExportIterator {
-                crate::dataset_exportableds::ExportableDataset::get_iterator(&self.base)
+                crate::wrapping::ExportableDataset::get_iterator(&self.base)
             }
         }
 
@@ -167,17 +167,17 @@ macro_rules! wasm_bindgen_wrappeddataset {
         impl $rust_export_name {
             #[wasm_bindgen(js_name="addNQuads")]
             pub fn add_nquads(&mut self, nquads: &str) {
-                crate::dataset_exportableds::ExportableDataset::add_nquads(&mut self.base, nquads)
+                crate::wrapping::ExportableDataset::add_nquads(&mut self.base, nquads)
             }
 
             #[wasm_bindgen(js_name="addTriG")]
             pub fn add_trig(&mut self, text: &str) {
-                crate::dataset_exportableds::ExportableDataset::add_trig(&mut self.base, text)
+                crate::wrapping::ExportableDataset::add_trig(&mut self.base, text)
             }
             
             #[wasm_bindgen(js_name="toNQuads")]
             pub fn tonquads(&self) -> String {
-                crate::dataset_exportableds::ExportableDataset::tonquads(&self.base)
+                crate::wrapping::ExportableDataset::tonquads(&self.base)
             }
         }
     };
@@ -202,7 +202,7 @@ macro_rules! wasm_bindgen_dataset {
     };
 
     ($sophia_dataset: ident, $js_name: expr, $exported_class: ident, $wrapped_class: ident) => {
-        type $wrapped_class = crate::dataset_exportableconcrete::ExportableConcreteDataset<$sophia_dataset>;
+        type $wrapped_class = crate::wrapping::DefaultExporter<$sophia_dataset>;
         crate::wasm_bindgen_wrappeddataset!($wrapped_class, $js_name, $exported_class);
     };
 }
