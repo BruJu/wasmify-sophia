@@ -10,3 +10,4 @@ wasm_example/
 # easier to benchmark the performances of both
 copysophialess.sh
 
+target/

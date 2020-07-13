@@ -14,9 +14,9 @@ use sophia::dataset::inmem::FastDataset;
 use sophia::dataset::inmem::LightDataset;
 use sophia::term::BoxTerm;
 
-use crate::btreeddataset::TreedDataset;
+use bjdatasets::btreeddataset::TreedDataset;
+use bjdatasets::fulldataset::FullIndexDataset;
 use crate::btreeddataset_anti::BTreedDatasetAntiWrapper;
-use crate::fulldataset::FullIndexDataset;
 use crate::dataset_into_vector_wrapper::VecOrDatasetWrapper;
 
 

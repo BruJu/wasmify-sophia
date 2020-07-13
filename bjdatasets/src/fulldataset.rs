@@ -20,7 +20,7 @@ use std::iter::empty;
 use sophia::dataset::DResult;
 use sophia::dataset::DQuad;
 
-use crate::datamodel_quad::SophiaExportQuad;
+use crate::RcQuad;
 
 
 #[cfg(test)]
@@ -506,7 +506,7 @@ impl<'a> Iterator for InflatedQuadsIterator<'a> {
                 }
             };
 
-            Ok(StreamedQuad::by_value(SophiaExportQuad::new(&s, &p, &o, g)))
+            Ok(StreamedQuad::by_value(RcQuad::new(&s, &p, &o, g)))
         })
     }
 }
@@ -643,7 +643,7 @@ macro_rules! full_indexed_dataset_quads_with {
 
 
 impl Dataset for FullIndexDataset {
-    type Quad = ByValue<SophiaExportQuad>;
+    type Quad = ByValue<RcQuad>;
     type Error = Infallible;
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {

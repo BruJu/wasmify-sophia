@@ -2,7 +2,7 @@
 use crate::datamodel_term::JsImportTerm;
 use crate::dataset_exportableds::ExportableDataset;
 use crate::dataset_exportableds::MatchRequestOnRcTerm;
-use crate::vecordataset::VecOrDataset;
+use bjdatasets::vecordataset::VecOrDataset;
 
 use sophia::dataset::Dataset;
 use sophia::dataset::MutableDataset;

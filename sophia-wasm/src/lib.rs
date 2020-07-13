@@ -19,13 +19,10 @@ pub mod dataset_core;
 // Debug / Log
 pub mod util;
 
-pub mod btreeddataset;
 pub mod btreeddataset_anti;
-pub mod fulldataset;
 
 pub mod dataset_exportableds;
 pub mod dataset_exportableconcrete;
 pub mod dataset_exportablemacro;
 
-pub mod vecordataset;
 pub mod dataset_into_vector_wrapper;

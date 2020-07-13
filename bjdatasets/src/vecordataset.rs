@@ -1,5 +1,5 @@
 
-use crate::datamodel_quad::SophiaExportQuad;
+use crate::RcQuad;
 
 use sophia::dataset::Dataset;
 use sophia::dataset::MutableDataset;
@@ -40,7 +40,7 @@ impl<D> VecOrDataset<D> where D: Dataset + MutableDataset + Default {
 
 
 impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default {
-    type Quad = ByValue<SophiaExportQuad>;
+    type Quad = ByValue<RcQuad>;
     type Error = D::Error;
 
     fn quads(&self) -> DQuadSource<Self> {
@@ -48,7 +48,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads()
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -56,7 +56,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads()
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -71,7 +71,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_g(g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -79,7 +79,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_g(g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -94,7 +94,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_o(o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -102,7 +102,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_o(o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -117,7 +117,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_og(o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -125,7 +125,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_og(o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -140,7 +140,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_p(p)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -148,7 +148,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_p(p)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -163,7 +163,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_pg(p, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -171,7 +171,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_pg(p, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -186,7 +186,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_po(p, o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -194,7 +194,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_po(p, o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -209,7 +209,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_pog(p, o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -217,7 +217,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_pog(p, o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -232,7 +232,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_s(s)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -240,7 +240,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_s(s)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -255,7 +255,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_sg(s, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -263,7 +263,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_sg(s, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -278,7 +278,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_so(s, o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -286,7 +286,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_so(s, o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -301,7 +301,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_sog(s, o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -309,7 +309,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_sog(s, o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -324,7 +324,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_sp(s, p)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -332,7 +332,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_sp(s, p)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -347,7 +347,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_spg(s, p, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -355,7 +355,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_spg(s, p, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -370,7 +370,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_spo(s, p, o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -378,7 +378,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_spo(s, p, o)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -393,7 +393,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Vector(vect) => {
                 let qs = vect.quads_with_spog(s, p, o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)
@@ -401,7 +401,7 @@ impl<D> Dataset for VecOrDataset<D> where D: Dataset + MutableDataset + Default 
             VecOrDataset::Dataset(d) => {
                 let qs = d.quads_with_spog(s, p, o, g)
                     .map(|q| q.unwrap())
-                    .map(|q| SophiaExportQuad::new_from_quad(&q))
+                    .map(|q| RcQuad::new_from_quad(&q))
                     .map(|q| Ok(StreamedQuad::by_value(q)));
 
                 Box::new(qs)

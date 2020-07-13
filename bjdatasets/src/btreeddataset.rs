@@ -3,8 +3,10 @@ use std::collections::BTreeSet;
 
 use sophia::dataset::MutableDataset;
 use std::convert::Infallible;
+use sophia::dataset::DQuad;
 use sophia::dataset::DQuadSource;
 use sophia::dataset::Dataset;
+use sophia::dataset::DResult;
 use sophia::dataset::MDResult;
 use sophia::graph::inmem::TermIndexMapU;
 use sophia::quad::streaming_mode::ByValue;
@@ -16,10 +18,8 @@ use sophia::term::RefTerm;
 use sophia::term::Term;
 use sophia::term::TermData;
 use std::iter::empty;
-use sophia::dataset::DResult;
-use sophia::dataset::DQuad;
 
-use crate::datamodel_quad::SophiaExportQuad;
+use crate::RcQuad;
 
 #[cfg(test)]
 use sophia::test_dataset_impl;
@@ -471,7 +471,7 @@ impl TreedDataset {
 }
 
 impl Dataset for TreedDataset {
-    type Quad = ByValue<SophiaExportQuad>;
+    type Quad = ByValue<RcQuad>;
     type Error = Infallible;
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {
@@ -765,7 +765,7 @@ impl<'a> Iterator for InflatedQuadsIterator<'a> {
                 }
             };
 
-            Ok(StreamedQuad::by_value(SophiaExportQuad::new(&s, &p, &o, g)))
+            Ok(StreamedQuad::by_value(RcQuad::new(&s, &p, &o, g)))
         })
     }
 }
