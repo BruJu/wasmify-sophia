@@ -242,6 +242,20 @@ impl BlockOrder {
             filter_block: filter_block
         }
     }
+    
+    /// Returns a `BTreeSet<Block>` that contains every identifier quad in the
+    /// `source` that does not match the `identifier_quad_pattern`. The block
+    /// order of both the source tree and the returned tree is the one of
+    /// this object.
+    pub fn filter_to_tree(&self, source: &BTreeSet<Block<u32>>,
+        identifier_quad_pattern: &[Option<u32>; 4]) -> BTreeSet<Block<u32>> {
+        let filter_block = self.to_filter_block(identifier_quad_pattern);
+
+        source.into_iter()
+            .filter(|block| !block.match_option_block(&filter_block))
+            .map(|b| b.clone())
+            .collect()
+    }
 }
 
 /// An iterator on a sub tree
