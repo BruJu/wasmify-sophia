@@ -524,4 +524,26 @@ impl IndexingForest4 {
 
         true
     }
+
+    /// Returns the number of currently instancied trees
+    pub fn get_number_of_living_trees(&self) -> usize {
+        1 + self.optional_trees
+            .iter()
+            .filter(|pair| pair.1.get().is_some())
+            .count()
+    }
+
+    /// Ensure the optimal index tree for this forest is built for the given
+    /// request pattern.
+    pub fn ensure_has_index_for(&mut self, s: bool, p: bool, o: bool, g: bool) {
+        let spog: [Option<u32>; 4] = [
+            if s { Some(0) } else { None },
+            if p { Some(0) } else { None },
+            if o { Some(0) } else { None },
+            if g { Some(0) } else { None },
+        ];
+
+        let mut iter = self.search_all_matching_quads(spog, true);
+        iter.next(); // Ensure the tree is not lazily built
+    }
 }

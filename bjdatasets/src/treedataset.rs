@@ -423,5 +423,19 @@ impl MutableDataset for TreeDataset {
     }
 }
 
+impl TreeDataset {
+    /// Returns the number of currently instancied trees
+    pub fn get_number_of_living_trees(&self) -> usize {
+        self.forest.get_number_of_living_trees()
+    }
+
+    /// Ensure the optimal index tree for this forest is built for the given
+    /// request pattern.
+    pub fn ensure_has_index_for(&mut self, s: bool, p: bool, o: bool, g: bool) {
+        self.forest.ensure_has_index_for(s, p, o, g);
+    }
+}
+
+
 #[cfg(test)]
 sophia::test_dataset_impl!(test_treedataset, TreeDataset);
