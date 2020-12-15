@@ -749,8 +749,7 @@ function runTests (name, rdf, instancier) {
             spaceship(acc.graph.value, quad.graph.value)
           ]
 
-          for (let index in r) {
-            let v = r[index]
+          for (let v of r) {
             if (v < 0) {
               return acc
             } else if (v > 0) {

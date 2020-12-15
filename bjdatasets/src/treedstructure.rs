@@ -1,6 +1,29 @@
 ﻿use once_cell::unsync::OnceCell;
 use std::collections::BTreeSet;
 
+/// This module defines a forest structure to store quads in several trees.
+/// The stored quads are expected in the form of 4 identifiers (`u32` values).
+/// The semantic of the identifiers must be stored separately by the user of
+/// this module.
+///
+/// The mains components are :
+/// - `Block`: An identifier quad, which order is not SPOG
+/// - `BlockOrder`: A structure that enables to convert an identfier quad into
+/// a block and conversely
+/// - [u32; NB_OF_TERMS]: An array of four identifiers
+/// - Identifier: An `u32` (because Web Assembly is good at manipulating
+/// these)
+/// - `IndexingForest4Id`: A forest designed to index quads in the form of 4
+/// identifiers
+
+// Warning for the developper: Many methods use in there implementation the
+// fact that there are 4 terms in a quad. So transforming the (Quad) Block
+// implementation into a TripleBlock implementation is not just modifying
+// NB_OF_TERMS.
+
+/// Number of terms in a quad
+pub const NB_OF_TERMS: usize = 4;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum TermRole {
     Subject = 0,
@@ -13,12 +36,12 @@ pub enum TermRole {
 /// a certain order
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone, Copy)]
 pub struct Block<T> {
-    data: [T; 4],
+    data: [T; NB_OF_TERMS],
 }
 
 impl <T> Block<T> where T: Clone {
     /// Creates a block with the given values
-    pub fn new(values: [T; 4]) -> Block<T> {
+    pub fn new(values: [T; NB_OF_TERMS]) -> Block<T> {
         Block { data: values }
     }
 }
@@ -39,22 +62,24 @@ impl <T> Block<T> where T: Clone + PartialEq {
     }
 }
 
-/// A block order enables to convert a SPOG quad into a block and get back
-/// the SPOG quad.
+/// A block order enables to convert an identifier quad into a block and get
+/// back the identifier quad.
 /// 
 /// It provides methods to manipulate the elements of a `BTreeSet<Block>`
-/// by using functions that takes as input or returns an array of four u32
-/// representing the quad indexes
+/// by using functions that takes as input or returns identifier quads.
 #[derive(Clone, Copy)]
 pub struct BlockOrder {
-    term_roles: [TermRole; 4],
-    to_block_index_to_destination: [usize; 4],
-    to_indices_index_to_destination: [usize; 4]
+    term_roles: [TermRole; NB_OF_TERMS],
+    // if block is GSPO, `block_order_to_spog_order == [3, 0, 1, 2]`
+    block_order_to_spog_order : [usize; NB_OF_TERMS],
+    // if block is GSPO, `spog_order_to_block_order == [1, 2, 3, 0]`
+    spog_order_to_block_order : [usize; NB_OF_TERMS]
 }
 
 impl BlockOrder {
     /// Returns a string that represents the block order
     pub fn name(&self) -> String {
+        debug_assert!(NB_OF_TERMS == 4);
         format!(
             "{:?} {:?} {:?} {:?}",
             self.term_roles[0],
@@ -64,84 +89,88 @@ impl BlockOrder {
         )
     }
 
-    pub fn get_term_roles(&self) -> &[TermRole; 4] {
+    pub fn get_term_roles(&self) -> &[TermRole; NB_OF_TERMS] {
         &self.term_roles
     }
 
     /// Builds a block builder from an order of SPOG
-    pub fn new(term_roles: [TermRole; 4]) -> BlockOrder {
+    pub fn new(term_roles: [TermRole; NB_OF_TERMS]) -> BlockOrder {
         debug_assert!({
-            let mut present = [false; 4];
+            let mut present = [false; NB_OF_TERMS];
             for tr in term_roles.iter() {
                 present[*tr as usize] = true;
             }
             present.iter().all(|x| *x)
         });
-        let mut to_block_index_to_destination = [0; 4];
-        let mut to_indices_index_to_destination = [0; 4];
+        let mut block_order_to_spog_order = [0; NB_OF_TERMS];
+        let mut spog_order_to_block_order = [0; NB_OF_TERMS];
 
         for (position, term_role) in term_roles.iter().enumerate() {
-            to_indices_index_to_destination[*term_role as usize] = position;
-            to_block_index_to_destination[position] = *term_role as usize;
+            spog_order_to_block_order[*term_role as usize] = position;
+            block_order_to_spog_order[position] = *term_role as usize;
         }
         
-        BlockOrder { term_roles, to_block_index_to_destination, to_indices_index_to_destination }
+        BlockOrder { term_roles, block_order_to_spog_order, spog_order_to_block_order }
     }
 
-    /// Builds a block from SPOG indices
-    pub fn to_block<T>(&self, indices: &[T; 4]) -> Block<T> where T: Copy {
+    /// Builds a block from an identifier quad
+    pub fn to_block<T>(&self, identifier_quad: &[T; NB_OF_TERMS]) -> Block<T> where T: Copy {
+        debug_assert!(NB_OF_TERMS == 4);
         Block{
             data: [
-                indices[self.to_block_index_to_destination[0]],
-                indices[self.to_block_index_to_destination[1]],
-                indices[self.to_block_index_to_destination[2]],
-                indices[self.to_block_index_to_destination[3]]
+                identifier_quad[self.block_order_to_spog_order[0]],
+                identifier_quad[self.block_order_to_spog_order[1]],
+                identifier_quad[self.block_order_to_spog_order[2]],
+                identifier_quad[self.block_order_to_spog_order[3]]
             ]
         }
     }
 
-    /// Builds a block from SPOG indices
-    pub fn to_filter_block<T>(&self, indices: &[Option<T>; 4]) -> Block<Option<T>> where T: Copy + PartialEq {
+    /// Builds a block from an identifier quad pattern
+    pub fn to_filter_block<T>(&self, identifier_quad_pattern: &[Option<T>; NB_OF_TERMS])
+        -> Block<Option<T>> where T: Copy + PartialEq {
         Block{
             data: [
-                indices[self.to_block_index_to_destination[0]],
-                indices[self.to_block_index_to_destination[1]],
-                indices[self.to_block_index_to_destination[2]],
-                indices[self.to_block_index_to_destination[3]]
+                identifier_quad_pattern[self.block_order_to_spog_order[0]],
+                identifier_quad_pattern[self.block_order_to_spog_order[1]],
+                identifier_quad_pattern[self.block_order_to_spog_order[2]],
+                identifier_quad_pattern[self.block_order_to_spog_order[3]]
             ]
         }
     }
 
-    /// Buids SPOG indices from a block
-    pub fn to_indices<T>(&self, block: &Block<T>) -> [T; 4] where T: Copy {
+    /// Builds an identifier quad from a block
+    pub fn to_identifier_quad<T>(&self, block: &Block<T>) -> [T; NB_OF_TERMS] where T: Copy {
         return [
-            block.data[self.to_indices_index_to_destination[0]],
-            block.data[self.to_indices_index_to_destination[1]],
-            block.data[self.to_indices_index_to_destination[2]],
-            block.data[self.to_indices_index_to_destination[3]],
+            block.data[self.spog_order_to_block_order[0]],
+            block.data[self.spog_order_to_block_order[1]],
+            block.data[self.spog_order_to_block_order[2]],
+            block.data[self.spog_order_to_block_order[3]],
         ]
     }
 
     /// Returns the number of term kinds in the array request_terms that can be
     /// used as a prefix
-    pub fn index_conformance(&self, request: &[&Option<u32>; 4]) -> usize {
+    pub fn index_conformance(&self, request: &[&Option<u32>; NB_OF_TERMS]) -> usize {
         self.term_roles
             .iter()
             .take_while(|tr| request[**tr as usize].is_some())
             .count()
     }
 
-    /// Returns a range on every block that matches the given spog. The range
-    /// is restricted as much as possible. Returned indexes are the spog indexes
-    /// that are not strictly filtered by the range (other spog that do not
-    /// match can be returned)
-    pub fn range(&self, spog: [Option<u32>; 4]) -> (std::ops::RangeInclusive<Block<u32>>, Block<Option<u32>>) {
+    /// Returns a range on every block that matches the given identifier quad
+    /// pattern. The range is restricted as much as possible, but extra quads
+    /// that do not match the pattern may be included (best effort).
+    /// To let the user filter the extra quads, a filter block is also
+    /// returned.
+    pub fn range(&self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS])
+        -> (std::ops::RangeInclusive<Block<u32>>, Block<Option<u32>>) {
         // Restrict range as much as possible
-        let mut min = [u32::min_value(); 4];
-        let mut max = [u32::max_value(); 4];
+        let mut min = [u32::min_value(); NB_OF_TERMS];
+        let mut max = [u32::max_value(); NB_OF_TERMS];
 
         for (i, term_role) in self.term_roles.iter().enumerate() {
-            match spog[*term_role as usize] {
+            match identifier_quad_pattern[*term_role as usize] {
                 None => { break; }
                 Some(set_value) => {
                     min[i] = set_value;
@@ -151,84 +180,74 @@ impl BlockOrder {
         }
 
 	    // Return range + filter block
-	    (Block::new(min)..=Block::new(max), self.to_filter_block(&spog))
+	    (Block::new(min)..=Block::new(max), self.to_filter_block(&identifier_quad_pattern))
     }
 
-    /// Inserts the given quad in the passed tree, using this quad ordering
+    /// Inserts the given identifier quad in the passed tree, using this block order
     /// 
     /// Returns true if the quad was already present
-    pub fn insert_into(&self, tree: &mut BTreeSet<Block<u32>>, spog: &[u32; 4]) -> bool {
-        let block = self.to_block(spog);
-        !tree.insert(block)
+    pub fn insert_into(&self, tree: &mut BTreeSet<Block<u32>>, identifier_quad: &[u32; NB_OF_TERMS]) -> bool {
+        !tree.insert(self.to_block(identifier_quad))
     }
 
-    /// Deletes the given quad from the passed tree, using this quad ordering
+    /// Deletes the given identifier quad from the passed tree, using this block order
     /// 
     /// Returns true if the quad has been deleted
-    pub fn delete_from(&self, tree: &mut BTreeSet<Block<u32>>, spog: &[u32; 4]) -> bool {
-        let block = self.to_block(spog);
-        tree.remove(&block)
+    pub fn delete_from(&self, tree: &mut BTreeSet<Block<u32>>, identifier_quad: &[u32; NB_OF_TERMS]) -> bool {
+        tree.remove(&self.to_block(identifier_quad))
     }
 
     /// Returns true if the passed tree contains the passed quad
-    pub fn contains(&self, tree: &BTreeSet<Block<u32>>, spog: &[u32; 4]) -> bool {
-        let block = self.to_block(spog);
-        tree.contains(&block)
+    pub fn contains(&self, tree: &BTreeSet<Block<u32>>, identifier_quad: &[u32; NB_OF_TERMS]) -> bool {
+        tree.contains(&self.to_block(identifier_quad))
     }
 
-    /// Inserts every quads in iterator in the passed tree
-    pub fn insert_all_into<'a>(&self, tree: &mut BTreeSet<Block<u32>>, iterator: FilteredIndexQuads<'a>) {
-        for block in iterator.map(|spog| self.to_block(&spog)) {
+    /// Inserts every identifier quad from iterator in the passed tree
+    pub fn insert_all_into<'a>(&self, tree: &mut BTreeSet<Block<u32>>, iterator: IdentifierQuadFilter<'a>) {
+        for block in iterator.map(|identifier_quad| self.to_block(&identifier_quad)) {
             tree.insert(block);
         }
     }
 
-    /// Returns an iterator on every quads that matches the given filter.
+    /// Returns an iterator on every identifier quad that matches the given
+    /// identifier quad pattern.
     /// 
-    /// The filter in an array of four optional quad indexes, None means every
-    /// quad must be matched, a given value on a term position that only quads
-    /// that have the specified value have to be returned.
+    /// An identifier quad pattern is an array of four optional identifiers,
+    /// None means every quad must be matched on this term, a given value on a
+    /// term position that only quads that have the specified identifier have
+    /// to be returned.
     /// 
-    /// The filtering tries to be smart by iterating on the less possible number
-    /// of quads in the tree. For several trees, the result of
-    /// `index_conformance` indicates how many quads will be iterated on : for
-    /// two block order, the block order that returns the greater
-    /// `index_conformance` will return an iterator that looks over less
-    /// different quads.
-    pub fn filter<'a>(&'a self, tree: &'a BTreeSet<Block<u32>>, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
-        let (range, term_filter) = self.range(spog);
+    /// The filter tries to be smart by iterating on the less possible number
+    /// of quads in the tree.
+    /// 
+    /// When several trees are owned, the result of the `index_conformance`
+    /// method indicates how many quads will be iterated on : for two block
+    /// order, the block order that returns the greater `index_conformance`
+    /// will return an iterator that looks over less different quads.
+    pub fn filter<'a>(&'a self, tree: &'a BTreeSet<Block<u32>>, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IdentifierQuadFilter {
+        let (range, filter_block) = self.range(identifier_quad_pattern);
         let tree_range = tree.range(range);
 
-        FilteredIndexQuads {
+        IdentifierQuadFilter {
             range: tree_range,
             block_order: self,
-            term_filter: term_filter
+            filter_block: filter_block
         }
-    }
-    
-    /// ???
-    pub fn build_new_tree_by_filtering(&self, source: &BTreeSet<Block<u32>>, spog: &[Option<u32>; 4]) -> BTreeSet<Block<u32>> {
-        let filter_block = self.to_filter_block(spog);
-
-        source.into_iter()
-            .filter(|block| !block.match_option_block(&filter_block))
-            .map(|b| b.clone())
-            .collect()
     }
 }
 
 /// An iterator on a sub tree
-pub struct FilteredIndexQuads<'a> {
+pub struct IdentifierQuadFilter<'a> {
     /// Iterator
     range: std::collections::btree_set::Range<'a, Block<u32>>,
-    /// Used block order to retrived SPOG quad indexes
+    /// Used block order to retrived SPOG quad
     block_order: &'a BlockOrder,
     /// Term filter for quads that can't be restricted by the range
-    term_filter: Block<Option<u32>>
+    filter_block: Block<Option<u32>>
 }
 
-impl<'a> Iterator for FilteredIndexQuads<'a> {
-    type Item = [u32; 4];
+impl<'a> Iterator for IdentifierQuadFilter<'a> {
+    type Item = [u32; NB_OF_TERMS];
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -237,8 +256,8 @@ impl<'a> Iterator for FilteredIndexQuads<'a> {
             match next.as_ref() {
                 None => { return None; },
                 Some(block) => {
-                    if block.match_option_block(&self.term_filter) {
-                        return Some(self.block_order.to_indices(block));
+                    if block.match_option_block(&self.filter_block) {
+                        return Some(self.block_order.to_identifier_quad(block));
                     }
                 }
             }
@@ -259,7 +278,19 @@ impl<'a> Iterator for FilteredIndexQuads<'a> {
 /// 
 /// Up to 6 different trees are built, with the OGPS tree being built by
 /// default
-pub struct IndexTrees {
+
+
+
+/// A structure that stores quads (four identifiers) in one to six `BTreeSet`.
+///
+/// While they contain the same element, the trees sort them in different
+/// order, which enables to request for quads complying with a defined pattern
+/// without iterating on quads that do not match the pattern.
+///
+/// The identifiers passed to this structure must be ordered by Subject,
+/// Predicate, Object and Graph order. An array of four identifiers respecting
+/// this order is called "Identifier Quad".
+pub struct IndexingForest4Id {
     /// The tree that is always instancied
     pub base_tree: (BlockOrder, BTreeSet<Block<u32>>),
     /// A list of optional trees that can be instancied ot improve look up
@@ -267,9 +298,9 @@ pub struct IndexTrees {
     pub optional_trees: Vec<(BlockOrder, OnceCell<BTreeSet<Block<u32>>>)>,
 }
 
-impl Default for IndexTrees {
+impl Default for IndexingForest4Id {
     fn default() -> Self {
-        IndexTrees::new_with_indexes(
+        IndexingForest4Id::new_with_indexes(
             &vec!([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
             Some(&vec!(
                 [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
@@ -282,7 +313,7 @@ impl Default for IndexTrees {
     }
 }
 
-impl IndexTrees {
+impl IndexingForest4Id {
     pub fn new_with_indexes(default_initialized: &Vec<[TermRole; 4]>, optional_indexes: Option<&Vec<[TermRole; 4]>>) -> Self {
         assert!(!default_initialized.is_empty());
 
@@ -379,13 +410,19 @@ impl IndexTrees {
         )
     }
 
-    /// Returns an iterator on quads represented by their indexes from the dataset
+    /// Returns an iterator on identifier quads from the dataset, respecting
+    /// the given pattern.
     /// 
-    /// This function can potentially build a new tree in the structure if the `can_build_new_tree` parameter is
-    /// equal to true.
-    pub fn search_all_matching_quads<'a>(&'a self, spog: [Option<u32>; 4], can_build_new_tree: bool) -> FilteredIndexQuads {
+    /// This function can potentially build a new tree in the structure if the
+    /// `can_build_new_tree` parameter is equal to true.
+    pub fn search_all_matching_quads<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS], can_build_new_tree: bool) -> IdentifierQuadFilter {
         // Find best index
-        let term_roles = [&spog[0], &spog[1], &spog[2], &spog[3]];
+        let term_roles = [
+            &identifier_quad_pattern[0],
+            &identifier_quad_pattern[1],
+            &identifier_quad_pattern[2],
+            &identifier_quad_pattern[3]
+        ];
 
         let mut best_alt_tree_pos = None;
         let mut best_index_score = self.base_tree.0.index_conformance(&term_roles);
@@ -401,7 +438,6 @@ impl IndexTrees {
         }
 
         // Split research
-
         let tree_description = match best_alt_tree_pos {
             Some(x) => {
                 let alternative_tree_description = &self.optional_trees[x];
@@ -420,30 +456,34 @@ impl IndexTrees {
             None => (&self.base_tree.0, &self.base_tree.1)
         };
 
-        tree_description.0.filter(&tree_description.1, spog)
+        tree_description.0.filter(&tree_description.1, identifier_quad_pattern)
     }
 
-    /// Returns an iterator on quads represented by their indexes from the dataset
+    /// Returns an iterator on identifier quads from the dataset, respecting
+    /// the given pattern.
+    ///
+    /// An identifier quad is an array of four identifiers which represents the
+    /// subject, the predicate, the object and the graph (in this order).
     /// 
     /// This function will always build a new tree if a better indexation is possible for this
-    /// tree. If you do not want to pay the potential cost of building a new tree, call the
+    /// forest. If you do not want to pay the potential cost of building a new tree, use the
     /// `search_all_matching_quads` function.
-    pub fn filter<'a>(&'a self, spog: [Option<u32>; 4]) -> FilteredIndexQuads {
-        self.search_all_matching_quads(spog, true)
+    pub fn filter<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IdentifierQuadFilter {
+        self.search_all_matching_quads(identifier_quad_pattern, true)
     }
 
-    /// Inserts in the dataset the quad described by the given array of indexes.
+    /// Inserts in the dataset the quad described by the given array of identifiers.
     /// 
     /// Returns true if the quad has been inserted in the dataset (it was not
     /// already in it)
-    pub fn insert_by_index(&mut self, spog: [u32; 4]) -> bool {
-        if self.base_tree.0.insert_into(&mut self.base_tree.1, &spog) {
+    pub fn insert(&mut self, identifier_quad: [u32; NB_OF_TERMS]) -> bool {
+        if self.base_tree.0.insert_into(&mut self.base_tree.1, &identifier_quad) {
             return false;
         }
 
         for optional_tree_tuple in self.optional_trees.iter_mut() {
             if let Some(instancied_tree) = optional_tree_tuple.1.get_mut() {
-                optional_tree_tuple.0.insert_into(instancied_tree, &spog); // assert false
+                optional_tree_tuple.0.insert_into(instancied_tree, &identifier_quad); // assert false
             }
         }
 
@@ -451,17 +491,17 @@ impl IndexTrees {
     }
 
     /// Deletes from the dataset the quad described by the given array of
-    /// indexes.
+    /// identifiers.
     /// 
     /// Returns true if the quad was in the dataset (and was deleted)
-    pub fn delete_by_index(&mut self, spog: [u32; 4]) -> bool {
-        if !self.base_tree.0.delete_from(&mut self.base_tree.1, &spog) {
+    pub fn delete(&mut self, identifier_quad: [u32; NB_OF_TERMS]) -> bool {
+        if !self.base_tree.0.delete_from(&mut self.base_tree.1, &identifier_quad) {
             return false;
         }
 
         for optional_tree_tuple in self.optional_trees.iter_mut() {
             if let Some(instancied_tree) = optional_tree_tuple.1.get_mut() {
-                optional_tree_tuple.0.delete_from(instancied_tree, &spog); // assert true
+                optional_tree_tuple.0.delete_from(instancied_tree, &identifier_quad); // assert true
             }
         }
 

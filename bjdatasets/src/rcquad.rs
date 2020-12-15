@@ -3,7 +3,8 @@ use sophia::term::RcTerm;
 use sophia::quad::Quad;
 use std::rc::Rc;
 
-/// A RcQuad owns its data in the form of four RcTerms.
+/// `RcQuad` is a sophia::Quad implementation that owns its term in the form of
+/// `RcTerms`
 pub struct RcQuad {
     /// Subject of the quad
     pub _subject: RcTerm,

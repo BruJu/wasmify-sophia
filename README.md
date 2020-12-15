@@ -1,8 +1,13 @@
 # Wasm-ify Sophia
 
-This repository is a work in progress to export datasets
-implementing the `Dataset` trait from the [Sophia Rust too l kit][Sophia] to the Javascript world, using Web Assembly
-and by exposing an [RDF.JS] compliant implementation.
+This repository propose an architecture to export to Javascript classes
+that implements the [Dataset API of the Sophia tool kit][Sophia].
+
+The Rust code is compiled to Web Assembly and the resulting Javascript
+class is (almost) [RDF.JS] Dataset compliant.
+
+It also provides some new custom Sophia Dataset implementation.
+
 
 ## sophia_wasm
 
@@ -19,22 +24,37 @@ A wrapper class is provided to address some of the issues of the defaultly expor
 
 The folder [bjdatasets](bjdatasets) exposes some implementation of [the Sophia Dataset trait][Sophia].
 
-- `TreedDataset`, a dataset that resorts on multiple trees to do efficient quad research
+- `TreeDataset`, a dataset that resorts on multiple trees to do efficient quad research
 - `FullIndexDataset`, a dataset that stores for every possible pattern every corresponding quad
 - `VecOrDataset<D>`, a dataset that can use either a vector of quads or another Dataset structure
 
 
-`TreedDataset` is used as the base structure of [WasmTree][WasmTree], a project to implement the [RDF.JS specification][RDFJSDataset] using Web Assembly but without resorting to [Sophia].
+`TreeDataset` is used as the base structure of [WasmTree][WasmTree], a project to implement the [RDF.JS specification][RDFJSDataset] using Web Assembly but without resorting to [Sophia].
 
 ## Build
 
 ***TODO***
 
+### Required
+
+- Rust / [wasm_bindgen]
+- [wasm-pack]
+- mocha (`sudo npm install -g mocha`)
+
+### Run tests
+
+Rust : ***TODO***
+
+Javascript :
+- `cd sophia-wasm`
+- `npm install`
+- `./run_server.sh test`
 
 
+***TODO : Rename or get rid of run_server (it doesn't actually run a server)**
 
 
-## Problems / Issues / I can't find the word I want to write here
+## Issue
 
 Currently, [WasmTree] is faster than the tested exportations. So if you want to just use Web Assembly to improve the performances of your Javascript application, you should consider using it instead.
 

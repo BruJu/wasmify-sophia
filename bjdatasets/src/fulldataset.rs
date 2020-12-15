@@ -22,10 +22,8 @@ use sophia::dataset::DQuad;
 
 use crate::RcQuad;
 
-
 #[cfg(test)]
 use sophia::test_dataset_impl;
-
 
 
 const POS_GPS: usize = 0;
@@ -55,9 +53,9 @@ const QUAD_G: usize = 3;
 /// a hashmap.
 /// 
 /// The indexes are created lazily except the index that maps the Graph,
-/// Predicate and Subject index to a hashset of Objects.
+/// Predicate and Subject identifier to a hashset of Objects.
 /// 
-/// The functions of Data expects terms indexes with the order "SPOG".
+/// The functions of Data expects identifier quads with the order "SPOG".
 /// The implementation of the methods uses a different order that uses an
 /// "expected numbers of the different terms" orders which is
 /// `|G| < |P| < |S |< |O|`
@@ -109,7 +107,7 @@ impl Data {
         }
     }
 
-    /// Maps the number of indexes and the positions of the index in the hashmap
+    /// Maps the number of terms and the positions of the terms in the hashmap
     /// array to the list of positions of terms in the SPOG order.
     fn indexes(level: u8, position: usize) -> (usize, usize, usize, usize) {
         match (level, position) {
@@ -447,7 +445,7 @@ impl Data {
 
 /// A dataset that can lazily build every possible indexes
 pub struct FullIndexDataset {
-    term_index: TermIndexMapU<u32, RcTermFactory>,
+    term_id_map: TermIndexMapU<u32, RcTermFactory>,
     data: Data,
 }
 
@@ -455,7 +453,7 @@ pub struct FullIndexDataset {
 /// of Sophia Quads
 pub struct InflatedQuadsIterator<'a> {
     base_iterator: Box<dyn Iterator<Item = [u32; 4]> + 'a>,
-    term_index: &'a TermIndexMapU<u32, RcTermFactory>,
+    term_id_map: &'a TermIndexMapU<u32, RcTermFactory>,
     last_tuple: Option<[(u32, &'a RcTerm); 3]>,
     last_graph: Option<(u32, &'a RcTerm)>
 }
@@ -465,11 +463,11 @@ impl<'a> InflatedQuadsIterator<'a> {
     /// and a `TermIndexMap` to match the `DQuadSource` interface.
     pub fn new_box(
         base_iterator: Box<dyn Iterator<Item = [u32; 4]> + 'a>,
-        term_index: &'a TermIndexMapU<u32, RcTermFactory>
+        term_id_map: &'a TermIndexMapU<u32, RcTermFactory>
     ) -> Box<InflatedQuadsIterator<'a>> {
         Box::new(InflatedQuadsIterator {
             base_iterator: base_iterator,
-            term_index: term_index,
+            term_id_map: term_id_map,
             last_tuple: None,
             last_graph: None
         })
@@ -483,15 +481,15 @@ impl<'a> Iterator for InflatedQuadsIterator<'a> {
         self.base_iterator.next().map(|spog| {
             let s = match self.last_tuple {
                 Some([(a, x), _, _]) if a == spog[0] => x,
-                _ => self.term_index.get_term(spog[0]).unwrap()
+                _ => self.term_id_map.get_term(spog[0]).unwrap()
             };
             let p = match self.last_tuple {
                 Some([_, (a, x), _]) if a == spog[1] => x,
-                _ => self.term_index.get_term(spog[1]).unwrap()
+                _ => self.term_id_map.get_term(spog[1]).unwrap()
             };
             let o = match self.last_tuple {
                 Some([_, _, (a, x)]) if a == spog[2] => x,
-                _ => self.term_index.get_term(spog[2]).unwrap()
+                _ => self.term_id_map.get_term(spog[2]).unwrap()
             };
 
             self.last_tuple = Some([(spog[0], s), (spog[1], p), (spog[2], o)]);
@@ -500,7 +498,7 @@ impl<'a> Iterator for InflatedQuadsIterator<'a> {
                 (x, _) if x == TermIndexMapU::<u32, RcTermFactory>::NULL_INDEX => None,
                 (x, Some((y, value))) if x == y => Some(value),
                 (_, _) => {
-                    let g = self.term_index.get_graph_name(spog[3]).unwrap();
+                    let g = self.term_id_map.get_graph_name(spog[3]).unwrap();
                     self.last_graph = Some((spog[3], g.unwrap()));
                     g
                 }
@@ -515,7 +513,7 @@ impl FullIndexDataset {
     /// Builds an empty `FullIndexDataset`
     pub fn new() -> FullIndexDataset {
         FullIndexDataset {
-            term_index: TermIndexMapU::new(),
+            term_id_map: TermIndexMapU::new(),
             data: Data::new(),
         }
     }
@@ -532,12 +530,12 @@ macro_rules! full_indexed_dataset_quads_with {
         fn $function_name<'s, T1>(&'s self, t1: &'s Term<T1>) -> DQuadSource<'s, Self>
         where T1: TermData
         {
-            let t1 = self.term_index.get_index(&t1.into());
+            let t1 = self.term_id_map.get_index(&t1.into());
             if t1.is_none() {
                 return Box::new(empty());
             } else {
                 let quads = self.data.get_1($position, t1.unwrap());
-                InflatedQuadsIterator::new_box(quads, &self.term_index)
+                InflatedQuadsIterator::new_box(quads, &self.term_id_map)
             }
         }
     );
@@ -546,12 +544,12 @@ macro_rules! full_indexed_dataset_quads_with {
         fn $function_name<'s, T1, T2>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>) -> DQuadSource<'s, Self>
         where T1: TermData, T2: TermData
         {
-            let t1 = self.term_index.get_index(&t1.into());
-            let t2 = self.term_index.get_index(&t2.into());
+            let t1 = self.term_id_map.get_index(&t1.into());
+            let t2 = self.term_id_map.get_index(&t2.into());
             match (t1, t2) {
                 (Some(t1), Some(t2)) => {
                     let quads = self.data.get_2($position, [t1, t2]);
-                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                    InflatedQuadsIterator::new_box(quads, &self.term_id_map)
                 },
                 (_, _) => Box::new(empty())
             }
@@ -562,13 +560,13 @@ macro_rules! full_indexed_dataset_quads_with {
         fn $function_name<'s, T1, T2, T3>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>, t3: &'s Term<T3>) -> DQuadSource<'s, Self>
         where T1: TermData, T2: TermData, T3: TermData
         {
-            let t1 = self.term_index.get_index(&t1.into());
-            let t2 = self.term_index.get_index(&t2.into());
-            let t3 = self.term_index.get_index(&t3.into());
+            let t1 = self.term_id_map.get_index(&t1.into());
+            let t2 = self.term_id_map.get_index(&t2.into());
+            let t3 = self.term_id_map.get_index(&t3.into());
             match (t1, t2, t3) {
                 (Some(t1), Some(t2), Some(t3)) => {
                     let quads = self.data.get_3($position, [t1, t2, t3]);
-                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                    InflatedQuadsIterator::new_box(quads, &self.term_id_map)
                 },
                 (_, _, _) => Box::new(empty())
             }
@@ -579,12 +577,12 @@ macro_rules! full_indexed_dataset_quads_with {
         fn $function_name<'s, T1>(&'s self, t1: Option<&'s Term<T1>>) -> DQuadSource<'s, Self>
         where T1: TermData
         {
-            let t1 = self.term_index.get_index_for_graph_name(t1.map(RefTerm::from).as_ref());
+            let t1 = self.term_id_map.get_index_for_graph_name(t1.map(RefTerm::from).as_ref());
             if t1.is_none() {
                 return Box::new(empty());
             } else {
                 let quads = self.data.get_1($position, t1.unwrap());
-                InflatedQuadsIterator::new_box(quads, &self.term_index)
+                InflatedQuadsIterator::new_box(quads, &self.term_id_map)
             }
         }
     );
@@ -593,12 +591,12 @@ macro_rules! full_indexed_dataset_quads_with {
         fn $function_name<'s, T1, T2>(&'s self, t1: &'s Term<T1>, t2: Option<&'s Term<T2>>) -> DQuadSource<'s, Self>
         where T1: TermData, T2: TermData
         {
-            let t1 = self.term_index.get_index(&t1.into());
-            let t2 = self.term_index.get_index_for_graph_name(t2.map(RefTerm::from).as_ref());
+            let t1 = self.term_id_map.get_index(&t1.into());
+            let t2 = self.term_id_map.get_index_for_graph_name(t2.map(RefTerm::from).as_ref());
             match (t1, t2) {
                 (Some(t1), Some(t2)) => {
                     let quads = self.data.get_2($position, [t1, t2]);
-                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                    InflatedQuadsIterator::new_box(quads, &self.term_id_map)
                 },
                 (_, _) => Box::new(empty())
             }
@@ -609,13 +607,13 @@ macro_rules! full_indexed_dataset_quads_with {
         fn $function_name<'s, T1, T2, T3>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>, t3: Option<&'s Term<T3>>) -> DQuadSource<'s, Self>
         where T1: TermData, T2: TermData, T3: TermData
         {
-            let t1 = self.term_index.get_index(&t1.into());
-            let t2 = self.term_index.get_index(&t2.into());
-            let t3 = self.term_index.get_index_for_graph_name(t3.map(RefTerm::from).as_ref());
+            let t1 = self.term_id_map.get_index(&t1.into());
+            let t2 = self.term_id_map.get_index(&t2.into());
+            let t3 = self.term_id_map.get_index_for_graph_name(t3.map(RefTerm::from).as_ref());
             match (t1, t2, t3) {
                 (Some(t1), Some(t2), Some(t3)) => {
                     let quads = self.data.get_3($position, [t1, t2, t3]);
-                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                    InflatedQuadsIterator::new_box(quads, &self.term_id_map)
                 },
                 (_, _, _) => Box::new(empty())
             }
@@ -626,14 +624,14 @@ macro_rules! full_indexed_dataset_quads_with {
         fn $function_name<'s, T1, T2, T3, T4>(&'s self, t1: &'s Term<T1>, t2: &'s Term<T2>, t3: &'s Term<T3>, t4: Option<&'s Term<T4>>) -> DQuadSource<'s, Self>
         where T1: TermData, T2: TermData, T3: TermData, T4: TermData
         {
-            let t1 = self.term_index.get_index(&t1.into());
-            let t2 = self.term_index.get_index(&t2.into());
-            let t3 = self.term_index.get_index(&t3.into());
-            let t4 = self.term_index.get_index_for_graph_name(t4.map(RefTerm::from).as_ref());
+            let t1 = self.term_id_map.get_index(&t1.into());
+            let t2 = self.term_id_map.get_index(&t2.into());
+            let t3 = self.term_id_map.get_index(&t3.into());
+            let t4 = self.term_id_map.get_index_for_graph_name(t4.map(RefTerm::from).as_ref());
             match (t1, t2, t3, t4) {
                 (Some(t1), Some(t2), Some(t3), Some(t4)) => {
                     let quads = self.data.get_4([t1, t2, t3, t4]);
-                    InflatedQuadsIterator::new_box(quads, &self.term_index)
+                    InflatedQuadsIterator::new_box(quads, &self.term_id_map)
                 },
                 (_, _, _, _) => Box::new(empty())
             }
@@ -648,7 +646,7 @@ impl Dataset for FullIndexDataset {
 
     fn quads<'a>(&'a self) -> DQuadSource<'a, Self> {
         let quads = self.data.get();
-        InflatedQuadsIterator::new_box(quads, &self.term_index)
+        InflatedQuadsIterator::new_box(quads, &self.term_id_map)
     }
 
     full_indexed_dataset_quads_with!(quads_with_s, POS_S, 1);
@@ -685,20 +683,20 @@ impl MutableDataset for FullIndexDataset {
         V: TermData,
         W: TermData,
     {
-        let si = self.term_index.make_index(&s.into());
-        let pi = self.term_index.make_index(&p.into());
-        let oi = self.term_index.make_index(&o.into());
+        let si = self.term_id_map.make_index(&s.into());
+        let pi = self.term_id_map.make_index(&p.into());
+        let oi = self.term_id_map.make_index(&o.into());
         let gi = self
-            .term_index
+            .term_id_map
             .make_index_for_graph_name(g.map(RefTerm::from).as_ref());
         let modified = self.data.insert([si, pi, oi, gi]);
         if modified {
             //Some([si, pi, oi, gi])
         } else {
-            self.term_index.dec_ref(si);
-            self.term_index.dec_ref(pi);
-            self.term_index.dec_ref(oi);
-            self.term_index.dec_ref(gi);
+            self.term_id_map.dec_ref(si);
+            self.term_id_map.dec_ref(pi);
+            self.term_id_map.dec_ref(oi);
+            self.term_id_map.dec_ref(gi);
             //None
         };
 
@@ -718,19 +716,19 @@ impl MutableDataset for FullIndexDataset {
         V: TermData,
         W: TermData,
     {
-        let si = self.term_index.get_index(&s.into());
-        let pi = self.term_index.get_index(&p.into());
-        let oi = self.term_index.get_index(&o.into());
+        let si = self.term_id_map.get_index(&s.into());
+        let pi = self.term_id_map.get_index(&p.into());
+        let oi = self.term_id_map.get_index(&o.into());
         let gi = self
-            .term_index
+            .term_id_map
             .get_index_for_graph_name(g.map(RefTerm::from).as_ref());
         if let (Some(si), Some(pi), Some(oi), Some(gi)) = (si, pi, oi, gi) {
             let modified = self.data.remove([si, pi, oi, gi]);
             if modified {
-                self.term_index.dec_ref(si);
-                self.term_index.dec_ref(pi);
-                self.term_index.dec_ref(oi);
-                self.term_index.dec_ref(gi);
+                self.term_id_map.dec_ref(si);
+                self.term_id_map.dec_ref(pi);
+                self.term_id_map.dec_ref(oi);
+                self.term_id_map.dec_ref(gi);
                 return Ok(true);
             }
         }

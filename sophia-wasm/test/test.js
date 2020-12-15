@@ -32,11 +32,11 @@ function wrapped(className) {
 }
 
 let datasets = {
-    'TreedDataset': basic(wasm_example.TreedDataset),
+    'TreeDataset': basic(wasm_example.TreeDataset),
     'FastDataset': basic(wasm_example.FastDataset),
     'LightDataset': basic(wasm_example.LightDataset),
     'FullIndexDataset': basic(wasm_example.FullDataset),
-    'WrappedTreedDataset': wrapped(wasm_example.TreedDataset),
+    'WrappedTreeDataset': wrapped(wasm_example.TreeDataset),
     'WrappedFastDataset': wrapped(wasm_example.FastDataset),
     'WrappedLightDataset': wrapped(wasm_example.LightDataset),
     'WrappedFullIndexDataset': wrapped(wasm_example.FullDataset),
