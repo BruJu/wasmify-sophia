@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
-    "sophia-wasm",
-    "bjdatasets"
+    "bjdatasets",
+    "identifier-forest",
+    "sophia-wasm"
 ]

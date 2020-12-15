@@ -1,29 +1,37 @@
-﻿use once_cell::unsync::OnceCell;
-use std::collections::BTreeSet;
+﻿//! This crate defines a forest structure to store RDF quads in several b-trees.
+//! The stored quads are expected in the form of 4 identifiers (`u32` values).
+//! The semantic of the identifiers must be stored separately by the user of
+//! this module.
+//!
+//! Every BTree from the forest contains the same quads as the other, but in
+//! different orders.
+//!
+//! The mains components are :
+//! - `IndexingForest4`: A forest designed to index quads in the form of 4
+//! identifiers. It can be used to store arrays of 4 `u32` and request them
+//! from any pattern (for example [*, 7, *, 3] will retrieve every previously
+//! stored array which second value is 7 and fourth value is 3).
+//! - *Identifier*: A `u32` (because Web Assembly is good at manipulating
+//! these)
+//! - `Block`: An identifier quad, in any order SPOG. A `BlockOrder` is
+//! required to reorder the values. 
+//! - `BlockOrder`: A structure that enables to convert an identfier quad into
+//! a block and conversely
+//! - `[u32; NB_OF_TERMS=4]`: An array of four identifiers. It can be inserted,
+//! deleted, ... from an `IndexingForest4`.
 
-/// This module defines a forest structure to store quads in several trees.
-/// The stored quads are expected in the form of 4 identifiers (`u32` values).
-/// The semantic of the identifiers must be stored separately by the user of
-/// this module.
-///
-/// The mains components are :
-/// - `Block`: An identifier quad, which order is not SPOG
-/// - `BlockOrder`: A structure that enables to convert an identfier quad into
-/// a block and conversely
-/// - [u32; NB_OF_TERMS]: An array of four identifiers
-/// - Identifier: An `u32` (because Web Assembly is good at manipulating
-/// these)
-/// - `IndexingForest4Id`: A forest designed to index quads in the form of 4
-/// identifiers
+use once_cell::unsync::OnceCell;
+use std::collections::BTreeSet;
 
 // Warning for the developper: Many methods use in there implementation the
 // fact that there are 4 terms in a quad. So transforming the (Quad) Block
 // implementation into a TripleBlock implementation is not just modifying
 // NB_OF_TERMS.
 
-/// Number of terms in a quad
+/// Number of terms in a quad / Number of identifiers for each value of the tree
 pub const NB_OF_TERMS: usize = 4;
 
+/// Terms roles for the components of a quad in a RDF dataset
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum TermRole {
     Subject = 0,
@@ -203,7 +211,7 @@ impl BlockOrder {
     }
 
     /// Inserts every identifier quad from iterator in the passed tree
-    pub fn insert_all_into<'a>(&self, tree: &mut BTreeSet<Block<u32>>, iterator: IdentifierQuadFilter<'a>) {
+    pub fn insert_all_into<'a>(&self, tree: &mut BTreeSet<Block<u32>>, iterator: IndexingForest4Filter<'a>) {
         for block in iterator.map(|identifier_quad| self.to_block(&identifier_quad)) {
             tree.insert(block);
         }
@@ -224,11 +232,11 @@ impl BlockOrder {
     /// method indicates how many quads will be iterated on : for two block
     /// order, the block order that returns the greater `index_conformance`
     /// will return an iterator that looks over less different quads.
-    pub fn filter<'a>(&'a self, tree: &'a BTreeSet<Block<u32>>, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IdentifierQuadFilter {
+    pub fn filter<'a>(&'a self, tree: &'a BTreeSet<Block<u32>>, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IndexingForest4Filter {
         let (range, filter_block) = self.range(identifier_quad_pattern);
         let tree_range = tree.range(range);
 
-        IdentifierQuadFilter {
+        IndexingForest4Filter {
             range: tree_range,
             block_order: self,
             filter_block: filter_block
@@ -237,7 +245,7 @@ impl BlockOrder {
 }
 
 /// An iterator on a sub tree
-pub struct IdentifierQuadFilter<'a> {
+pub struct IndexingForest4Filter<'a> {
     /// Iterator
     range: std::collections::btree_set::Range<'a, Block<u32>>,
     /// Used block order to retrived SPOG quad
@@ -246,7 +254,7 @@ pub struct IdentifierQuadFilter<'a> {
     filter_block: Block<Option<u32>>
 }
 
-impl<'a> Iterator for IdentifierQuadFilter<'a> {
+impl<'a> Iterator for IndexingForest4Filter<'a> {
     type Item = [u32; NB_OF_TERMS];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -265,23 +273,11 @@ impl<'a> Iterator for IdentifierQuadFilter<'a> {
     }
 }
 
-/// A treed dataset is a forest of trees that implements the Dataset trait
-/// of Sophia.
-/// 
-/// It is composed of several trees, with a main tree and several optional
-/// subtrees.
-/// 
-/// 
-/// The trees are sorted in different orders, so for each (S?, P?, O?, G?)
-/// combinaison (when each S, P ... can be specified or not), we have an
-/// efficient way to find every quad that matches the query.
-/// 
-/// Up to 6 different trees are built, with the OGPS tree being built by
-/// default
-
-
 
 /// A structure that stores quads (four identifiers) in one to six `BTreeSet`.
+///
+/// It consists in a main tree that is always created, and the other trees that
+/// are lazily created.
 ///
 /// While they contain the same element, the trees sort them in different
 /// order, which enables to request for quads complying with a defined pattern
@@ -290,7 +286,7 @@ impl<'a> Iterator for IdentifierQuadFilter<'a> {
 /// The identifiers passed to this structure must be ordered by Subject,
 /// Predicate, Object and Graph order. An array of four identifiers respecting
 /// this order is called "Identifier Quad".
-pub struct IndexingForest4Id {
+pub struct IndexingForest4 {
     /// The tree that is always instancied
     pub base_tree: (BlockOrder, BTreeSet<Block<u32>>),
     /// A list of optional trees that can be instancied ot improve look up
@@ -298,9 +294,9 @@ pub struct IndexingForest4Id {
     pub optional_trees: Vec<(BlockOrder, OnceCell<BTreeSet<Block<u32>>>)>,
 }
 
-impl Default for IndexingForest4Id {
+impl Default for IndexingForest4 {
     fn default() -> Self {
-        IndexingForest4Id::new_with_indexes(
+        IndexingForest4::new_with_indexes(
             &vec!([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
             Some(&vec!(
                 [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
@@ -313,7 +309,10 @@ impl Default for IndexingForest4Id {
     }
 }
 
-impl IndexingForest4Id {
+impl IndexingForest4 {
+    /// Builds an `IndexingForest4` with a tree for each `default_initialize`
+    /// order built from initialization and lazy trees for each
+    /// `optional_indexes` order.
     pub fn new_with_indexes(default_initialized: &Vec<[TermRole; 4]>, optional_indexes: Option<&Vec<[TermRole; 4]>>) -> Self {
         assert!(!default_initialized.is_empty());
 
@@ -366,6 +365,10 @@ impl IndexingForest4Id {
         )
     }
 
+    /// Instanciate a new `IndexingForest4` that can build up to 6 trees, and
+    /// an initial tree that has the lowest possible score for the given
+    /// matching quad pattern.
+    #[deprecated( note = "Use either `new` or `new_with_indexes`" )]
     pub fn new_anti(s: bool, p: bool, o: bool, g: bool) -> Self {
         // Index conformance expects an [&Option<u32>, 4]
         let zero = Some(0 as u32);
@@ -415,7 +418,7 @@ impl IndexingForest4Id {
     /// 
     /// This function can potentially build a new tree in the structure if the
     /// `can_build_new_tree` parameter is equal to true.
-    pub fn search_all_matching_quads<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS], can_build_new_tree: bool) -> IdentifierQuadFilter {
+    pub fn search_all_matching_quads<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS], can_build_new_tree: bool) -> IndexingForest4Filter {
         // Find best index
         let term_roles = [
             &identifier_quad_pattern[0],
@@ -468,7 +471,7 @@ impl IndexingForest4Id {
     /// This function will always build a new tree if a better indexation is possible for this
     /// forest. If you do not want to pay the potential cost of building a new tree, use the
     /// `search_all_matching_quads` function.
-    pub fn filter<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IdentifierQuadFilter {
+    pub fn filter<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IndexingForest4Filter {
         self.search_all_matching_quads(identifier_quad_pattern, true)
     }
 

@@ -15,7 +15,7 @@ use sophia::dataset::inmem::FastDataset;
 use sophia::dataset::inmem::LightDataset;
 use sophia::term::BoxTerm;
 
-use bjdatasets::treeddataset::TreeDataset;
+use bjdatasets::treedataset::TreeDataset;
 use bjdatasets::fulldataset::FullIndexDataset;
 
 

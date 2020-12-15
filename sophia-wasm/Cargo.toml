@@ -1,5 +1,5 @@
 [package]
-name = "sophia-wasm"
+name = "sophia_wasm"
 version = "0.1.0"
 authors = ["BruJu <bruyat.ju@live.fr>"]
 edition = "2018"
@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-bjdatasets  = { path = "../bjdatasets", features = ["impl_sophia"] }
+bjdatasets  = { path = "../bjdatasets" }
 
 sophia      = { git = "https://github.com/pchampin/sophia_rs", rev = "7bec393f81d765455fab149022abaa85ce1ec861", features = ["test_macro"] }
 sophia_term = { git = "https://github.com/pchampin/sophia_rs", rev = "7bec393f81d765455fab149022abaa85ce1ec861" }

@@ -1,5 +1,5 @@
 
-use bjdatasets::treeddataset::TreeDataset;
+use bjdatasets::treedataset::TreeDataset;
 use crate::wrapping::MatchRequestOnRcTerm;
 use crate::wrapping::ExportableDataset;
 use crate::datamodel::term::JsImportTerm;

@@ -1,8 +1,7 @@
-
-use crate::treedstructure::IndexingForest4Id;
-use crate::treedstructure::IdentifierQuadFilter;
 use crate::RcQuad;
 
+use identifier_forest::IndexingForest4;
+use identifier_forest::IndexingForest4Filter;
 use sophia::dataset::MutableDataset;
 use sophia::dataset::DQuad;
 use sophia::dataset::DQuadSource;
@@ -29,7 +28,7 @@ use sophia::test_dataset_impl;
 #[derive(Default)]
 pub struct TreeDataset {
     /// Underlying trees that manipulates identifiers
-    forest: IndexingForest4Id,
+    forest: IndexingForest4,
     /// A `TermIndexMapU` that matches RcTerms with u32 identifiers
     term_id_map: TermIndexMapU<u32, RcTermFactory>
 }
@@ -41,7 +40,7 @@ impl TreeDataset {
 
     pub fn new_anti(s: bool, p: bool, o: bool, g: bool) -> Self {
         Self {
-            forest: IndexingForest4Id::new_anti(s, p, o, g),
+            forest: IndexingForest4::new_anti(s, p, o, g),
             term_id_map: TermIndexMapU::<u32, RcTermFactory>::default()
         }
     }
@@ -300,7 +299,7 @@ impl Dataset for TreeDataset {
 /// An adapter that transforms an iterator on identifier quads into an iterator
 /// of Sophia Quads
 pub struct InflatedQuadsIterator<'a> {
-    base_iterator: IdentifierQuadFilter<'a>,
+    base_iterator: IndexingForest4Filter<'a>,
     term_id_map: &'a TermIndexMapU<u32, RcTermFactory>,
     last_tuple: Option<[(u32, &'a RcTerm); 3]>,
     last_graph: Option<(u32, &'a RcTerm)>
@@ -310,7 +309,7 @@ impl<'a> InflatedQuadsIterator<'a> {
     /// Builds a Box of InflatedQuadsIterator from an iterator on identifier quad
     /// and a `TermIndexMap` to match the `DQuadSource` interface.
     pub fn new_box(
-        base_iterator: IdentifierQuadFilter<'a>,
+        base_iterator: IndexingForest4Filter<'a>,
         term_id_map: &'a TermIndexMapU<u32, RcTermFactory>
     ) -> Box<InflatedQuadsIterator<'a>> {
         Box::new(InflatedQuadsIterator {

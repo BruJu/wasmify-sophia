@@ -9,6 +9,8 @@ class is (almost) [RDF.JS] Dataset compliant.
 It also provides some new custom Sophia Dataset implementation.
 
 
+
+
 ## sophia_wasm
 
 The crate [sophia_wasm](sophia-wasm) provides an exportation of terms and quads from [Sophia] using [wasm_bindgen] and [wasm-pack]. It also provides basic implementation of exportation of datasets into Javascript, that tries to be compliant with the [RDF.JS] specification.
@@ -22,14 +24,29 @@ A wrapper class is provided to address some of the issues of the defaultly expor
 
 ## bjdatasets
 
-The folder [bjdatasets](bjdatasets) exposes some implementation of [the Sophia Dataset trait][Sophia].
+The crate [bjdatasets](bjdatasets) exposes some implementation of [the Sophia Dataset trait][Sophia].
 
-- `TreeDataset`, a dataset that resorts on multiple trees to do efficient quad research
+- `TreeDataset`, a dataset that resorts on multiple trees. By storing quad in different orders, it provides efficient quad research (see *identifier-tree*)
 - `FullIndexDataset`, a dataset that stores for every possible pattern every corresponding quad
 - `VecOrDataset<D>`, a dataset that can use either a vector of quads or another Dataset structure
 
 
-`TreeDataset` is used as the base structure of [WasmTree][WasmTree], a project to implement the [RDF.JS specification][RDFJSDataset] using Web Assembly but without resorting to [Sophia].
+## identifier-forest
+
+The crate [identifier-forest](identifier-forest) provides a forest structure able to store quads in the form of 4 identifiers (that can be mapped to actual terms using an external library).
+
+The main features of the forest are :
+- One tree is built on creation.
+- Up to 5 over trees can be spawned to store the identifier quads in different orders
+- The 6 trees provides optimal pattern maching for all kind of patterns SPOG.
+- While the current context is RDF Dataset heavy, it may be possible to be used in other context.
+
+`identifier-forest` is used both as the base structure of :
+- [WasmTree][WasmTree], another repository which implements the [RDF.JS specification][RDFJSDataset] using Web Assembly but without resorting to [Sophia].
+- The `TreeDataset` implementation in the `bjdatasets` crate.
+
+
+
 
 ## Build
 
