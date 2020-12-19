@@ -50,8 +50,6 @@ The main features of the forest are :
 
 ## Build
 
-***TODO***
-
 ### Required
 
 - Rust / [wasm_bindgen]
@@ -67,6 +65,13 @@ Javascript :
 - `npm install`
 - `./run_server.sh test`
 
+### Build for Web Assembly / Javascript
+
+- `cd sophia-wasm`
+- `npm install`
+- `./buildpkg.py` (builds for both browsers and node)
+- `cd pkg`
+- `wasm-pack pack`
 
 ***TODO : Rename or get rid of run_server (it doesn't actually run a server)**
 
