@@ -1,4 +1,4 @@
-﻿//! This crate defines a forest structure to store an [RDF] [dataset] as a set of
+//! This crate defines a forest structure to store an [RDF] [dataset] as a set of
 //! b-trees.
 //!
 //! An [RDF dataset] is often seen as a set of *quads*, each composed of a
@@ -59,14 +59,20 @@ pub struct Block<T> {
     data: [T; NB_OF_TERMS],
 }
 
-impl <T> Block<T> where T: Clone {
+impl<T> Block<T>
+where
+    T: Clone,
+{
     /// Creates a block with the given values (given in the canonical SPOG order)
     pub fn new(values: [T; NB_OF_TERMS]) -> Block<T> {
         Block { data: values }
     }
 }
 
-impl <T> Block<T> where T: Clone + PartialEq {
+impl<T> Block<T>
+where
+    T: Clone + PartialEq,
+{
     /// Returns true if the non None values of the given filter_block are equals
     /// to the values of this block
     pub fn match_option_block(&self, filter_block: &Block<Option<T>>) -> bool {
@@ -91,9 +97,9 @@ impl <T> Block<T> where T: Clone + PartialEq {
 pub struct BlockOrder {
     term_roles: [TermRole; NB_OF_TERMS],
     // e.g. if block is GSPO, `block_order_to_spog_order == [3, 0, 1, 2]`
-    block_order_to_spog_order : [usize; NB_OF_TERMS],
+    block_order_to_spog_order: [usize; NB_OF_TERMS],
     // e.g. if block is GSPO, `spog_order_to_block_order == [1, 2, 3, 0]`
-    spog_order_to_block_order : [usize; NB_OF_TERMS]
+    spog_order_to_block_order: [usize; NB_OF_TERMS],
 }
 
 impl BlockOrder {
@@ -102,10 +108,7 @@ impl BlockOrder {
         debug_assert!(NB_OF_TERMS == 4);
         format!(
             "{:?} {:?} {:?} {:?}",
-            self.term_roles[0],
-            self.term_roles[1],
-            self.term_roles[2],
-            self.term_roles[3]
+            self.term_roles[0], self.term_roles[1], self.term_roles[2], self.term_roles[3]
         )
     }
 
@@ -131,43 +134,58 @@ impl BlockOrder {
             block_order_to_spog_order[position] = *term_role as usize;
         }
 
-        BlockOrder { term_roles, block_order_to_spog_order, spog_order_to_block_order }
+        BlockOrder {
+            term_roles,
+            block_order_to_spog_order,
+            spog_order_to_block_order,
+        }
     }
 
     /// Build a block from an SPOG identifier quad
-    pub fn to_block<T>(&self, identifier_quad: &[T; NB_OF_TERMS]) -> Block<T> where T: Copy {
+    pub fn to_block<T>(&self, identifier_quad: &[T; NB_OF_TERMS]) -> Block<T>
+    where
+        T: Copy,
+    {
         debug_assert!(NB_OF_TERMS == 4);
-        Block{
+        Block {
             data: [
                 identifier_quad[self.block_order_to_spog_order[0]],
                 identifier_quad[self.block_order_to_spog_order[1]],
                 identifier_quad[self.block_order_to_spog_order[2]],
-                identifier_quad[self.block_order_to_spog_order[3]]
-            ]
+                identifier_quad[self.block_order_to_spog_order[3]],
+            ],
         }
     }
 
     /// Build a block from an identifier quad pattern
-    pub fn to_filter_block<T>(&self, identifier_quad_pattern: &[Option<T>; NB_OF_TERMS])
-        -> Block<Option<T>> where T: Copy + PartialEq {
-        Block{
+    pub fn to_filter_block<T>(
+        &self,
+        identifier_quad_pattern: &[Option<T>; NB_OF_TERMS],
+    ) -> Block<Option<T>>
+    where
+        T: Copy + PartialEq,
+    {
+        Block {
             data: [
                 identifier_quad_pattern[self.block_order_to_spog_order[0]],
                 identifier_quad_pattern[self.block_order_to_spog_order[1]],
                 identifier_quad_pattern[self.block_order_to_spog_order[2]],
-                identifier_quad_pattern[self.block_order_to_spog_order[3]]
-            ]
+                identifier_quad_pattern[self.block_order_to_spog_order[3]],
+            ],
         }
     }
 
     /// Build an SPOG identifier quad from a block
-    pub fn to_identifier_quad<T>(&self, block: &Block<T>) -> [T; NB_OF_TERMS] where T: Copy {
+    pub fn to_identifier_quad<T>(&self, block: &Block<T>) -> [T; NB_OF_TERMS]
+    where
+        T: Copy,
+    {
         return [
             block.data[self.spog_order_to_block_order[0]],
             block.data[self.spog_order_to_block_order[1]],
             block.data[self.spog_order_to_block_order[2]],
             block.data[self.spog_order_to_block_order[3]],
-        ]
+        ];
     }
 
     /// Return the number of term roles that can be used as a prefix, with this
@@ -189,15 +207,19 @@ impl BlockOrder {
     /// that do not match the pattern may be included (best effort).
     /// To let the user filter the extra quads, a filter block is also
     /// returned.
-    pub fn range(&self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS])
-        -> (std::ops::RangeInclusive<Block<u32>>, Block<Option<u32>>) {
+    pub fn range(
+        &self,
+        identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
+    ) -> (std::ops::RangeInclusive<Block<u32>>, Block<Option<u32>>) {
         // Restrict range as much as possible
         let mut min = [u32::min_value(); NB_OF_TERMS];
         let mut max = [u32::max_value(); NB_OF_TERMS];
 
         for (i, term_role) in self.term_roles.iter().enumerate() {
             match identifier_quad_pattern[*term_role as usize] {
-                None => { break; }
+                None => {
+                    break;
+                }
                 Some(set_value) => {
                     min[i] = set_value;
                     max[i] = set_value;
@@ -205,31 +227,50 @@ impl BlockOrder {
             }
         }
 
-	    // Return range + filter block
-	    (Block::new(min)..=Block::new(max), self.to_filter_block(&identifier_quad_pattern))
+        // Return range + filter block
+        (
+            Block::new(min)..=Block::new(max),
+            self.to_filter_block(&identifier_quad_pattern),
+        )
     }
 
     /// Insert the given identifier quad in the passed tree, using this block order
     ///
     /// Return true if the quad was already present
-    pub fn insert_into(&self, tree: &mut BTreeSet<Block<u32>>, identifier_quad: &[u32; NB_OF_TERMS]) -> bool {
+    pub fn insert_into(
+        &self,
+        tree: &mut BTreeSet<Block<u32>>,
+        identifier_quad: &[u32; NB_OF_TERMS],
+    ) -> bool {
         !tree.insert(self.to_block(identifier_quad))
     }
 
     /// Delete the given identifier quad from the passed tree, using this block order
     ///
     /// Return true if the quad has been deleted
-    pub fn delete_from(&self, tree: &mut BTreeSet<Block<u32>>, identifier_quad: &[u32; NB_OF_TERMS]) -> bool {
+    pub fn delete_from(
+        &self,
+        tree: &mut BTreeSet<Block<u32>>,
+        identifier_quad: &[u32; NB_OF_TERMS],
+    ) -> bool {
         tree.remove(&self.to_block(identifier_quad))
     }
 
     /// Return true if the passed tree contains the passed quad
-    pub fn contains(&self, tree: &BTreeSet<Block<u32>>, identifier_quad: &[u32; NB_OF_TERMS]) -> bool {
+    pub fn contains(
+        &self,
+        tree: &BTreeSet<Block<u32>>,
+        identifier_quad: &[u32; NB_OF_TERMS],
+    ) -> bool {
         tree.contains(&self.to_block(identifier_quad))
     }
 
     /// Insert every identifier quad from iterator in the passed tree
-    pub fn insert_all_into<'a>(&self, tree: &mut BTreeSet<Block<u32>>, iterator: IndexingForest4Filter<'a>) {
+    pub fn insert_all_into<'a>(
+        &self,
+        tree: &mut BTreeSet<Block<u32>>,
+        iterator: IndexingForest4Filter<'a>,
+    ) {
         for block in iterator.map(|identifier_quad| self.to_block(&identifier_quad)) {
             tree.insert(block);
         }
@@ -248,14 +289,18 @@ impl BlockOrder {
     /// of quads in the tree.
     ///
     /// See also [`BlockOrder::index_conformance`]
-    pub fn filter<'a>(&'a self, tree: &'a BTreeSet<Block<u32>>, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IndexingForest4Filter {
+    pub fn filter<'a>(
+        &'a self,
+        tree: &'a BTreeSet<Block<u32>>,
+        identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
+    ) -> IndexingForest4Filter {
         let (range, filter_block) = self.range(identifier_quad_pattern);
         let tree_range = tree.range(range);
 
         IndexingForest4Filter {
             range: tree_range,
             block_order: self,
-            filter_block: filter_block
+            filter_block: filter_block,
         }
     }
 
@@ -263,11 +308,15 @@ impl BlockOrder {
     /// `source` that does not match the `identifier_quad_pattern`. The block
     /// order of both the source tree and the returned tree is the one of
     /// this object.
-    pub fn filter_to_tree(&self, source: &BTreeSet<Block<u32>>,
-        identifier_quad_pattern: &[Option<u32>; 4]) -> BTreeSet<Block<u32>> {
+    pub fn filter_to_tree(
+        &self,
+        source: &BTreeSet<Block<u32>>,
+        identifier_quad_pattern: &[Option<u32>; 4],
+    ) -> BTreeSet<Block<u32>> {
         let filter_block = self.to_filter_block(identifier_quad_pattern);
 
-        source.into_iter()
+        source
+            .into_iter()
             .filter(|block| !block.match_option_block(&filter_block))
             .map(|b| b.clone())
             .collect()
@@ -281,7 +330,7 @@ pub struct IndexingForest4Filter<'a> {
     /// Used block order to convert retrieved blocks to SPOG quad
     block_order: &'a BlockOrder,
     /// Term filter for unrelevant quads that couldn't be restricted by the range
-    filter_block: Block<Option<u32>>
+    filter_block: Block<Option<u32>>,
 }
 
 impl<'a> Iterator for IndexingForest4Filter<'a> {
@@ -292,7 +341,9 @@ impl<'a> Iterator for IndexingForest4Filter<'a> {
             let next = self.range.next();
 
             match next.as_ref() {
-                None => { return None; },
+                None => {
+                    return None;
+                }
                 Some(block) => {
                     if block.match_option_block(&self.filter_block) {
                         return Some(self.block_order.to_identifier_quad(block));
@@ -302,7 +353,6 @@ impl<'a> Iterator for IndexingForest4Filter<'a> {
         }
     }
 }
-
 
 /// A structure that stores quads (four identifiers) in one to six [`BTreeSet`]s.
 ///
@@ -327,14 +377,44 @@ pub struct IndexingForest4 {
 impl Default for IndexingForest4 {
     fn default() -> Self {
         IndexingForest4::new_with_indexes(
-            &vec!([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
-            Some(&vec!(
-                [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
-                [TermRole::Graph, TermRole::Predicate, TermRole::Subject, TermRole::Object],
-                [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
-                [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
-                [TermRole::Object, TermRole::Subject, TermRole::Graph, TermRole::Predicate]
-            ))
+            &vec![[
+                TermRole::Object,
+                TermRole::Graph,
+                TermRole::Predicate,
+                TermRole::Subject,
+            ]],
+            Some(&vec![
+                [
+                    TermRole::Subject,
+                    TermRole::Predicate,
+                    TermRole::Object,
+                    TermRole::Graph,
+                ],
+                [
+                    TermRole::Graph,
+                    TermRole::Predicate,
+                    TermRole::Subject,
+                    TermRole::Object,
+                ],
+                [
+                    TermRole::Predicate,
+                    TermRole::Object,
+                    TermRole::Graph,
+                    TermRole::Subject,
+                ],
+                [
+                    TermRole::Graph,
+                    TermRole::Subject,
+                    TermRole::Predicate,
+                    TermRole::Object,
+                ],
+                [
+                    TermRole::Object,
+                    TermRole::Subject,
+                    TermRole::Graph,
+                    TermRole::Predicate,
+                ],
+            ]),
         )
     }
 }
@@ -343,14 +423,14 @@ impl IndexingForest4 {
     /// Build an `IndexingForest4` with a tree for each `default_initialize`
     /// order built from initialization and lazy trees for each
     /// `optional_indexes` order.
-    pub fn new_with_indexes(default_initialized: &Vec<[TermRole; 4]>, optional_indexes: Option<&Vec<[TermRole; 4]>>) -> Self {
+    pub fn new_with_indexes(
+        default_initialized: &Vec<[TermRole; 4]>,
+        optional_indexes: Option<&Vec<[TermRole; 4]>>,
+    ) -> Self {
         assert!(!default_initialized.is_empty());
 
         // Base tree
-        let base_tree = (
-            BlockOrder::new(default_initialized[0]),
-            BTreeSet::new()
-        );
+        let base_tree = (BlockOrder::new(default_initialized[0]), BTreeSet::new());
 
         // Redundant trees
         let mut optional_trees = Vec::new();
@@ -361,10 +441,7 @@ impl IndexingForest4 {
             let set_result = cell.set(BTreeSet::new());
             assert!(set_result.is_ok());
 
-            let new_tree = (
-                BlockOrder::new(default_initialized[i]),
-                cell
-            );
+            let new_tree = (BlockOrder::new(default_initialized[i]), cell);
 
             optional_trees.push(new_tree);
         }
@@ -378,28 +455,58 @@ impl IndexingForest4 {
 
         Self {
             base_tree: base_tree,
-            optional_trees: optional_trees
+            optional_trees: optional_trees,
         }
     }
 
     /// Build an `IndexingForest4` with maximum indexing capacity (5 lazy indexes).
     pub fn new() -> Self {
         Self::new_with_indexes(
-            &vec!([TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject]),
-            Some(&vec!(
-                [TermRole::Graph, TermRole::Predicate, TermRole::Subject, TermRole::Object],
-                [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
-                [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
-                [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
-                [TermRole::Object, TermRole::Subject, TermRole::Graph, TermRole::Predicate]
-            ))
+            &vec![[
+                TermRole::Object,
+                TermRole::Graph,
+                TermRole::Predicate,
+                TermRole::Subject,
+            ]],
+            Some(&vec![
+                [
+                    TermRole::Graph,
+                    TermRole::Predicate,
+                    TermRole::Subject,
+                    TermRole::Object,
+                ],
+                [
+                    TermRole::Predicate,
+                    TermRole::Object,
+                    TermRole::Graph,
+                    TermRole::Subject,
+                ],
+                [
+                    TermRole::Subject,
+                    TermRole::Predicate,
+                    TermRole::Object,
+                    TermRole::Graph,
+                ],
+                [
+                    TermRole::Graph,
+                    TermRole::Subject,
+                    TermRole::Predicate,
+                    TermRole::Object,
+                ],
+                [
+                    TermRole::Object,
+                    TermRole::Subject,
+                    TermRole::Graph,
+                    TermRole::Predicate,
+                ],
+            ]),
         )
     }
 
     /// Instanciate a new `IndexingForest4` that can build up to 6 trees, and
     /// an initial tree that has the lowest possible score for the given
     /// matching quad pattern.
-    #[deprecated( note = "Use either `new` or `new_with_indexes`" )]
+    #[deprecated(note = "Use either `new` or `new_with_indexes`")]
     pub fn new_anti(s: bool, p: bool, o: bool, g: bool) -> Self {
         // Index conformance expects an [&Option<u32>, 4]
         let zero = Some(0 as u32);
@@ -409,18 +516,48 @@ impl IndexingForest4 {
             if s { &none } else { &zero },
             if p { &none } else { &zero },
             if o { &none } else { &zero },
-            if g { &none } else { &zero }
+            if g { &none } else { &zero },
         ];
 
         // Possible blocks
-        let mut block_candidates = vec!(
-            [TermRole::Object, TermRole::Graph, TermRole::Predicate, TermRole::Subject],
-            [TermRole::Graph, TermRole::Predicate, TermRole::Subject, TermRole::Object],
-            [TermRole::Predicate, TermRole::Object, TermRole::Graph, TermRole::Subject],
-            [TermRole::Subject, TermRole::Predicate, TermRole::Object, TermRole::Graph],
-            [TermRole::Graph, TermRole::Subject, TermRole::Predicate, TermRole::Object],
-            [TermRole::Object, TermRole::Subject, TermRole::Graph, TermRole::Predicate]
-        );
+        let mut block_candidates = vec![
+            [
+                TermRole::Object,
+                TermRole::Graph,
+                TermRole::Predicate,
+                TermRole::Subject,
+            ],
+            [
+                TermRole::Graph,
+                TermRole::Predicate,
+                TermRole::Subject,
+                TermRole::Object,
+            ],
+            [
+                TermRole::Predicate,
+                TermRole::Object,
+                TermRole::Graph,
+                TermRole::Subject,
+            ],
+            [
+                TermRole::Subject,
+                TermRole::Predicate,
+                TermRole::Object,
+                TermRole::Graph,
+            ],
+            [
+                TermRole::Graph,
+                TermRole::Subject,
+                TermRole::Predicate,
+                TermRole::Object,
+            ],
+            [
+                TermRole::Object,
+                TermRole::Subject,
+                TermRole::Graph,
+                TermRole::Predicate,
+            ],
+        ];
 
         let mut best_tree = 0;
         let mut best_tree_score = 0;
@@ -438,10 +575,7 @@ impl IndexingForest4 {
         let init_block = block_candidates[best_tree];
         block_candidates.remove(best_tree);
 
-        Self::new_with_indexes(
-            &vec!(init_block),
-            Some(&block_candidates)
-        )
+        Self::new_with_indexes(&vec![init_block], Some(&block_candidates))
     }
 
     /// Return an iterator on identifier quads from the dataset, matching
@@ -449,13 +583,17 @@ impl IndexingForest4 {
     ///
     /// This function can potentially build a new tree in the structure if the
     /// `can_build_new_tree` parameter is equal to true.
-    pub fn search_all_matching_quads<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS], can_build_new_tree: bool) -> IndexingForest4Filter {
+    pub fn search_all_matching_quads<'a>(
+        &'a self,
+        identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
+        can_build_new_tree: bool,
+    ) -> IndexingForest4Filter {
         // Find best index
         let term_roles = [
             &identifier_quad_pattern[0],
             &identifier_quad_pattern[1],
             &identifier_quad_pattern[2],
-            &identifier_quad_pattern[3]
+            &identifier_quad_pattern[3],
         ];
 
         let mut best_alt_tree_pos = None;
@@ -479,18 +617,25 @@ impl IndexingForest4 {
                 (
                     &alternative_tree_description.0,
                     alternative_tree_description.1.get_or_init(|| {
-                        let content = self.base_tree.0.filter(&self.base_tree.1, [None, None, None, None]);
+                        let content = self
+                            .base_tree
+                            .0
+                            .filter(&self.base_tree.1, [None, None, None, None]);
 
                         let mut map = BTreeSet::new();
-                        alternative_tree_description.0.insert_all_into(&mut map, content);
+                        alternative_tree_description
+                            .0
+                            .insert_all_into(&mut map, content);
                         map
-                    })
+                    }),
                 )
             }
-            None => (&self.base_tree.0, &self.base_tree.1)
+            None => (&self.base_tree.0, &self.base_tree.1),
         };
 
-        tree_description.0.filter(&tree_description.1, identifier_quad_pattern)
+        tree_description
+            .0
+            .filter(&tree_description.1, identifier_quad_pattern)
     }
 
     /// Return an iterator on identifier quads from the dataset, matching
@@ -499,7 +644,10 @@ impl IndexingForest4 {
     /// This function will always build a new tree if a better indexation is possible for this
     /// forest. If you do not want to pay the potential cost of building a new tree, use the
     /// [`search_all_matching_quads`](IndexingForest4::search_all_matching_quads) method.
-    pub fn filter<'a>(&'a self, identifier_quad_pattern: [Option<u32>; NB_OF_TERMS]) -> IndexingForest4Filter {
+    pub fn filter<'a>(
+        &'a self,
+        identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
+    ) -> IndexingForest4Filter {
         self.search_all_matching_quads(identifier_quad_pattern, true)
     }
 
@@ -508,13 +656,19 @@ impl IndexingForest4 {
     /// Returns true if the quad has been inserted in the dataset (it was not
     /// already in it)
     pub fn insert(&mut self, identifier_quad: [u32; NB_OF_TERMS]) -> bool {
-        if self.base_tree.0.insert_into(&mut self.base_tree.1, &identifier_quad) {
+        if self
+            .base_tree
+            .0
+            .insert_into(&mut self.base_tree.1, &identifier_quad)
+        {
             return false;
         }
 
         for optional_tree_tuple in self.optional_trees.iter_mut() {
             if let Some(instancied_tree) = optional_tree_tuple.1.get_mut() {
-                optional_tree_tuple.0.insert_into(instancied_tree, &identifier_quad); // assert false
+                optional_tree_tuple
+                    .0
+                    .insert_into(instancied_tree, &identifier_quad); // assert false
             }
         }
 
@@ -526,13 +680,19 @@ impl IndexingForest4 {
     ///
     /// Returns true if the quad was in the dataset (and was deleted)
     pub fn delete(&mut self, identifier_quad: [u32; NB_OF_TERMS]) -> bool {
-        if !self.base_tree.0.delete_from(&mut self.base_tree.1, &identifier_quad) {
+        if !self
+            .base_tree
+            .0
+            .delete_from(&mut self.base_tree.1, &identifier_quad)
+        {
             return false;
         }
 
         for optional_tree_tuple in self.optional_trees.iter_mut() {
             if let Some(instancied_tree) = optional_tree_tuple.1.get_mut() {
-                optional_tree_tuple.0.delete_from(instancied_tree, &identifier_quad); // assert true
+                optional_tree_tuple
+                    .0
+                    .delete_from(instancied_tree, &identifier_quad); // assert true
             }
         }
 
@@ -541,7 +701,8 @@ impl IndexingForest4 {
 
     /// Return the number of currently instancied trees
     pub fn get_number_of_living_trees(&self) -> usize {
-        1 + self.optional_trees
+        1 + self
+            .optional_trees
             .iter()
             .filter(|pair| pair.1.get().is_some())
             .count()
