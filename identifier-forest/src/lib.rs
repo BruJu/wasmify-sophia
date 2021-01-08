@@ -28,7 +28,8 @@
 //! [RDF]: https://www.w3.org/TR/rdf11-primer/
 //! [dataset]: https://www.w3.org/TR/rdf11-concepts/#dfn-rdf-dataset
 //! [RDF Term]: https://www.w3.org/TR/rdf11-concepts/#dfn-rdf-term
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
+#![allow(clippy::assertions_on_constants)]
 
 use once_cell::unsync::OnceCell;
 use std::collections::BTreeSet;
@@ -46,9 +47,13 @@ pub const NB_OF_TERMS: usize = 4;
 /// [RDF]: https://www.w3.org/TR/rdf11-primer/
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum TermRole {
+    /// Subject component of a quad
     Subject = 0,
+    /// Predicate component of a quad
     Predicate = 1,
+    /// Object component of a quad
     Object = 2,
+    /// Graph name component of a quad
     Graph = 3,
 }
 
@@ -180,12 +185,12 @@ impl BlockOrder {
     where
         T: Copy,
     {
-        return [
+        [
             block.data[self.spog_order_to_block_order[0]],
             block.data[self.spog_order_to_block_order[1]],
             block.data[self.spog_order_to_block_order[2]],
             block.data[self.spog_order_to_block_order[3]],
-        ];
+        ]
     }
 
     /// Return the number of term roles that can be used as a prefix, with this
@@ -300,7 +305,7 @@ impl BlockOrder {
         IndexingForest4Filter {
             range: tree_range,
             block_order: self,
-            filter_block: filter_block,
+            filter_block,
         }
     }
 
@@ -316,9 +321,9 @@ impl BlockOrder {
         let filter_block = self.to_filter_block(identifier_quad_pattern);
 
         source
-            .into_iter()
+            .iter()
             .filter(|block| !block.match_option_block(&filter_block))
-            .map(|b| b.clone())
+            .copied()
             .collect()
     }
 }
@@ -377,7 +382,7 @@ pub struct IndexingForest4 {
 impl Default for IndexingForest4 {
     fn default() -> Self {
         IndexingForest4::new_with_indexes(
-            &vec![[
+            &[[
                 TermRole::Object,
                 TermRole::Graph,
                 TermRole::Predicate,
@@ -424,7 +429,7 @@ impl IndexingForest4 {
     /// order built from initialization and lazy trees for each
     /// `optional_indexes` order.
     pub fn new_with_indexes(
-        default_initialized: &Vec<[TermRole; 4]>,
+        default_initialized: &[[TermRole; 4]],
         optional_indexes: Option<&Vec<[TermRole; 4]>>,
     ) -> Self {
         assert!(!default_initialized.is_empty());
@@ -436,12 +441,12 @@ impl IndexingForest4 {
         let mut optional_trees = Vec::new();
 
         // Default initialized
-        for i in 1..default_initialized.len() {
+        for di in default_initialized {
             let cell = OnceCell::new();
             let set_result = cell.set(BTreeSet::new());
             assert!(set_result.is_ok());
 
-            let new_tree = (BlockOrder::new(default_initialized[i]), cell);
+            let new_tree = (BlockOrder::new(*di), cell);
 
             optional_trees.push(new_tree);
         }
@@ -454,15 +459,15 @@ impl IndexingForest4 {
         }
 
         Self {
-            base_tree: base_tree,
-            optional_trees: optional_trees,
+            base_tree,
+            optional_trees,
         }
     }
 
     /// Build an `IndexingForest4` with maximum indexing capacity (5 lazy indexes).
     pub fn new() -> Self {
         Self::new_with_indexes(
-            &vec![[
+            &[[
                 TermRole::Object,
                 TermRole::Graph,
                 TermRole::Predicate,
@@ -509,7 +514,7 @@ impl IndexingForest4 {
     #[deprecated(note = "Use either `new` or `new_with_indexes`")]
     pub fn new_anti(s: bool, p: bool, o: bool, g: bool) -> Self {
         // Index conformance expects an [&Option<u32>, 4]
-        let zero = Some(0 as u32);
+        let zero = Some(0_u32);
         let none = None;
 
         let term_roles = [
@@ -562,8 +567,8 @@ impl IndexingForest4 {
         let mut best_tree = 0;
         let mut best_tree_score = 0;
 
-        for i in 0..block_candidates.len() {
-            let block_order = BlockOrder::new(block_candidates[i]);
+        for (i, bc) in block_candidates.iter().enumerate() {
+            let block_order = BlockOrder::new(*bc);
             let score = block_order.index_conformance(&term_roles);
 
             if score > best_tree_score {
@@ -575,7 +580,7 @@ impl IndexingForest4 {
         let init_block = block_candidates[best_tree];
         block_candidates.remove(best_tree);
 
-        Self::new_with_indexes(&vec![init_block], Some(&block_candidates))
+        Self::new_with_indexes(&[init_block], Some(&block_candidates))
     }
 
     /// Return an iterator on identifier quads from the dataset, matching
@@ -583,8 +588,8 @@ impl IndexingForest4 {
     ///
     /// This function can potentially build a new tree in the structure if the
     /// `can_build_new_tree` parameter is equal to true.
-    pub fn search_all_matching_quads<'a>(
-        &'a self,
+    pub fn search_all_matching_quads(
+        &self,
         identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
         can_build_new_tree: bool,
     ) -> IndexingForest4Filter {
@@ -644,8 +649,8 @@ impl IndexingForest4 {
     /// This function will always build a new tree if a better indexation is possible for this
     /// forest. If you do not want to pay the potential cost of building a new tree, use the
     /// [`search_all_matching_quads`](IndexingForest4::search_all_matching_quads) method.
-    pub fn filter<'a>(
-        &'a self,
+    pub fn filter(
+        &self,
         identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
     ) -> IndexingForest4Filter {
         self.search_all_matching_quads(identifier_quad_pattern, true)
