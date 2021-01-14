@@ -5,15 +5,17 @@ use once_cell::unsync::OnceCell;
 use std::collections::BTreeSet;
 
 
-
 pub struct OnceTreeSet<I, A, B, C, D>
-where I: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
+where I: Identifier, A: Position, B: Position, C: Position, D: Position
 {
     v: OnceCell<BTreeSet<Block<I, A, B, C, D>>>,
 }
 
-impl<I, A, B, C, D> QueryableTree4<I> for OnceTreeSet<I, A, B, C, D>
-where I: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
+
+
+
+impl<I, A, B, C, D> EnumerableQueryableOnceCellTree4<I> for OnceTreeSet<I, A, B, C, D>
+where I: Identifier, A: Position, B: Position, C: Position, D: Position
 {
     fn new() -> Self {
         Self { v: OnceCell::new() }
@@ -28,6 +30,14 @@ where I: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: Bl
             }
         }
     }
+}
+
+
+
+
+impl<I, A, B, C, D> QueryableTree4<I> for OnceTreeSet<I, A, B, C, D>
+where I: Identifier, A: Position, B: Position, C: Position, D: Position
+{
 
     fn exists(&self) -> bool {
         self.v.get().is_some()
@@ -108,7 +118,7 @@ where I: Identifier
         things: (std::ops::RangeInclusive<Block<I, A, B, C, D>>, [Option<I>; 4])
     )
     -> Self
-    where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
+    where A: Position, B: Position, C: Position, D: Position 
     {
         let range = tree.range(things.0);
 
