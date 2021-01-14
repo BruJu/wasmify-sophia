@@ -1,5 +1,14 @@
 
 
+# Currently : pytho3 src/generator.py
+# outputs src/generated.rs
+
+
+# TODO: A better generator
+# input: tree_trait.Rs
+# + some extra things
+# output src/tree_enum.rs
+
 f = open("src/generated.rs", "w")
 
 
