@@ -35,7 +35,9 @@ where I: Identifier
     fn ensure_exists<'a, F>(&mut self, f: F) where F: FnOnce() -> Tree4Iterator<'a, I>;
 
     /// Returns an iterator on every quads in the tree, that matches the given
-    /// pattern
+    /// pattern.
+    ///
+    /// Precondition: exists() returns true
     fn get_quads<'a>(&'a self, pattern: [Option<I>; 4]) -> Tree4Iterator<'a, I>;
 
     /// Returns the index conformance (TODO)

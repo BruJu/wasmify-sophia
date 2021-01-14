@@ -96,8 +96,19 @@ where A: Position, B: Position, C: Position, D: Position {
 pub struct Block<T, A, B, C, D>
 where T: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
-    values: [T; 4],
+    pub values: [T; 4],
     _boilerplate: PhantomData<*const FixedOrder4<A, B, C, D>>,
+}
+
+impl<I, A, B, C, D> Block<I, A, B, C, D>
+where I: Identifier, A: Position, B: Position, C: Position, D: Position 
+{
+    pub fn new(elements: [I; 4]) -> Self {
+        Self {
+            values: elements,
+            _boilerplate: PhantomData{}
+        }
+    }
 }
 
 impl<T, A, B, C, D> PartialOrd for Block<T, A, B, C, D>
