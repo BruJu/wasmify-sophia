@@ -34,7 +34,22 @@ methods = [
         "return": "-> OnceTreeSetIterator<'a, I>",
         "parameter": ", pattern: [Option<I>; 4]",
         "forward": "pattern",
-        "template": "'a"
+        "template": "'a",
+        "refkind": "&'a "
+    },
+    {
+        "name": "insert",
+        "return": "-> Option<bool>",
+        "parameter": ", quad: &[I; 4]",
+        "forward": "&quad",
+        "refkind": "&mut ",
+        "refkindsoft": "&mut "
+    },
+    {
+        "name": "size",
+        "return": "-> Option<usize>",
+        "parameter": "",
+        "forward": "",
     }
 ]
 
@@ -97,9 +112,11 @@ for constructor in constructors:
 for method in methods:
 
     template = ("<" + method["template"] + ">") if "template" in method else ""
+    refkind = method["refkind"] if "refkind" in method else "&"
+    refkindsoft = method["refkindsoft"] if "refkindsoft" in method else "&"
 
-    print("    pub fn "+ method["name"] + template + "(&self"+method["parameter"]+") " + method["return"] + "{")
-    print("        match &self {")
+    print("    pub fn "+ method["name"] + template + "("+refkind+"self"+method["parameter"]+") " + method["return"] + "{")
+    print("        match "+refkindsoft+"self {")
 
     for permutation in all:
         print("            Self::{}(tree) => tree.{}({}),".format(

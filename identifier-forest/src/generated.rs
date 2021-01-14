@@ -178,7 +178,7 @@ where I: Identifier {
         }
     }
 
-    pub fn get_quads<'a>(&self, pattern: [Option<I>; 4]) -> OnceTreeSetIterator<'a, I>{
+    pub fn get_quads<'a>(&'a self, pattern: [Option<I>; 4]) -> OnceTreeSetIterator<'a, I>{
         match &self {
             Self::SPOG(tree) => tree.get_quads(pattern),
             Self::SPGO(tree) => tree.get_quads(pattern),
@@ -204,6 +204,64 @@ where I: Identifier {
             Self::GPOS(tree) => tree.get_quads(pattern),
             Self::GOSP(tree) => tree.get_quads(pattern),
             Self::GOPS(tree) => tree.get_quads(pattern),
+        }
+    }
+
+    pub fn insert(&mut self, quad: &[I; 4]) -> Option<bool>{
+        match &mut self {
+            Self::SPOG(tree) => tree.insert(&quad),
+            Self::SPGO(tree) => tree.insert(&quad),
+            Self::SOPG(tree) => tree.insert(&quad),
+            Self::SOGP(tree) => tree.insert(&quad),
+            Self::SGPO(tree) => tree.insert(&quad),
+            Self::SGOP(tree) => tree.insert(&quad),
+            Self::PSOG(tree) => tree.insert(&quad),
+            Self::PSGO(tree) => tree.insert(&quad),
+            Self::POSG(tree) => tree.insert(&quad),
+            Self::POGS(tree) => tree.insert(&quad),
+            Self::PGSO(tree) => tree.insert(&quad),
+            Self::PGOS(tree) => tree.insert(&quad),
+            Self::OSPG(tree) => tree.insert(&quad),
+            Self::OSGP(tree) => tree.insert(&quad),
+            Self::OPSG(tree) => tree.insert(&quad),
+            Self::OPGS(tree) => tree.insert(&quad),
+            Self::OGSP(tree) => tree.insert(&quad),
+            Self::OGPS(tree) => tree.insert(&quad),
+            Self::GSPO(tree) => tree.insert(&quad),
+            Self::GSOP(tree) => tree.insert(&quad),
+            Self::GPSO(tree) => tree.insert(&quad),
+            Self::GPOS(tree) => tree.insert(&quad),
+            Self::GOSP(tree) => tree.insert(&quad),
+            Self::GOPS(tree) => tree.insert(&quad),
+        }
+    }
+
+    pub fn size(&self) -> Option<usize>{
+        match &self {
+            Self::SPOG(tree) => tree.size(),
+            Self::SPGO(tree) => tree.size(),
+            Self::SOPG(tree) => tree.size(),
+            Self::SOGP(tree) => tree.size(),
+            Self::SGPO(tree) => tree.size(),
+            Self::SGOP(tree) => tree.size(),
+            Self::PSOG(tree) => tree.size(),
+            Self::PSGO(tree) => tree.size(),
+            Self::POSG(tree) => tree.size(),
+            Self::POGS(tree) => tree.size(),
+            Self::PGSO(tree) => tree.size(),
+            Self::PGOS(tree) => tree.size(),
+            Self::OSPG(tree) => tree.size(),
+            Self::OSGP(tree) => tree.size(),
+            Self::OPSG(tree) => tree.size(),
+            Self::OPGS(tree) => tree.size(),
+            Self::OGSP(tree) => tree.size(),
+            Self::OGPS(tree) => tree.size(),
+            Self::GSPO(tree) => tree.size(),
+            Self::GSOP(tree) => tree.size(),
+            Self::GPSO(tree) => tree.size(),
+            Self::GPOS(tree) => tree.size(),
+            Self::GOSP(tree) => tree.size(),
+            Self::GOPS(tree) => tree.size(),
         }
     }
 

@@ -1,4 +1,4 @@
-//! This crate defines a forest structure to store an [RDF] [dataset] as a set of
+﻿//! This crate defines a forest structure to store an [RDF] [dataset] as a set of
 //! b-trees.
 //!
 //! An [RDF dataset] is often seen as a set of *quads*, each composed of a
@@ -31,14 +31,18 @@
 //#![deny(missing_docs)]
 //#![allow(clippy::assertions_on_constants)]
 
-use once_cell::unsync::OnceCell;
-use std::collections::BTreeSet;
+//use once_cell::unsync::OnceCell;
+//use std::collections::BTreeSet;
 
 pub mod identifier_quad;
 use crate::identifier_quad::BlockPosition;
 
 pub mod generated;
 use crate::generated::*;
+
+pub mod basic_elements;
+use crate::basic_elements::*;
+
 
 use crate::identifier_quad::OnceTreeSetIterator;
 
@@ -421,163 +425,115 @@ impl Default for IndexingForest4 {
 }
 
 impl IndexingForest4 {
-    /// Build an `IndexingForest4` with a tree for each `default_initialize`
-    /// order built from initialization and lazy trees for each
-    /// `optional_indexes` order.
-    pub fn new_with_indexes(
-        default_initialized: &[[TermRole; 4]],
-        optional_indexes: Option<&Vec<[TermRole; 4]>>,
-    ) -> Self {
-        assert!(!default_initialized.is_empty());
+    
 
-        // Base tree
-        let base_tree = (BlockOrder::new(default_initialized[0]), BTreeSet::new());
 
-        // Redundant trees
-        let mut optional_trees = Vec::new();
+    
 
-        // Default initialized
-        for di in default_initialized {
-            let cell = OnceCell::new();
-            let set_result = cell.set(BTreeSet::new());
-            assert!(set_result.is_ok());
+}
 
-            let new_tree = (BlockOrder::new(*di), cell);
 
-            optional_trees.push(new_tree);
-        }
 
-        // Optionals
-        if let Some(optional_indexes) = optional_indexes {
-            for optional_index in optional_indexes {
-                optional_trees.push((BlockOrder::new(*optional_index), OnceCell::new()));
-            }
-        }
+*/
 
-        Self {
-            base_tree,
-            optional_trees,
-        }
+
+pub struct IndexingForest4 {
+    trees: Vec<TreeForFour<u32>>,
+    orders: Vec<[usize; 4]>
+}
+
+impl Default for IndexingForest4 {
+    fn default() -> Self {
+        Self::new()
     }
+}
 
+
+impl IndexingForest4 {
     /// Build an `IndexingForest4` with maximum indexing capacity (5 lazy indexes).
     pub fn new() -> Self {
-        Self::new_with_indexes(
-            &[[
-                TermRole::Object,
-                TermRole::Graph,
-                TermRole::Predicate,
-                TermRole::Subject,
-            ]],
-            Some(&vec![
-                [
-                    TermRole::Graph,
-                    TermRole::Predicate,
-                    TermRole::Subject,
-                    TermRole::Object,
-                ],
-                [
-                    TermRole::Predicate,
-                    TermRole::Object,
-                    TermRole::Graph,
-                    TermRole::Subject,
-                ],
-                [
-                    TermRole::Subject,
-                    TermRole::Predicate,
-                    TermRole::Object,
-                    TermRole::Graph,
-                ],
-                [
-                    TermRole::Graph,
-                    TermRole::Subject,
-                    TermRole::Predicate,
-                    TermRole::Object,
-                ],
-                [
-                    TermRole::Object,
-                    TermRole::Subject,
-                    TermRole::Graph,
-                    TermRole::Predicate,
-                ],
-            ]),
+        const S: usize = identifier_quad::Subject::VALUE;
+        const P: usize = identifier_quad::Predicate::VALUE;
+        const O: usize = identifier_quad::Object::VALUE;
+        const G: usize = identifier_quad::Graph::VALUE;
+
+        IndexingForest4::new_with_indexes(
+            &[[O, G, P, S]],
+            &[
+                [S, P, O, G],
+                [G, P, S, O],
+                [P, O, G, S],
+                [G, S, P, O],
+                [O, S, G, P]
+            ],
         )
     }
 
     /// Instanciate a new `IndexingForest4` that can build up to 6 trees, and
     /// an initial tree that has the lowest possible score for the given
     /// matching quad pattern.
-    #[deprecated(note = "Use either `new` or `new_with_indexes`")]
-    pub fn new_anti(s: bool, p: bool, o: bool, g: bool) -> Self {
-        // Index conformance expects an [&Option<u32>, 4]
-        let zero = Some(0_u32);
-        let none = None;
+    #[deprecated(note = "Use either `new` or `new_with_indexes`. Current API doesn't enables to achieve the intended purpose")]
+    pub fn new_anti(_s: bool, _p: bool, _o: bool, _g: bool) -> Self { Self::default() }
 
-        let term_roles = [
-            if s { &none } else { &zero },
-            if p { &none } else { &zero },
-            if o { &none } else { &zero },
-            if g { &none } else { &zero },
-        ];
 
-        // Possible blocks
-        let mut block_candidates = vec![
-            [
-                TermRole::Object,
-                TermRole::Graph,
-                TermRole::Predicate,
-                TermRole::Subject,
-            ],
-            [
-                TermRole::Graph,
-                TermRole::Predicate,
-                TermRole::Subject,
-                TermRole::Object,
-            ],
-            [
-                TermRole::Predicate,
-                TermRole::Object,
-                TermRole::Graph,
-                TermRole::Subject,
-            ],
-            [
-                TermRole::Subject,
-                TermRole::Predicate,
-                TermRole::Object,
-                TermRole::Graph,
-            ],
-            [
-                TermRole::Graph,
-                TermRole::Subject,
-                TermRole::Predicate,
-                TermRole::Object,
-            ],
-            [
-                TermRole::Object,
-                TermRole::Subject,
-                TermRole::Graph,
-                TermRole::Predicate,
-            ],
-        ];
+    /// Build an `IndexingForest4` with a tree for each `default_initialize`
+    /// order built from initialization and lazy trees for each
+    /// `optional_indexes` order.
+    pub fn new_with_indexes(
+        default_initialized: &[[usize; 4]],
+        will_be_initialized: &[[usize; 4]]
+    ) -> IndexingForest4 {
+        // TODO: check validity of indexes
 
-        let mut best_tree = 0;
-        let mut best_tree_score = 0;
+        let mut retval = IndexingForest4 {
+            trees : Vec::default(),
+            orders: Vec::default()
+        };
 
-        for (i, bc) in block_candidates.iter().enumerate() {
-            let block_order = BlockOrder::new(*bc);
-            let score = block_order.index_conformance(&term_roles);
+        assert!(!default_initialized.is_empty());
 
-            if score > best_tree_score {
-                best_tree_score = score;
-                best_tree = i;
+
+        for order in default_initialized {
+            retval.trees.push(TreeForFour::<u32>::new_instanciated(order).unwrap());
+            retval.orders.push(*order);
+        }
+
+        for order in will_be_initialized {
+            retval.trees.push(TreeForFour::<u32>::new(order).unwrap());
+            retval.orders.push(*order);
+        }
+
+        retval
+    }
+
+    pub fn get_number_of_living_trees(&self) -> usize {
+        self.trees
+            .iter()
+            .filter(|tree| tree.exists())
+            .count()
+    }
+
+    
+    /// Insert in the dataset the quad described by the given array of identifiers.
+    ///
+    /// Returns true if the quad has been inserted in the dataset (it was not
+    /// already in it)
+    pub fn insert(&mut self, identifier: [u32; 4]) -> bool {
+        for tree in &mut self.trees {
+            let insert_res = tree.insert(&identifier);
+
+            if insert_res.is_some() && insert_res.unwrap() == false {
+                return false;
             }
         }
 
-        let init_block = block_candidates[best_tree];
-        block_candidates.remove(best_tree);
-
-        Self::new_with_indexes(&[init_block], Some(&block_candidates))
+        true
     }
+
+    pub fn size(&self) -> usize {
+        self.trees[0].size().unwrap()
+    }
+
 
     /// Return an iterator on identifier quads from the dataset, matching
     /// the given pattern.
@@ -586,30 +542,37 @@ impl IndexingForest4 {
     /// `can_build_new_tree` parameter is equal to true.
     pub fn search_all_matching_quads(
         &self,
-        identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
+        identifier_quad_pattern: [Option<u32>; 4],
         can_build_new_tree: bool,
     ) -> IndexingForest4Filter {
         // Find best index
-        let term_roles = [
-            &identifier_quad_pattern[0],
-            &identifier_quad_pattern[1],
-            &identifier_quad_pattern[2],
-            &identifier_quad_pattern[3],
-        ];
+        let mut best_tree: Option<(&TreeForFour<u32>, usize)> = None;
 
-        let mut best_alt_tree_pos = None;
-        let mut best_index_score = self.base_tree.0.index_conformance(&term_roles);
+        for tree in &self.trees {
+            let index_conformance = tree.index_conformance(can_build_new_tree, &identifier_quad_pattern);
 
-        for i in 0..self.optional_trees.len() {
-            if can_build_new_tree || self.optional_trees[i].1.get().is_some() {
-                let score = self.optional_trees[i].0.index_conformance(&term_roles);
-                if score > best_index_score {
-                    best_alt_tree_pos = Some(i);
-                    best_index_score = score;
+            if let Some(conformance) = index_conformance {
+                if best_tree.is_none() || best_tree.unwrap().1 < conformance {
+                    best_tree = Some((&tree, conformance))
                 }
             }
         }
 
+        assert!(best_tree.is_some());
+
+
+        let best_tree = best_tree.unwrap();
+
+        if !best_tree.0.exists() {
+            best_tree.0.initialize(
+                self.trees[0].get_quads([None, None, None, None])
+            );
+        }
+
+        best_tree.0.get_quads(identifier_quad_pattern)
+
+
+        /*
         // Split research
         let tree_description = match best_alt_tree_pos {
             Some(x) => {
@@ -637,6 +600,7 @@ impl IndexingForest4 {
         tree_description
             .0
             .filter(&tree_description.1, identifier_quad_pattern)
+            */
     }
 
     /// Return an iterator on identifier quads from the dataset, matching
@@ -645,12 +609,12 @@ impl IndexingForest4 {
     /// This function will always build a new tree if a better indexation is possible for this
     /// forest. If you do not want to pay the potential cost of building a new tree, use the
     /// [`search_all_matching_quads`](IndexingForest4::search_all_matching_quads) method.
-    pub fn filter(
-        &self,
-        identifier_quad_pattern: [Option<u32>; NB_OF_TERMS],
-    ) -> IndexingForest4Filter {
+    pub fn filter(&self, identifier_quad_pattern: [Option<u32>; 4])
+    -> IndexingForest4Filter
+    {
         self.search_all_matching_quads(identifier_quad_pattern, true)
     }
+
 
     /// Insert in the dataset the quad described by the given array of identifiers.
     ///
@@ -712,163 +676,15 @@ impl IndexingForest4 {
     /// Ensure the optimal index tree for this forest is built for the given
     /// query pattern.
     pub fn ensure_has_index_for(&mut self, s: bool, p: bool, o: bool, g: bool) {
-        let spog: [Option<u32>; 4] = [
-            if s { Some(0) } else { None },
-            if p { Some(0) } else { None },
-            if o { Some(0) } else { None },
-            if g { Some(0) } else { None },
+        let spog: [Option<I>; 4] = [
+            if s { Some(I::min) } else { None },
+            if p { Some(I::min) } else { None },
+            if o { Some(I::min) } else { None },
+            if g { Some(I::min) } else { None },
         ];
 
         let mut iter = self.search_all_matching_quads(spog, true);
         iter.next(); // Ensure the tree is not lazily built
-    }
-}
-
-
-
-*/
-
-
-type IndexingForest4Filter<'a> = OnceTreeSetIterator<'a, u32>;
-
-
-pub struct IndexingForest4 {
-    trees: Vec<TreeForFour<u32>>,
-    orders: Vec<[usize; 4]>
-}
-
-impl Default for IndexingForest4 {
-    fn default() -> Self {
-        const S: usize = identifier_quad::Subject::VALUE;
-        const P: usize = identifier_quad::Predicate::VALUE;
-        const O: usize = identifier_quad::Object::VALUE;
-        const G: usize = identifier_quad::Graph::VALUE;
-
-        IndexingForest4::new_with_indexes(
-            &[[O, G, P, S]],
-            &[
-                [S, P, O, G],
-                [G, P, S, O],
-                [P, O, G, S],
-                [G, S, P, O],
-                [O, S, G, P]
-            ],
-        )
-    }
-}
-
-
-impl IndexingForest4 {
-    pub fn new_anti(_s: bool, _p: bool, _o: bool, _g: bool) -> Self { Self::default() }
-
-    pub fn new_with_indexes(
-        default_initialized: &[[usize; 4]],
-        will_be_initialized: &[[usize; 4]]
-    ) -> IndexingForest4 {
-        // TODO: check validity of indexes
-
-        let mut retval = IndexingForest4 {
-            trees : Vec::default(),
-            orders: Vec::default()
-        };
-
-        assert!(!default_initialized.is_empty());
-
-
-        for order in default_initialized {
-            retval.trees.push(TreeForFour::<u32>::new_instanciated(order).unwrap());
-            retval.orders.push(*order);
-        }
-
-        for order in will_be_initialized {
-            retval.trees.push(TreeForFour::<u32>::new(order).unwrap());
-            retval.orders.push(*order);
-        }
-
-        retval
-    }
-
-    pub fn get_number_of_living_trees(&self) -> usize {
-        self.trees
-            .iter()
-            .filter(|tree| tree.exists())
-            .count()
-    }
-
-
-
-    /// Return an iterator on identifier quads from the dataset, matching
-    /// the given pattern.
-    ///
-    /// This function can potentially build a new tree in the structure if the
-    /// `can_build_new_tree` parameter is equal to true.
-    pub fn search_all_matching_quads(
-        &self,
-        identifier_quad_pattern: [Option<u32>; 4],
-        can_build_new_tree: bool,
-    ) -> IndexingForest4Filter {
-        // Find best index
-        let mut best_tree: Option<(&TreeForFour<u32>, usize)> = None;
-
-        for tree in self.trees {
-            let index_conformance = tree.index_conformance(can_build_new_tree, &identifier_quad_pattern);
-
-            if let Some(conformance) = index_conformance {
-                if best_tree.is_none() || best_tree.unwrap().1 < conformance {
-                    best_tree = Some((&tree, conformance))
-                }
-            }
-        }
-
-        assert!(best_tree.is_some());
-
-
-        let best_tree = best_tree.unwrap();
-
-        if !best_tree.0.exists() {
-            best_tree.0.initialize(
-                self.trees[0].get_quads([None, None, None, None])
-            );
-        }
-
-        best_tree.0.get_quads(identifier_quad_pattern)
-
-
-        /*
-        // Split research
-        let tree_description = match best_alt_tree_pos {
-            Some(x) => {
-                let alternative_tree_description = &self.optional_trees[x];
-
-                (
-                    &alternative_tree_description.0,
-                    alternative_tree_description.1.get_or_init(|| {
-                        let content = self
-                            .base_tree
-                            .0
-                            .filter(&self.base_tree.1, [None, None, None, None]);
-
-                        let mut map = BTreeSet::new();
-                        alternative_tree_description
-                            .0
-                            .insert_all_into(&mut map, content);
-                        map
-                    }),
-                )
-            }
-            None => (&self.base_tree.0, &self.base_tree.1),
-        };
-
-        tree_description
-            .0
-            .filter(&tree_description.1, identifier_quad_pattern)
-            */
-    }
-
-    pub fn filter(&self, identifier_quad_pattern: [Option<u32>; 4])
-    -> IndexingForest4Filter
-    {
-        self.search_all_matching_quads(identifier_quad_pattern, true)
     }
 }
 
@@ -921,6 +737,35 @@ mod test {
         assert_eq!(forest.get_number_of_living_trees(), 6);
     }
 
+
+    #[test]
+    fn small_tree() {
+        let mut forest = IndexingForest4::default();
+        forest.insert([123, 98, 101, 61]);
+        forest.insert([21, 18, 52, 114]);
+        forest.insert([84, 142, 80, 174]);
+        forest.insert([138, 0, 76, 68]);
+        forest.insert([29, 154, 61, 189]);
+        forest.insert([14, 67, 86, 196]);
+        forest.insert([26, 113, 162, 148]);
+        forest.insert([133, 39, 179, 36]);
+        forest.insert([32, 52, 152, 87]);
+        forest.insert([43, 151, 141, 64]);
+        forest.insert([100, 181, 78, 64]);
+        forest.insert([152, 119, 57, 150]);
+        forest.insert([114, 180, 70, 30]);
+        forest.insert([104, 60, 94, 38]);
+        forest.insert([183, 31, 102, 186]);
+        forest.insert([0, 48, 185, 175]);
+        forest.insert([169, 3, 35, 168]);
+        forest.insert([83, 64, 121, 70]);
+        forest.insert([33, 74, 174, 57]);
+        forest.insert([95, 120, 101, 40]);
+
+        assert_eq!(forest.size(), 20);
+
+
+    }
 
 
 }

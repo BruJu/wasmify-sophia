@@ -1,47 +1,38 @@
-use std::marker::PhantomData;
-use std::cmp::Ordering;
 
-use once_cell::unsync::OnceCell;
-use std::collections::BTreeSet;
 
-// ============================================================================
-// ============================================================================
 
+/// A position in a list of identifiers. Used to design which order to use
 pub trait BlockPosition {
     const VALUE: usize;
     const NAME: &'static str;
 }
 
+/// The subject position in a SPO RDF triple / SPOG RDF quad
 pub struct Subject {}
 impl BlockPosition for Subject {
     const VALUE: usize = 0;
     const NAME: &'static str = "Subject";
 }
 
+/// The predicate position in a SPO RDF triple / SPOG RDF quad
 pub struct Predicate {}
 impl BlockPosition for Predicate {
     const VALUE: usize = 1;
     const NAME: &'static str = "Predicate";
 }
 
+/// The object position in a SPO RDF triple / SPOG RDF quad
 pub struct Object {}
 impl BlockPosition for Object {
     const VALUE: usize = 2;
     const NAME: &'static str = "Object";
 }
 
+/// The graph position in a SPOG RDF quad
 pub struct Graph {}
 impl BlockPosition for Graph {
     const VALUE: usize = 3;
     const NAME: &'static str = "Graph";
-}
-
-pub struct FixedOrder4<A, B, C, D>
-where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition {
-    _a: PhantomData<*const A>,
-    _b: PhantomData<*const B>,
-    _c: PhantomData<*const C>,
-    _d: PhantomData<*const D>,
 }
 
 
@@ -59,9 +50,20 @@ impl Identifier for u32 {
 }
 
 
+// ============================================================================
+// ============================================================================
 
-// ============================================================================
-// ============================================================================
+
+/// An utility struct that provides method to manipulate quads sorted in the
+/// ABCD order
+pub struct FixedOrder4<A, B, C, D>
+where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition {
+    _a: PhantomData<*const A>,
+    _b: PhantomData<*const B>,
+    _c: PhantomData<*const C>,
+    _d: PhantomData<*const D>,
+}
+
 
 impl<A, B, C, D> FixedOrder4<A, B, C, D>
 where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition {
@@ -91,7 +93,7 @@ where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition {
     /// This gives an indication of how efficient the
     /// [`filter`](BlockOrder::filter) method will be.
     /// The higher, the better suited this block order is to answer this pattern.
-    pub fn index_conformance<T>(pattern: &[&Option<T>; 4]) -> usize {
+    pub fn index_conformance<T>(pattern: &[Option<T>; 4]) -> usize {
         Self::to_slice()
             .iter()
             .take_while(|tr| pattern[**tr as usize].is_some())
@@ -112,7 +114,6 @@ where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition {
         // Restrict range as much as possible
         let mut min = Block::<T, A, B, C, D>{ values : [T::MIN; 4], _boilerplate: PhantomData{} };
         let mut max = Block::<T, A, B, C, D>{ values : [T::MAX; 4], _boilerplate: PhantomData{} };
-
 
         let term_roles = Self::to_slice();
 
@@ -136,6 +137,14 @@ where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition {
     }
 }
 
+
+
+
+// ============================================================================
+// ============================================================================
+
+
+/// Wrapper for an array of 4 Ts, ordered by A then B then C the nD
 pub struct Block<T, A, B, C, D>
 where T: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
 {
@@ -150,7 +159,6 @@ where T: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: Bl
         Some(self.cmp(other))
     }
 }
-
 
 impl<T, A, B, C, D> Ord for Block<T, A, B, C, D>
 where T: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
@@ -172,8 +180,8 @@ where T: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: Bl
     }
 }
 
-
-
+// ============================================================================
+// ============================================================================
 
 /// Returns true if the non None values of the given filter_block are equals
 /// to the values of this block
@@ -191,113 +199,7 @@ where T: Identifier {
 }
 
 
-
-
-
-pub struct OnceTreeSet<I, A, B, C, D>
-where I: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
-{
-    v: OnceCell<BTreeSet<Block<I, A, B, C, D>>>,
-}
-
-impl<I, A, B, C, D> OnceTreeSet<I, A, B, C, D>
-where I: Identifier, A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
-{
-    pub fn new() -> Self {
-        Self { v: OnceCell::new() }
-    }
-
-    pub fn new_instanciated() -> Self {
-        Self {
-            v: {
-                let x = OnceCell::<BTreeSet<Block<I, A, B, C, D>>>::new();
-                x.set(BTreeSet::new()).ok();
-                x
-            }
-        }
-    }
-
-    pub fn exists(&self) -> bool {
-        self.v.get().is_some()
-    }
-
-    pub fn get_quads<'a>(&'a self, pattern: [Option<I>; 4]) -> OnceTreeSetIterator<'a, I> {
-        OnceTreeSetIterator::new(
-            self.v.get().unwrap(),
-            FixedOrder4::<A, B, C, D>::range(pattern)
-        )
-    }
-
-    pub fn index_conformance(&self, can_build: bool, pattern_layout: &[Option<I>; 4]) -> Option<usize> {
-        if !can_build && self.v.get().is_none() {
-            None
-        } else {
-            Some(FixedOrder4::<A, B, C, D>::index_conformance(*pattern_layout))
-        }
-    }
-
-    pub fn initialize<'a>(&self, iter: OnceTreeSetIterator<'a, I>) {
-
-    }
-}
-
-
-pub struct OnceTreeSetIterator<'a, I>
-where I: Identifier
-{
-    range: std::collections::btree_set::Range<'a, [I; 4]>,
-    filter_block: [Option<I>; 4]
-}
-
-
-impl<'a, I> OnceTreeSetIterator<'a, I>
-where I: Identifier
-{
-    
-
-    pub fn new<A, B, C, D>(
-        tree: &'a BTreeSet<Block<I, A, B, C, D>>,
-        things: (std::ops::RangeInclusive<Block<I, A, B, C, D>>, [Option<I>; 4])
-    )
-    -> Self
-    where A: BlockPosition, B: BlockPosition, C: BlockPosition, D: BlockPosition 
-    {
-        let range = tree.range(things.0);
-
-        let range_rover = unsafe {
-            std::mem::transmute::<
-                std::collections::btree_set::Range<'a, Block<I, A, B, C, D>>,
-                std::collections::btree_set::Range<'a, [I; 4]>
-            >(range)
-        };
-
-        Self {
-            range: range_rover,
-            filter_block: things.1
-        }
-    }
-
-}
-
-
-
-
-
-//pub struct Order4 {
-//    order: [usize; 4]
-//}
-//
-//impl Order4 {
-//    fn compare<T>(&self, lhs: &[T; 4], rhs: &[T; 4]) -> std::cmp::Ordering
-//    where T: Ord + Copy
-//    {   
-//        (&lhs[self.order[0]]).cmp(&rhs[self.order[0]])
-//        .then_with(|| (&lhs[self.order[1]]).cmp(&rhs[self.order[1]]))
-//        .then_with(|| (&lhs[self.order[2]]).cmp(&rhs[self.order[2]]))
-//        .then_with(|| (&lhs[self.order[3]]).cmp(&rhs[self.order[3]]))
-//    }
-//}
-
+// ============================================================================
 
 
 
@@ -337,7 +239,6 @@ mod test {
         assert!(SecondOrder::compare(&m1234, &m1324) == std::cmp::Ordering::Greater);
         assert!(SecondOrder::compare(&m1324, &m1234) == std::cmp::Ordering::Less);
     }
-
 
 
 }
