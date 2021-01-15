@@ -41,7 +41,7 @@ where I: Identifier, A: Position, B: Position, C: Position, D: Position
         self.v.get().is_some()
     }
 
-    fn ensure_exists<'a, F>(&mut self, f: F) where F: FnOnce() -> Tree4Iterator<'a, I> {
+    fn ensure_exists<'a, F>(&self, f: F) where F: FnOnce() -> Tree4Iterator<'a, I> {
         self.v.get_or_init(move || {
             let mut tree = BTreeSet::<Block<I, A, B, C, D>>::new();
 
@@ -106,10 +106,6 @@ where I: Identifier, A: Position, B: Position, C: Position, D: Position
         }
     }
 }
-
-// TODO: implements MaybeTree4
-
-
 
 #[cfg(test)]
 mod test {
