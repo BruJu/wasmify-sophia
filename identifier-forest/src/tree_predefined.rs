@@ -1,8 +1,9 @@
 
-use crate::{ Block, Identifier, Position };
+use crate::order::{ Block, Position};
+use crate::{ Identifier };
 use crate::{ Tree4Iterator, MaybeTree4, LazyStructure };
-use crate::FixedOrder4;
-use crate::pattern_match;
+use crate::order::FixedOrder4;
+use crate::order::pattern_match;
 
 use once_cell::unsync::OnceCell;
 use std::collections::BTreeSet;
@@ -109,7 +110,7 @@ where I: Identifier, A: Position, B: Position, C: Position, D: Position
 
 #[cfg(test)]
 mod test {
-    use crate::{Subject, Predicate, Object, Graph};
+    use crate::order::{Subject, Predicate, Object, Graph};
     use super::*;
 
     type SPOG = OnceTreeSet<u32, Subject, Predicate, Object, Graph>;

@@ -111,6 +111,15 @@ add("use crate::Identifier;")
 add("use crate::Tree4Iterator;")
 add("use crate::MaybeTree4;")
 add("")
+
+
+
+add("/// A MaybeTree4 implementation whose order is decided at execution time.")
+add("///")
+add("/// The choice is made by using the appropriate constructor with the position order")
+add("/// in the constructor instead of generic parameters. The appropriate OnceTreeSet")
+add("/// will be created depending on the given order, and then this structure will act")
+add("/// as the desired OnceTreeSet by forwarding the calls to the different methods.")
 add("pub enum " + n)
 add("where I: Identifier")
 add("{")
@@ -135,7 +144,29 @@ add("impl<I> " + n)
 add("where I: Identifier")
 add("{")
 
+
+documentation = {}
+
+documentation["new"] = [
+    "Builds a new TreeSet whose order is defined at execution time. The tree",
+    "is not directly built (the underlying used constructor is the new function",
+    "from the OnceTreeSet class)",
+    "",
+    "See OnceTreeSet for more details"
+]
+
+documentation["new_instanciated"] = [
+    "Builds a new TreeSet whose order is defined at execution time. The tree",
+    "is directly built and ready for usage (according to new_instanciated",
+    "specificaiton)",
+    "",
+    "See OnceTreeSet for more details"
+]
+
+
 for method in lazy_structure["methods"]:
+    for l in documentation[method["name"]]:
+        add("    /// " + l)
     add("    pub fn "+ method["name"] + "(order: &[usize; 4]) -> Option<"+n+"> {")
     add("        match order {")
 

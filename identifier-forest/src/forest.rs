@@ -1,12 +1,12 @@
 
 
 use crate::DynamicOnceTreeSet;
-use crate::{ Subject, Object, Predicate, Graph };
-use crate::position::Position;
+use crate::order::{ Position, Subject, Object, Predicate, Graph };
 use crate::tree_trait::MaybeTree4;
 use crate::Tree4Iterator;
 use std::collections::BTreeSet;
 
+/// A forest of identifier trees. It is able to store arrays of four u32
 pub struct IndexingForest4 {
     trees: Vec<DynamicOnceTreeSet<u32>>
 }
@@ -39,13 +39,6 @@ impl IndexingForest4 {
             ],
         )
     }
-
-    /// Instanciate a new `IndexingForest4` that can build up to 6 trees, and
-    /// an initial tree that has the lowest possible score for the given
-    /// matching quad pattern.
-    #[deprecated(note = "Use either `new` or `new_with_indexes`. Current API doesn't enables to achieve the intended purpose")]
-    pub fn new_anti(_s: bool, _p: bool, _o: bool, _g: bool) -> Self { Self::default() }
-
 
     /// Build an `IndexingForest4` with a tree for each `default_initialize`
     /// order built from initialization and lazy trees for each

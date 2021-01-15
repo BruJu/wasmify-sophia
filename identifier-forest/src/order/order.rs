@@ -1,6 +1,7 @@
+//! This file defines how an array of four identifiers can be ordered
 
+use crate::order::Position;
 use crate::Identifier;
-use crate::Position;
 
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -15,17 +16,18 @@ where A: Position, B: Position, C: Position, D: Position {
 
 impl<A, B, C, D> FixedOrder4<A, B, C, D>
 where A: Position, B: Position, C: Position, D: Position {
-    const NB_OF_TERMS: usize = 4;
+    // Number of generic types.
+    // TODO: use it
+    // const NB_OF_TERMS: usize = 4;
 
-    pub fn name() -> String {
-        debug_assert!(Self::NB_OF_TERMS == 4);
-        format!("{:?} {:?} {:?} {:?}", A::VALUE, B::VALUE, C::VALUE, D::VALUE)
-    }
-
+    /// Returns the list of indexes described by the generic parameters
     pub fn to_slice() -> [usize; 4] {
         [A::VALUE, B::VALUE, C::VALUE, D::VALUE]
     }
     
+    /// Compares two arrays of four orderable values by their `A::VALUE`-th
+    /// term, then their `B::VALUE`-th term, then their `C::VALUE`-th term,
+    /// then their `D::VALUE`-th term.
     pub fn compare<T>(lhs: &[T; 4], rhs: &[T; 4]) -> std::cmp::Ordering 
     where T: Ord
     {
@@ -48,25 +50,24 @@ where A: Position, B: Position, C: Position, D: Position {
             .count()
     }
     
-    /// Return a range on every block that matches the given identifier quad
-    /// pattern (assuming the lexicographical order).
-    /// The range is restricted as much as possible, but extra quads
-    /// that do not match the pattern may be included (best effort).
-    /// To let the user filter the extra quads, a filter block is also
-    /// returned.
+    /// Assuming that we have a structure ordered by the order A, B, C, D,
+    /// and that we want to extract every array that matches the given
+    /// pattern (None is a wildcard, else we want the specified value),
+    /// returns the smallest possible range to retrieve every arrays from the
+    /// structure (best effort) and a new pattern which contains values only
+    /// on non wildcard indexes that are not already filtered by the range.
     pub fn range<T>(
-        identifier_quad_pattern: [Option<T>; 4],
+        pattern: [Option<T>; 4],
     ) -> (std::ops::RangeInclusive<Block<T, A, B, C, D>>, [Option<T>; 4])     
     where T: Identifier
     {
-        // Restrict range as much as possible
-        let mut min = Block::<T, A, B, C, D>{ values : [T::MIN; 4], _boilerplate: PhantomData{} };
-        let mut max = Block::<T, A, B, C, D>{ values : [T::MAX; 4], _boilerplate: PhantomData{} };
+        // Initial range (checks every values)
+        let mut min = Block::<T, A, B, C, D>::new([T::MIN; 4]);
+        let mut max = Block::<T, A, B, C, D>::new([T::MAX; 4]);
 
-        let term_roles = Self::to_slice();
-
-        for term_role in term_roles.iter() {
-            match identifier_quad_pattern[*term_role] {
+        // Restrict it as much as possible
+        for term_role in Self::to_slice() {
+            match pattern[*term_role] {
                 None => {
                     break;
                 }
@@ -77,32 +78,36 @@ where A: Position, B: Position, C: Position, D: Position {
             }
         }
 
-        // Return range + filter block
+        // Return the range and the filter block
         (
             min..=max,
-            identifier_quad_pattern,
+            pattern,
         )
     }
 }
 
-
-
-
 // ============================================================================
 // ============================================================================
 
-
-/// Wrapper for an array of 4 Ts, ordered by A then B then C the nD
-pub struct Block<T, A, B, C, D>
-where T: Identifier, A: Position, B: Position, C: Position, D: Position 
+/// Wrapper for an array of 4 values of the same type whose purpose is to
+/// provide a compile time defined order on these arrays.
+///
+/// If the generic type `I` is an [`Identifier`], and the `A`, `B`, `C` and `D`
+/// generics types are Identifiers, then ordered by A then B then C the nD
+///
+/// **TODO:** Compile time check if A != B != C != D and 0 < [A, B, C, D] < 4
+pub struct Block<I, A, B, C, D>
+where I: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
-    pub values: [T; 4],
+    /// The wrapped array of four values.
+    pub values: [I; 4],
     _boilerplate: PhantomData<*const FixedOrder4<A, B, C, D>>,
 }
 
 impl<I, A, B, C, D> Block<I, A, B, C, D>
 where I: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
+    /// Wraps an array of four values
     pub fn new(elements: [I; 4]) -> Self {
         Self {
             values: elements,
@@ -111,6 +116,7 @@ where I: Identifier, A: Position, B: Position, C: Position, D: Position
     }
 }
 
+/// The order on [`Block`]s is a total order.
 impl<T, A, B, C, D> PartialOrd for Block<T, A, B, C, D>
 where T: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
@@ -119,6 +125,9 @@ where T: Identifier, A: Position, B: Position, C: Position, D: Position
     }
 }
 
+/// Compares two arrays of four [`Identifier`]s using the A::VALUE-th term.
+/// If it is equals, compares the B::VALUE-th term, ... until the
+/// D::VALUE-th term.
 impl<T, A, B, C, D> Ord for Block<T, A, B, C, D>
 where T: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
@@ -135,6 +144,7 @@ impl<T, A, B, C, D> PartialEq for Block<T, A, B, C, D>
 where T: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
     fn eq(&self, other: &Self) -> bool {
+        // Order of comparison is not important here
         &self.values == &other.values
     }
 }
@@ -143,7 +153,8 @@ where T: Identifier, A: Position, B: Position, C: Position, D: Position
 // ============================================================================
 
 /// Returns true if the non None values of the given filter_block are equals
-/// to the values of this block
+/// to the values of this block. In other words, it can be seen as an
+/// equality check where none serves as a wildcard.
 pub fn pattern_match<T>(block: &[T; 4], pattern: &[Option<T>; 4]) -> bool
 where T: Identifier {
     for i in 0..block.len() {
@@ -161,11 +172,9 @@ where T: Identifier {
 // ============================================================================
 
 
-
-
 #[cfg(test)]
 mod test {
-    use crate::{Subject, Predicate, Object, Graph};
+    use crate::order::{Subject, Predicate, Object, Graph};
     use super::*;
 
     #[test]
@@ -192,6 +201,7 @@ mod test {
         assert!(SecondOrder::compare(&m1324, &m1234) == std::cmp::Ordering::Less);
     }
 
+    // TODO: test range, index_conformnce, to_slice, valid and invalid orders
 
 }
 

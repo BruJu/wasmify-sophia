@@ -1,5 +1,5 @@
 use crate::OnceTreeSet;
-use crate::{ Subject, Predicate, Object, Graph };
+use crate::order::{ Subject, Predicate, Object, Graph };
 use crate::LazyStructure;
 use crate::Identifier;
 use crate::Tree4Iterator;
