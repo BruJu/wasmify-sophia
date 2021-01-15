@@ -1,10 +1,7 @@
 
-
-use crate::DynamicOnceTreeSet;
-use crate::order::{ Position, Subject, Object, Predicate, Graph };
-use crate::tree_trait::MaybeTree4;
-use crate::Tree4Iterator;
-use std::collections::BTreeSet;
+use crate::tree::{ MaybeTree4, Tree4Iterator };
+use crate::order::{ Position, Subject, Predicate, Object, Graph };
+use crate::tree::DynamicOnceTreeSet;
 
 /// A forest of identifier trees. It is able to store arrays of four u32
 pub struct IndexingForest4 {
@@ -16,9 +13,6 @@ impl Default for IndexingForest4 {
         Self::new()
     }
 }
-
-
-
 
 impl IndexingForest4 {
     /// Build an `IndexingForest4` with maximum indexing capacity (5 lazy indexes).

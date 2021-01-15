@@ -1,14 +1,17 @@
 
-use crate::order::{ Block, Position};
+use crate::order::{ Block, Position };
 use crate::{ Identifier };
-use crate::{ Tree4Iterator, MaybeTree4, LazyStructure };
-use crate::order::FixedOrder4;
-use crate::order::pattern_match;
+use crate::order::{ FixedOrder4, pattern_match };
+use crate::tree::{ LazyStructure, MaybeTree4, Tree4Iterator };
 
 use once_cell::unsync::OnceCell;
 use std::collections::BTreeSet;
 
-/// A (sometimes) tree of quads for which order is defined at compile time.
+/// A tree of quads for which order is defined at compile time.
+///
+/// The tree may not actually exists if it was created using new. To force
+/// its creation, the appropriate constructor must be used or it must be populated
+/// later using `ensure_exists`
 pub struct OnceTreeSet<I, A, B, C, D>
 where I: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
@@ -138,7 +141,7 @@ mod test {
 
         // Testing populating with an empty iterator
         {
-            let mut tree = T::new();
+            let /*mut*/ tree = T::new();
             tree.ensure_exists(|| Box::new(std::iter::empty()));
             assert!(tree.exists());
             assert_eq!(tree.size(), Some(0_usize));
@@ -209,7 +212,7 @@ mod test {
             original_data.insert([11_u32, 20_u32, 31_u32, 40_u32]);
             original_data.insert([11_u32, 20_u32, 30_u32, 41_u32]);
 
-            let mut tree = T::new();
+            let /*mut*/ tree = T::new();
             tree.ensure_exists(|| Box::new(original_data.iter().map(|&e| e)));
 
             assert_eq!(tree.size(), Some(original_data.len()));

@@ -32,17 +32,10 @@
 
 pub mod order;
 
+pub mod tree;
+
 mod identifier;
 pub use crate::identifier::*;
-
-mod tree_trait;
-pub use crate::tree_trait::*;
-
-mod tree_predefined;
-pub use crate::tree_predefined::*;
-
-mod tree_enum;
-pub use crate::tree_enum::*;
 
 mod forest;
 pub use crate::forest::*;

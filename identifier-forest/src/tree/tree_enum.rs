@@ -1,10 +1,14 @@
-use crate::OnceTreeSet;
+use crate::tree::OnceTreeSet;
 use crate::order::{ Subject, Predicate, Object, Graph };
-use crate::LazyStructure;
+use crate::tree::{ Tree4Iterator, LazyStructure, MaybeTree4 };
 use crate::Identifier;
-use crate::Tree4Iterator;
-use crate::MaybeTree4;
 
+/// A MaybeTree4 implementation whose order is decided at execution time.
+///
+/// The choice is made by using the appropriate constructor with the position order
+/// in the constructor instead of generic parameters. The appropriate OnceTreeSet
+/// will be created depending on the given order, and then this structure will act
+/// as the desired OnceTreeSet by forwarding the calls to the different methods.
 pub enum DynamicOnceTreeSet<I>
 where I: Identifier
 {
@@ -38,6 +42,11 @@ where I: Identifier
 impl<I> DynamicOnceTreeSet<I>
 where I: Identifier
 {
+    /// Builds a new TreeSet whose order is defined at execution time. The tree
+    /// is not directly built (the underlying used constructor is the new function
+    /// from the OnceTreeSet class)
+    /// 
+    /// See OnceTreeSet for more details
     pub fn new(order: &[usize; 4]) -> Option<DynamicOnceTreeSet<I>> {
         match order {
             [0, 1, 2, 3] => Some(Self::SPOG( OnceTreeSet::new() )),
@@ -68,6 +77,11 @@ where I: Identifier
         }
     }
 
+    /// Builds a new TreeSet whose order is defined at execution time. The tree
+    /// is directly built and ready for usage (according to new_instanciated
+    /// specificaiton)
+    /// 
+    /// See OnceTreeSet for more details
     pub fn new_instanciated(order: &[usize; 4]) -> Option<DynamicOnceTreeSet<I>> {
         match order {
             [0, 1, 2, 3] => Some(Self::SPOG( OnceTreeSet::new_instanciated() )),
@@ -133,7 +147,7 @@ where I: Identifier
     }
 
     fn ensure_exists<'a, F>(&self, f: F) where F: FnOnce() -> Tree4Iterator<'a, I> {
-        match self {
+        match &self {
             Self::SPOG(tree) => tree.ensure_exists(f),
             Self::SPGO(tree) => tree.ensure_exists(f),
             Self::SOPG(tree) => tree.ensure_exists(f),
