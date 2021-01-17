@@ -39,3 +39,5 @@ pub use crate::identifier::*;
 
 mod forest;
 pub use crate::forest::*;
+
+pub mod compile_time_forest;
