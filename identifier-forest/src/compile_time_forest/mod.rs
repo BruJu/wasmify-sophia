@@ -128,9 +128,8 @@ Order6: Tree4Profile
         ]
             .iter()
             .enumerate()
-            .filter(|v| v.1.is_some())
-            .max_by_key(|v| v.1.unwrap())
-            .map(|t| (t.0 + 1, t.1.unwrap()))
+            .filter_map(|(i, opt)| opt.map(|score| (i+1, score)))
+            .max_by_key(|(_, score)| *score)
             .unwrap()
     }
 
