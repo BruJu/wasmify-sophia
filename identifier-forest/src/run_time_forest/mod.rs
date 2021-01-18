@@ -2,6 +2,7 @@
 //! time, [`DynamicOnceTreeSet`] is also provided which enables to choose
 //! which order to pick at execution time.
 
+use crate::Identifier;
 use crate::tree::{ MaybeTree4, Tree4Iterator, Forest4 };
 use crate::order::{ Position, Subject, Predicate, Object, Graph };
 
@@ -9,17 +10,20 @@ mod _dynamic;
 pub use self::_dynamic::*;
 
 /// A forest of identifier trees. It is able to store arrays of four u32
-pub struct IndexingForest4 {
-    trees: Vec<DynamicOnceTreeSet<u32>>
+pub struct IndexingForest4<I>
+where I: Identifier {
+    trees: Vec<DynamicOnceTreeSet<I>>
 }
 
-impl Default for IndexingForest4 {
+impl<I> Default for IndexingForest4<I>
+where I: Identifier {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl IndexingForest4 {
+impl<I> IndexingForest4<I>
+where I: Identifier {
     /// Build an `IndexingForest4` with maximum indexing capacity (5 lazy indexes).
     pub fn new() -> Self {
         const S: usize = Subject::VALUE;
@@ -27,7 +31,7 @@ impl IndexingForest4 {
         const O: usize = Object::VALUE;
         const G: usize = Graph::VALUE;
 
-        IndexingForest4::new_with_indexes(
+        Self::new_with_indexes(
             &[[O, G, P, S]],
             &[
                 [S, P, O, G],
@@ -45,27 +49,27 @@ impl IndexingForest4 {
     pub fn new_with_indexes(
         default_initialized: &[[usize; 4]],
         will_be_initialized: &[[usize; 4]]
-    ) -> IndexingForest4 {
+    ) -> Self {
         // TODO: check validity of indexes
 
-        let mut retval = IndexingForest4 {
+        let mut retval = Self {
             trees : Vec::default()
         };
 
         assert!(!default_initialized.is_empty());
 
         for order in default_initialized {
-            retval.trees.push(DynamicOnceTreeSet::<u32>::new_instanciated(order).unwrap());
+            retval.trees.push(DynamicOnceTreeSet::<I>::new_instanciated(order).unwrap());
         }
 
         for order in will_be_initialized {
-            retval.trees.push(DynamicOnceTreeSet::<u32>::new(order).unwrap());
+            retval.trees.push(DynamicOnceTreeSet::<I>::new(order).unwrap());
         }
 
         retval
     }
 
-    fn best_tree_for<'a>(&'a self, pattern: &[Option<u32>; 4]) -> &'a DynamicOnceTreeSet<u32> {
+    fn best_tree_for<'a>(&'a self, pattern: &[Option<I>; 4]) -> &'a DynamicOnceTreeSet<I> {
         let mut best_tree: Option<(usize, usize)> = None;
 
         for (i, tree) in self.trees.iter().enumerate() {
@@ -82,7 +86,7 @@ impl IndexingForest4 {
         &self.trees[best_tree.unwrap().0]
     }
 
-    fn ensure_exists(my_tree: &DynamicOnceTreeSet<u32>, reference_tree: &DynamicOnceTreeSet<u32>) {
+    fn ensure_exists(my_tree: &DynamicOnceTreeSet<I>, reference_tree: &DynamicOnceTreeSet<I>) {
         if !my_tree.exists() {
             my_tree.ensure_exists(|| reference_tree.get_quads([None, None, None, None]));
         }
@@ -90,23 +94,24 @@ impl IndexingForest4 {
 }
 
 
-impl MaybeTree4<u32> for IndexingForest4
+impl<I> MaybeTree4<I> for IndexingForest4<I>
+where I: Identifier
 {
     fn exists(&self) -> bool {
         true
     }
 
-    fn ensure_exists<'a, F>(&self, _f: F) where F: FnOnce() -> Tree4Iterator<'a, u32> {
+    fn ensure_exists<'a, F>(&self, _f: F) where F: FnOnce() -> Tree4Iterator<'a, I> {
         // noop
     }
 
-    fn get_quads<'a>(&'a self, pattern: [Option<u32>; 4]) -> Tree4Iterator<'a, u32> {
+    fn get_quads<'a>(&'a self, pattern: [Option<I>; 4]) -> Tree4Iterator<'a, I> {
         let best_btree = self.best_tree_for(&pattern);
         Self::ensure_exists(best_btree, &self.trees[0]);
         best_btree.get_quads(pattern)
     }
 
-    fn index_conformance(&self, can_build: bool, pattern_layout: &[Option<u32>; 4]) -> Option<usize> {
+    fn index_conformance(&self, can_build: bool, pattern_layout: &[Option<I>; 4]) -> Option<usize> {
         let mut res = None;
 
         for tree in &self.trees {
@@ -120,7 +125,7 @@ impl MaybeTree4<u32> for IndexingForest4
         res
     }
 
-    fn insert(&mut self, id_quad: &[u32; 4]) -> Option<bool> {
+    fn insert(&mut self, id_quad: &[I; 4]) -> Option<bool> {
         let mut opt = None;
 
         for tree in &mut self.trees {
@@ -134,7 +139,7 @@ impl MaybeTree4<u32> for IndexingForest4
         opt
     }
 
-    fn delete(&mut self, id_quad: &[u32; 4]) -> Option<bool> {
+    fn delete(&mut self, id_quad: &[I; 4]) -> Option<bool> {
         let mut opt = None;
 
         for tree in &mut self.trees {
@@ -152,12 +157,13 @@ impl MaybeTree4<u32> for IndexingForest4
         self.trees[0].size()
     }
 
-    fn has(&self, id_quad: &[u32; 4]) -> Option<bool> {
+    fn has(&self, id_quad: &[I; 4]) -> Option<bool> {
         self.trees[0].has(&id_quad)
     }
 }
 
-impl Forest4<u32> for IndexingForest4 {
+impl<I> Forest4<I> for IndexingForest4<I>
+where I: Identifier {
     fn get_number_of_living_trees(&self) -> usize {
         self.trees
             .iter()
@@ -165,7 +171,7 @@ impl Forest4<u32> for IndexingForest4 {
             .count()
     }
 
-    fn ensure_has_index_for(&self, pattern: &[Option<u32>; 4]) {
+    fn ensure_has_index_for(&self, pattern: &[Option<I>; 4]) {
         let best_btree = self.best_tree_for(&pattern);
         Self::ensure_exists(best_btree, &self.trees[0]);
     }
@@ -181,12 +187,14 @@ mod test {
     const O: usize = Object::VALUE;
     const G: usize = Graph::VALUE;
 
+    type IndexingForest4u32 = IndexingForest4<u32>;
+
     #[test]
     fn forest_instanciation() {
-        let forest_new = IndexingForest4::new();
+        let forest_new = IndexingForest4u32::new();
         assert!(forest_new.get_number_of_living_trees() >= 1);
 
-        let forest_full = IndexingForest4::new_with_indexes(
+        let forest_full = IndexingForest4u32::new_with_indexes(
             &[
                 [O, G, P, S],
                 [S, P, O, G],
@@ -203,7 +211,7 @@ mod test {
 
     #[test]
     fn test_implem_() {
-        type T = IndexingForest4;
+        type T = IndexingForest4u32;
 
         // Insertion
         {
