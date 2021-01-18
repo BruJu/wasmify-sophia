@@ -10,15 +10,11 @@
 //! reference. The main purpose is to provide duplicates version of the same
 //! list of quads, and to pick the most efficient order when a certain
 //! quad pattern is requested
-//! - As the implementation of [`OnceTreeSet`] have an order defined at compile
-//! time, [`DynamicOnceTreeSet`] is also provided which enables to choose
-//! which order to pick at execution time.
 
 
-mod tree_trait;
-mod tree_enum;
-mod tree_predefined;
 
-pub use self::tree_trait::*;
-pub use self::tree_enum::*;
-pub use self::tree_predefined::*;
+mod _tree_trait;
+mod _tree_predefined;
+
+pub use self::_tree_trait::*;
+pub use self::_tree_predefined::*;

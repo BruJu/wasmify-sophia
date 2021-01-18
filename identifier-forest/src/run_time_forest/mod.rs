@@ -1,7 +1,9 @@
 
 use crate::tree::{ MaybeTree4, Tree4Iterator };
 use crate::order::{ Position, Subject, Predicate, Object, Graph };
-use crate::tree::DynamicOnceTreeSet;
+
+mod _dynamic;
+pub use self::_dynamic::*;
 
 /// A forest of identifier trees. It is able to store arrays of four u32
 pub struct IndexingForest4 {

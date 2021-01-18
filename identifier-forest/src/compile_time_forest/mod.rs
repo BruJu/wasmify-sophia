@@ -1,35 +1,78 @@
+//! This module provide an implementation of an identifier forest in which
+//! the trees are chosen at compile time instead of run time: [`CTForest`].
+//!
+//! The purpose of this implementation is to be faster, at the cost of
+//! having of less flexible structure to pick the desired trees.
 
-
+use crate::Identifier;
 use crate::order::{ Position, Subject, Predicate, Object, Graph };
 use crate::order::FixedOrder4;
-
 use crate::tree::{ LazyStructure, MaybeTree4, Tree4Iterator };
-use crate::Identifier;
-
 use crate::tree::OnceTreeSet;
 
 pub mod profile4;
 
+/// Helper trait to define which kind of [`OnceTreeSet`](crate::tree::OnceTreeSet)s
+/// must be used in a [`CTForest`].
+///
+/// The order of the tree and whetever it can be lazy is specified as bound
+/// types and constants, which serves as the configuration input.
 pub trait Tree4Profile {
+    /// The first position of the [`FixedOrder4`](crate::order::FixedOrder4), corresponding to `A`
     type First: Position;
+    /// The second position of the [`FixedOrder4`](crate::order::FixedOrder4), corresponding to `B`
     type Second: Position;
+    /// The third position of the [`FixedOrder4`](crate::order::FixedOrder4), corresponding to `C`
     type Third: Position;
+    /// The fourth position of the [`FixedOrder4`](crate::order::FixedOrder4), corresponding to `D`
     type Fourth: Position;
-    
+    /// True if the corresponding [`MaybeTree4`](crate::tree::MaybeTree4) must always be instanciated (it can not be a lazy implementation).
     const ALWAYS_INSTANCIATED: bool;
 }
 
-    pub fn make_once_tree_set<I, P>()
-    -> OnceTreeSet<I, P::First, P::Second, P::Third, P::Fourth>
-    where I: Identifier, P: Tree4Profile {
-        if P::ALWAYS_INSTANCIATED {
-            OnceTreeSet::<I, P::First, P::Second, P::Third, P::Fourth>::new_instanciated()
-        } else {
-            OnceTreeSet::<I, P::First, P::Second, P::Third, P::Fourth>::new()
-        }
+/// Build a [`OnceTreeSet`](crate::tree::OnceTreeSet) instance for quads of `I`
+/// using the order and strategy specified in the [`Tree4Profile`] `P`
+pub fn make_once_tree_set<I, P>() -> OnceTreeSet<I, P::First, P::Second, P::Third, P::Fourth>
+where I: Identifier, P: Tree4Profile {
+    if P::ALWAYS_INSTANCIATED {
+        OnceTreeSet::<I, P::First, P::Second, P::Third, P::Fourth>::new_instanciated()
+    } else {
+        OnceTreeSet::<I, P::First, P::Second, P::Third, P::Fourth>::new()
     }
+}
 
+/// A [`CTForest`] with an [`OGPS`](profile4::OGPS) tree, and 5 other trees that can be
+/// instanciated depending on the patterns requested by the users. The other trees
+/// have been chosen to be able to have an optimal tree for each kind of pattern.
+pub type CTForestLazy6<I> = CTForest<I, 
+    profile4::OGPSAlways,
+    profile4::SPOG,
+    profile4::GPSO,
+    profile4::POGS,
+    profile4::GSPO,
+    profile4::OSGP
+>;
 
+/// A [`CTForest`] instanciated with 6 always instanciated subtrees. The trees are chosen
+/// to be able to answer any kind of pattern.
+pub type CTForestGreedy6<I> = CTForest<I,
+    profile4::OGPSAlways,
+    profile4::SPOGAlways,
+    profile4::GPSOAlways,
+    profile4::POGSAlways,
+    profile4::GSPOAlways,
+    profile4::OSGPAlways
+>;
+
+/// A `CTForest` (Compile Time Forest) is a forest composed of 6 trees determined at
+/// compile time.
+///
+/// 6 trees is chosen because it is the minimal number to be able to have an optimal
+/// tree for each quad query pattern.
+///
+/// The chosen implementation of [`MaybeTree4`](crate::tree::MaybeTree4) is always
+/// [`OnceTreeSet`](crate::tree::OnceTreeSet).
+// TODO: used a non OnceCell base implementation for always instanciated tree?
 pub struct CTForest<I, Order1, Order2, Order3, Order4, Order5, Order6>
 where
 I: Identifier,
@@ -116,8 +159,6 @@ Order6: Tree4Profile
     fn default() -> Self {
         Self::new()
     }
-
-
 }
 
 /// If best_btree exists, extract the quads that match the pattern

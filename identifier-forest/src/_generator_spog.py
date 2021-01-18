@@ -5,6 +5,14 @@ positions = [
     ("Graph", "G", 3)
 ]
 
+print("//! This module lists every possible permutation of")
+print("//! [`Tree4Profile`](crate::compile_time_forest::Tree4Profile)")
+print("//! order for a tree of quads.")
+print("//! ")
+print("//! These permutation are intended to be used")
+print("//! as parameters for the [`CTForest`](crate::compile_time_forest::CTForest)")
+print("//! class")
+
 def every_order():
     retval = []
     for a in positions:
@@ -24,6 +32,9 @@ print("")
 for a in all:
     spog = "".join([x[1] for x in a])
 
+    print()
+    print("/// Profile for a lazy tree whose order")
+    print("/// will be {}".format(" > ".join(x[0] for x in a)))
     print("pub struct {} {}".format(spog, "{}"))
     print("impl Tree4Profile for {} {}".format(spog, "{"))
     print("    type First = {};".format(a[0][0]))
@@ -33,10 +44,10 @@ for a in all:
     print("    const ALWAYS_INSTANCIATED: bool = false;")
     print("}")
 
-
-for a in all:
     spog = "".join([x[1] for x in a]) + "Always"
-
+    print()
+    print("/// Profile for a tree that is always instanciated and whose order")
+    print("/// is {}".format(" > ".join(x[0] for x in a)))
     print("pub struct {} {}".format(spog, "{}"))
     print("impl Tree4Profile for {} {}".format(spog, "{"))
     print("    type First = {};".format(a[0][0]))

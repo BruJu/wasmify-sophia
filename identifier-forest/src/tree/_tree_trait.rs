@@ -1,6 +1,6 @@
 //! Defines the API for a tree
 
-// This file is formated in a format tht is easy to parse
+// This file is formated in a format that is easy to parse
 
 use crate::Identifier;
 

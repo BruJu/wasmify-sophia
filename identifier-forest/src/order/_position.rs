@@ -19,6 +19,7 @@ pub trait Position {
 /// quad, which is the 0th in an array of 3 or 4 identifiers (couting from 0).
 ///
 /// [RDF]: https://www.w3.org/TR/rdf11-primer/
+#[derive(Debug)]
 pub struct Subject {}
 impl Position for Subject {
     /// in SPO(G), the **S**ubject is at the 0th position
@@ -29,6 +30,7 @@ impl Position for Subject {
 /// quad, which is the 1st in an array of 3 or 4 identifiers (couting from 0).
 ///
 /// [RDF]: https://www.w3.org/TR/rdf11-primer/
+#[derive(Debug)]
 pub struct Predicate {}
 impl Position for Predicate {
     /// in SPO(G), the **P**redicate is at the 1st position
@@ -38,6 +40,7 @@ impl Position for Predicate {
 /// quad, which is the 2nd in an array of 3 or 4 identifiers (couting from 0).
 ///
 /// [RDF]: https://www.w3.org/TR/rdf11-primer/
+#[derive(Debug)]
 pub struct Object {}
 impl Position for Object {
     /// in SPO(G), the **O**bject is at the 2nd position
@@ -48,6 +51,7 @@ impl Position for Object {
 /// which is the 3rd in an array of 4 identifiers (couting from 0).
 ///
 /// [RDF]: https://www.w3.org/TR/rdf11-primer/
+#[derive(Debug)]
 pub struct Graph {}
 impl Position for Graph {
     /// in SPOG, the **G**raph is at the 3rd position
