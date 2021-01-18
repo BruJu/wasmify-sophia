@@ -1,5 +1,8 @@
+//! - As the implementation of [`OnceTreeSet`] have an order defined at compile
+//! time, [`DynamicOnceTreeSet`] is also provided which enables to choose
+//! which order to pick at execution time.
 
-use crate::tree::{ MaybeTree4, Tree4Iterator };
+use crate::tree::{ MaybeTree4, Tree4Iterator, Forest4 };
 use crate::order::{ Position, Subject, Predicate, Object, Graph };
 
 mod _dynamic;
@@ -62,11 +65,27 @@ impl IndexingForest4 {
         retval
     }
 
-    pub fn get_number_of_living_trees(&self) -> usize {
-        self.trees
-            .iter()
-            .filter(|tree| tree.exists())
-            .count()
+    fn best_tree_for<'a>(&'a self, pattern: &[Option<u32>; 4]) -> &'a DynamicOnceTreeSet<u32> {
+        let mut best_tree: Option<(usize, usize)> = None;
+
+        for (i, tree) in self.trees.iter().enumerate() {
+            let opt_conformance = tree.index_conformance(true, &pattern);
+
+            if let Some(conformance) = opt_conformance {
+                if best_tree.is_none() || best_tree.unwrap().1 < conformance {
+                    best_tree = Some((i, conformance));
+                }
+            }
+        }
+
+        // As the first tree should always exist, (see `new_with_indexes`), we can unwrap it
+        &self.trees[best_tree.unwrap().0]
+    }
+
+    fn ensure_exists(my_tree: &DynamicOnceTreeSet<u32>, reference_tree: &DynamicOnceTreeSet<u32>) {
+        if !my_tree.exists() {
+            my_tree.ensure_exists(|| reference_tree.get_quads([None, None, None, None]));
+        }
     }
 }
 
@@ -82,27 +101,8 @@ impl MaybeTree4<u32> for IndexingForest4
     }
 
     fn get_quads<'a>(&'a self, pattern: [Option<u32>; 4]) -> Tree4Iterator<'a, u32> {
-        // Find best tree
-        let mut best_tree: Option<(usize, usize)> = None;
-
-        for (i, tree) in self.trees.iter().enumerate() {
-            let opt_conformance = tree.index_conformance(true, &pattern);
-
-            if let Some(conformance) = opt_conformance {
-                if best_tree.is_none() || best_tree.unwrap().1 < conformance {
-                    best_tree = Some((i, conformance));
-                }
-            }
-        }
-
-        //
-        let best_btree = &self.trees[best_tree.unwrap().0];
-
-        if !best_btree.exists() {
-            best_btree.ensure_exists(|| self.trees[0].get_quads([None, None, None, None]));
-        }
-
-        // 
+        let best_btree = self.best_tree_for(&pattern);
+        Self::ensure_exists(best_btree, &self.trees[0]);
         best_btree.get_quads(pattern)
     }
 
@@ -157,6 +157,19 @@ impl MaybeTree4<u32> for IndexingForest4
     }
 }
 
+impl Forest4<u32> for IndexingForest4 {
+    fn get_number_of_living_trees(&self) -> usize {
+        self.trees
+            .iter()
+            .filter(|tree| tree.exists())
+            .count()
+    }
+
+    fn ensure_has_index_for(&self, pattern: &[Option<u32>; 4]) {
+        let best_btree = self.best_tree_for(&pattern);
+        Self::ensure_exists(best_btree, &self.trees[0]);
+    }
+}
 
 #[cfg(test)]
 mod test {

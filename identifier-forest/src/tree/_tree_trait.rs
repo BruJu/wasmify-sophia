@@ -63,3 +63,13 @@ where I: Identifier
     fn has(&self, id_quad: &[I; 4]) -> Option<bool>;
 }
 
+pub trait Forest4<I>: MaybeTree4<I>
+where I: Identifier {
+
+    /// Number of currently instanciated underlying trees. 
+    fn get_number_of_living_trees(&self) -> usize;
+
+    /// Ensures the optimal tree in this forest for a request of the given
+    /// pattern is built.
+    fn ensure_has_index_for(&self, pattern: &[Option<I>; 4]);
+}

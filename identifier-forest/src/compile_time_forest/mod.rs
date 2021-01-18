@@ -7,7 +7,7 @@
 use crate::Identifier;
 use crate::order::{ Position, Subject, Predicate, Object, Graph };
 use crate::order::FixedOrder4;
-use crate::tree::{ LazyStructure, MaybeTree4, Tree4Iterator };
+use crate::tree::{ LazyStructure, MaybeTree4, Tree4Iterator, Forest4 };
 use crate::tree::OnceTreeSet;
 
 pub mod profile4;
@@ -135,14 +135,68 @@ Order6: Tree4Profile
     }
 
     
-    pub fn get_number_of_living_trees(&self) -> usize {
+
+}
+
+
+impl<I, Order1, Order2, Order3, Order4, Order5, Order6> Forest4<I>
+for CTForest<I, Order1, Order2, Order3, Order4, Order5, Order6>
+where
+I: Identifier,
+Order1: Tree4Profile,
+// Order1::ALWAYS_INSTANCIATED = true
+Order2: Tree4Profile,
+Order3: Tree4Profile,
+Order4: Tree4Profile,
+Order5: Tree4Profile,
+Order6: Tree4Profile
+{
+    fn get_number_of_living_trees(&self) -> usize {
         [self.tree1.exists(), self.tree2.exists(), self.tree3.exists(), self.tree4.exists(), self.tree5.exists(), self.tree6.exists()]
             .iter()
             .filter(|tree| **tree)
             .count()
     }
 
+    fn ensure_has_index_for(&self, pattern: &[Option<I>; 4]) {
+        let best = self.best_conformance(true, &pattern).0;
+
+        match best {
+            2 => ensure_existance(&self, &self.tree2),
+            3 => ensure_existance(&self, &self.tree3),
+            4 => ensure_existance(&self, &self.tree4),
+            5 => ensure_existance(&self, &self.tree5),
+            6 => ensure_existance(&self, &self.tree6),
+            _ => {} /* noop */
+        }
+    }
+
 }
+
+
+/// If best_btree exists, extract the quads that match the pattern
+///
+/// If it doesn't, takes the first btree of this, fills best_btree and then
+/// extract the quads.
+fn ensure_existance<'a, I, MT, Order1, Order2, Order3, Order4, Order5, Order6>(
+    this: &'a CTForest<I, Order1, Order2, Order3, Order4, Order5, Order6>,
+    best_btree: &'a MT
+)
+where MT: MaybeTree4<I>, I: Identifier,
+Order1: Tree4Profile,
+// Order1::ALWAYS_INSTANCIATED = true
+Order2: Tree4Profile,
+Order3: Tree4Profile,
+Order4: Tree4Profile,
+Order5: Tree4Profile,
+Order6: Tree4Profile
+{
+    if !best_btree.exists() {
+        best_btree.ensure_exists(|| this.tree1.get_quads([None, None, None, None]));
+    }
+}
+
+
 
 impl<I, Order1, Order2, Order3, Order4, Order5, Order6> Default 
 for CTForest<I, Order1, Order2, Order3, Order4, Order5, Order6>
@@ -170,7 +224,6 @@ fn get_quad_from<'a, I, MT, Order1, Order2, Order3, Order4, Order5, Order6>(
     best_btree: &'a MT,
     pattern: [Option<I>; 4])
 -> Tree4Iterator<'a, I>
-
 where MT: MaybeTree4<I>, I: Identifier,
 Order1: Tree4Profile,
 // Order1::ALWAYS_INSTANCIATED = true

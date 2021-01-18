@@ -36,6 +36,7 @@ impl Position for Predicate {
     /// in SPO(G), the **P**redicate is at the 1st position
     const VALUE: usize = 1;
 }
+
 /// The object position in a SPO ordered [RDF] triple / SPOG ordered [RDF]
 /// quad, which is the 2nd in an array of 3 or 4 identifiers (couting from 0).
 ///

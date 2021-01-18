@@ -1,6 +1,6 @@
 import re
 
-# python src/_generator_tree_enum.py > src/tree/tree_enum.rs
+# python src/_generator_tree_enum.py > src/run_time_forest/_dynamic.rs
 
 def extract_parameters(l):
     r = ", ([a-zA-Z_0-9]*)\: (&?)"
@@ -138,7 +138,7 @@ add()
 # ===============
 # LazyStructure usage
 
-lazy_structure = read_trait_description("src/tree/tree_trait.rs", "LazyStructure")
+lazy_structure = read_trait_description("src/tree/_tree_trait.rs", "LazyStructure")
 
 add("impl<I> " + n)
 add("where I: Identifier")
@@ -193,7 +193,7 @@ add("")
 
 # print("\n".join(output))
 
-maybe_tree = read_trait_description("src/tree/tree_trait.rs", "MaybeTree4<I>")
+maybe_tree = read_trait_description("src/tree/_tree_trait.rs", "MaybeTree4<I>")
 
 #pp.pprint(maybe_tree)
 
