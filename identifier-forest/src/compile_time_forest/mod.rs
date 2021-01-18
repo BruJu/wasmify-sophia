@@ -161,11 +161,11 @@ Order6: Tree4Profile
         let best = self.best_conformance(true, &pattern).0;
 
         match best {
-            2 => ensure_existance(&self, &self.tree2),
-            3 => ensure_existance(&self, &self.tree3),
-            4 => ensure_existance(&self, &self.tree4),
-            5 => ensure_existance(&self, &self.tree5),
-            6 => ensure_existance(&self, &self.tree6),
+            2 => ensure_existence(&self, &self.tree2),
+            3 => ensure_existence(&self, &self.tree3),
+            4 => ensure_existence(&self, &self.tree4),
+            5 => ensure_existence(&self, &self.tree5),
+            6 => ensure_existence(&self, &self.tree6),
             _ => {} /* noop */
         }
     }
@@ -177,7 +177,7 @@ Order6: Tree4Profile
 ///
 /// If it doesn't, takes the first btree of this, fills best_btree and then
 /// extract the quads.
-fn ensure_existance<'a, I, MT, Order1, Order2, Order3, Order4, Order5, Order6>(
+fn ensure_existence<'a, I, MT, Order1, Order2, Order3, Order4, Order5, Order6>(
     this: &'a CTForest<I, Order1, Order2, Order3, Order4, Order5, Order6>,
     best_btree: &'a MT
 )
