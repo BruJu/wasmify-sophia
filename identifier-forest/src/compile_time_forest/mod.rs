@@ -6,7 +6,6 @@
 
 use crate::Identifier;
 use crate::order::{ Position, Subject, Predicate, Object, Graph };
-use crate::order::FixedOrder4;
 use crate::tree::{ LazyStructure, MaybeTree4, Tree4Iterator, Forest4 };
 use crate::tree::OnceTreeSet;
 

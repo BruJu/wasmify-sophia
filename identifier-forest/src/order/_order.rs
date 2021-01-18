@@ -7,11 +7,6 @@ use crate::Identifier;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-/// Number of different positions to specify in a [`FixedOrder4`].
-///
-/// It correspond to the number of elements in an identifier quad (4).
-pub const ORDER4_NB_OF_TERMS: usize = 4;
-
 /// An utility struct that provides static method to manipulate quads sorted in
 /// the ABCD order
 pub struct FixedOrder4<A, B, C, D>
@@ -34,14 +29,14 @@ where A: Position, B: Position, C: Position, D: Position {
     };
 
     /// Return the list of indexes described by the generic parameters.
-    pub fn to_slice() -> [usize; ORDER4_NB_OF_TERMS] {
+    pub fn to_slice() -> [usize; 4] {
         [A::VALUE, B::VALUE, C::VALUE, D::VALUE]
     }
     
     /// Compare two arrays of four orderable values by their `A::VALUE`-th
     /// term, then their `B::VALUE`-th term, then their `C::VALUE`-th term,
     /// then their `D::VALUE`-th term.
-    pub fn compare<I>(lhs: &[I; ORDER4_NB_OF_TERMS], rhs: &[I; ORDER4_NB_OF_TERMS]) -> Ordering 
+    pub fn compare<I>(lhs: &[I; 4], rhs: &[I; 4]) -> Ordering 
     where I: Ord
     {
         (&lhs[A::VALUE]).cmp(&rhs[A::VALUE])
@@ -60,7 +55,7 @@ where A: Position, B: Position, C: Position, D: Position {
     /// This gives an indication of how efficient the
     /// [`range()`](Self::range()) method will be. The higher, the better
     /// suited this order is to answer this pattern.
-    pub fn index_conformance<T>(pattern: &[Option<T>; ORDER4_NB_OF_TERMS]) -> usize {
+    pub fn index_conformance<T>(pattern: &[Option<T>; 4]) -> usize {
         Self::to_slice()
             .iter()
             .take_while(|tr| pattern[**tr as usize].is_some())
@@ -74,13 +69,13 @@ where A: Position, B: Position, C: Position, D: Position {
     /// structure and a new pattern which contains values only on non wildcard
     /// indexes that are not already filtered by the range.
     pub fn range<T>(
-        mut pattern: [Option<T>; ORDER4_NB_OF_TERMS],
-    ) -> (std::ops::RangeInclusive<Block<T, A, B, C, D>>, [Option<T>; ORDER4_NB_OF_TERMS])
+        mut pattern: [Option<T>; 4],
+    ) -> (std::ops::RangeInclusive<Block<T, A, B, C, D>>, [Option<T>; 4])
     where T: Identifier
     {
         // Initial range (checks every values)
-        let mut min = Block::<T, A, B, C, D>::new([T::MIN; ORDER4_NB_OF_TERMS]);
-        let mut max = Block::<T, A, B, C, D>::new([T::MAX; ORDER4_NB_OF_TERMS]);
+        let mut min = Block::<T, A, B, C, D>::new([T::MIN; 4]);
+        let mut max = Block::<T, A, B, C, D>::new([T::MAX; 4]);
 
         // Restrict it as much as possible
         for term_role in Self::to_slice().iter() {
@@ -117,7 +112,7 @@ pub struct Block<I, A, B, C, D>
 where I: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
     /// The wrapped array of four values.
-    pub values: [I; ORDER4_NB_OF_TERMS],
+    pub values: [I; 4],
     _boilerplate: PhantomData<*const FixedOrder4<A, B, C, D>>,
 }
 
@@ -125,7 +120,7 @@ impl<I, A, B, C, D> Block<I, A, B, C, D>
 where I: Identifier, A: Position, B: Position, C: Position, D: Position 
 {
     /// Wraps an array of four values
-    pub fn new(elements: [I; ORDER4_NB_OF_TERMS]) -> Self {
+    pub fn new(elements: [I; 4]) -> Self {
         debug_assert!(FixedOrder4::<A, B, C, D>::IS_VALID);
         Self {
             values: elements,
@@ -175,7 +170,7 @@ where T: Identifier, A: Position, B: Position, C: Position, D: Position
 /// Return true if the non None values of the given pattern are equals
 /// to the values in quad. In other words, it can be seen as an
 /// equality check where none serves as a wildcard.
-pub fn pattern_match<T>(quad: &[T; ORDER4_NB_OF_TERMS], pattern: &[Option<T>; ORDER4_NB_OF_TERMS]) -> bool
+pub fn pattern_match<T>(quad: &[T; 4], pattern: &[Option<T>; 4]) -> bool
 where T: Identifier {
     quad.iter()
         .zip(pattern.iter())
@@ -438,21 +433,21 @@ mod test {
     fn test_block_memory_footprint() {
         assert!(
             std::mem::size_of::<Block<u32, Subject, Predicate, Object, Graph>>() ==
-            std::mem::size_of::<[u32; ORDER4_NB_OF_TERMS]>()
+            std::mem::size_of::<[u32; 4]>()
         );
 
         assert!(
             std::mem::size_of::<Block<u8, Subject, Predicate, Object, Graph>>() ==
-            std::mem::size_of::<[u8; ORDER4_NB_OF_TERMS]>()
+            std::mem::size_of::<[u8; 4]>()
         );
         
         assert!(
             std::mem::size_of::<Block<u64, Subject, Predicate, Object, Graph>>() ==
-            std::mem::size_of::<[u64; ORDER4_NB_OF_TERMS]>()
+            std::mem::size_of::<[u64; 4]>()
         );
         assert!(
             std::mem::size_of::<Block<usize, Subject, Predicate, Object, Graph>>() ==
-            std::mem::size_of::<[usize; ORDER4_NB_OF_TERMS]>()
+            std::mem::size_of::<[usize; 4]>()
         );
     }
 

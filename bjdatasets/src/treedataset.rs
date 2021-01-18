@@ -28,7 +28,7 @@ use sophia::test_dataset_impl;
 #[derive(Default)]
 pub struct TreeDataset {
     /// Underlying trees that manipulates identifiers
-    forest: IndexingForest4,
+    forest: IndexingForest4<u32>,
     /// A `TermIndexMapU` that matches RcTerms with u32 identifiers
     term_id_map: TermIndexMapU<u32, RcTermFactory>
 }
