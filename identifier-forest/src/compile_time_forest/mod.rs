@@ -169,6 +169,18 @@ Order6: Tree4Profile
         }
     }
 
+    fn get_quads_unamortized<'a>(&'a self, pattern: [Option<I>; 4]) -> Tree4Iterator<'a, I> {
+        let best = self.best_conformance(false, &pattern).0;
+
+        match best {
+            2 => get_quad_from(&self, &self.tree2, pattern),
+            3 => get_quad_from(&self, &self.tree3, pattern),
+            4 => get_quad_from(&self, &self.tree4, pattern),
+            5 => get_quad_from(&self, &self.tree5, pattern),
+            6 => get_quad_from(&self, &self.tree6, pattern),
+            _ => get_quad_from(&self, &self.tree1, pattern)
+        }
+    }
 }
 
 

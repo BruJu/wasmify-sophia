@@ -2,7 +2,7 @@
 use crate::order::{ Block, Position };
 use crate::{ Identifier };
 use crate::order::{ FixedOrder4, pattern_match };
-use crate::tree::{ LazyStructure, MaybeTree4, Tree4Iterator };
+use crate::tree::{ LazyStructure, MaybeTree4, Tree4Iterator, BinaryMaybe4TreeOperations };
 
 use once_cell::unsync::OnceCell;
 use std::collections::BTreeSet;
@@ -110,6 +110,87 @@ where I: Identifier, A: Position, B: Position, C: Position, D: Position
         }
     }
 }
+
+
+impl<I, A, B, C, D> OnceTreeSet<I, A, B, C, D>
+where I: Identifier, A: Position, B: Position, C: Position, D: Position
+{
+    fn apply_if_both_exists<F>(lhs: &Self, rhs: &Self, f: F) -> Self
+    where F: Fn(&BTreeSet<Block<I, A, B, C, D>>, &BTreeSet<Block<I, A, B, C, D>>) -> Self
+    {
+        let my_tree_opt = lhs.v.get();
+        let other_tree_opt = rhs.v.get();
+
+        if let(Some(my_tree), Some(other_tree)) = (my_tree_opt, other_tree_opt) {
+            f(my_tree, other_tree)
+        } else {
+            Self::new()
+        }
+    }
+
+}
+
+impl<I, A, B, C, D> BinaryMaybe4TreeOperations<I> for OnceTreeSet<I, A, B, C, D>
+where I: Identifier, A: Position, B: Position, C: Position, D: Position
+{
+    fn intersect(&self, other: &Self) -> Self {
+        Self::apply_if_both_exists(
+            &self, &other,
+            |my_tree, other_tree| {
+                let mut intersection = Self::new_instanciated();
+            
+                for quad in my_tree.intersection(other_tree) {
+                    intersection.insert(&quad.values);
+                }
+    
+                intersection
+            }
+        )
+    }
+
+    fn union(&self, other: &Self) -> Self {
+        Self::apply_if_both_exists(
+            &self, &other,
+            |my_tree, other_tree| {
+                let mut intersection = Self::new_instanciated();
+            
+                for quad in my_tree.union(other_tree) {
+                    intersection.insert(&quad.values);
+                }
+    
+                intersection
+            }
+        )
+    }
+
+    fn difference(&self, other: &Self) -> Self {
+        Self::apply_if_both_exists(
+            &self, &other,
+            |my_tree, other_tree| {
+                let mut intersection = Self::new_instanciated();
+            
+                for quad in my_tree.difference(other_tree) {
+                    intersection.insert(&quad.values);
+                }
+    
+                intersection
+            }
+        )
+    }
+
+    fn contains(&self, other: &Self) -> Option<bool> {
+        let my_tree_opt = self.v.get();
+        let other_tree_opt = other.v.get();
+
+        if let(Some(my_tree), Some(other_tree)) = (my_tree_opt, other_tree_opt) {
+            Some(my_tree.is_superset(&other_tree))
+        } else {
+            None
+        }
+    }
+}
+
+
 
 #[cfg(test)]
 mod test {
@@ -247,11 +328,68 @@ mod test {
         }
     }
 
+    fn test_implem_ensemblist<T>()
+    where T: BinaryMaybe4TreeOperations<u32> + LazyStructure
+    {
+
+        {
+            // Result existance
+            {
+                let none1 = T::new();
+                let none2 = T::new();
+                let something1 = T::new_instanciated();
+                let something2 = T::new_instanciated();
+                assert!(!none1.intersect(&none1).exists());
+                assert!(!none1.intersect(&none2).exists());
+                assert!(!something1.intersect(&none1).exists());
+                assert!(!none1.intersect(&something1).exists());
+                assert!(something1.intersect(&something1).exists());
+                assert!(something1.intersect(&something2).exists());
+            }
+
+            {
+                let mut tree12 = T::new_instanciated();
+                tree12.insert(&[10, 20, 30, 101]);
+                tree12.insert(&[10, 20, 30, 102]);
+                let mut tree23 = T::new_instanciated();
+                tree23.insert(&[10, 20, 30, 102]);
+                tree23.insert(&[10, 20, 30, 103]);
+
+                let inter = tree12.intersect(&tree23);
+
+                assert_eq!(inter.size().unwrap(), 1);
+                assert!(inter.has(&[10, 20, 30, 102]).unwrap());
+
+
+                let union = tree12.union(&tree23);
+
+                assert_eq!(union.size().unwrap(), 3);
+                assert!(union.has(&[10, 20, 30, 101]).unwrap());
+                assert!(union.has(&[10, 20, 30, 102]).unwrap());
+                assert!(union.has(&[10, 20, 30, 103]).unwrap());
+
+                let diff = tree12.difference(&tree23);
+
+                assert_eq!(diff.size().unwrap(), 1);
+                assert!(diff.has(&[10, 20, 30, 101]).unwrap());
+
+
+                let mut tree1 = T::new_instanciated();
+                tree1.insert(&[10, 20, 30, 101]);
+
+                assert!(tree12.contains(&tree12).unwrap());
+                assert!(tree12.contains(&tree1).unwrap());
+                assert!(!tree1.contains(&tree12).unwrap());
+            }
+        }
+    }
+
 
     #[test]
     fn test_impl() {
         test_implem_::<OnceTreeSet<u32, Subject, Predicate, Object, Graph>>();
         test_implem_::<OnceTreeSet<u32, Object, Graph, Predicate, Subject>>();
+        test_implem_ensemblist::<OnceTreeSet<u32, Object, Graph, Predicate, Subject>>();
     }
 
 

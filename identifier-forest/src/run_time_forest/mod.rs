@@ -5,6 +5,7 @@
 use crate::Identifier;
 use crate::tree::{ MaybeTree4, Tree4Iterator, Forest4 };
 use crate::order::{ Position, Subject, Predicate, Object, Graph };
+use crate::tree::BinaryMaybe4TreeOperations;
 
 mod _dynamic;
 pub use self::_dynamic::*;
@@ -69,11 +70,11 @@ where I: Identifier {
         retval
     }
 
-    fn best_tree_for<'a>(&'a self, pattern: &[Option<I>; 4]) -> &'a DynamicOnceTreeSet<I> {
+    fn best_tree_for<'a>(&'a self, pattern: &[Option<I>; 4], can_build: bool) -> &'a DynamicOnceTreeSet<I> {
         let mut best_tree: Option<(usize, usize)> = None;
 
         for (i, tree) in self.trees.iter().enumerate() {
-            let opt_conformance = tree.index_conformance(true, &pattern);
+            let opt_conformance = tree.index_conformance(can_build, &pattern);
 
             if let Some(conformance) = opt_conformance {
                 if best_tree.is_none() || best_tree.unwrap().1 < conformance {
@@ -106,7 +107,7 @@ where I: Identifier
     }
 
     fn get_quads<'a>(&'a self, pattern: [Option<I>; 4]) -> Tree4Iterator<'a, I> {
-        let best_btree = self.best_tree_for(&pattern);
+        let best_btree = self.best_tree_for(&pattern, true);
         Self::ensure_exists(best_btree, &self.trees[0]);
         best_btree.get_quads(pattern)
     }
@@ -172,10 +173,162 @@ where I: Identifier {
     }
 
     fn ensure_has_index_for(&self, pattern: &[Option<I>; 4]) {
-        let best_btree = self.best_tree_for(&pattern);
+        let best_btree = self.best_tree_for(&pattern, true);
         Self::ensure_exists(best_btree, &self.trees[0]);
     }
+
+
+    fn get_quads_unamortized<'a>(&'a self, pattern: [Option<I>; 4]) -> Tree4Iterator<'a, I> {
+        self.best_tree_for(&pattern, false).get_quads(pattern)
+    }
 }
+
+enum ForestAssimilationResult<I>
+where I: Identifier {
+    FallenTree(DynamicOnceTreeSet<I>),
+    PlacedAt(usize)
+}
+
+/// Ensemblist operations
+impl<I> IndexingForest4<I>
+where I: Identifier {
+
+    fn binary_operation<R, Intermediate, OnTwoTrees, Fallback, Finalizer>(&self, other: &Self,
+        on_two_trees: OnTwoTrees,
+        finalize: Finalizer,
+        fallback: Fallback
+    ) -> R
+    where OnTwoTrees: Fn(&DynamicOnceTreeSet<I>, &DynamicOnceTreeSet<I>) -> Option<Intermediate>,
+    Fallback: Fn(&DynamicOnceTreeSet<I>, &DynamicOnceTreeSet<I>) -> R,
+    Finalizer: Fn(Intermediate) -> R {
+        for tree in &self.trees {
+            for other_tree in &other.trees {
+                let r = on_two_trees(&tree, &other_tree);
+
+                if let Some(real_r) = r {
+                    return finalize(real_r);
+                }
+            }
+        }
+
+        fallback(&self.trees[0], &other.trees[0])
+    }
+
+    fn assimilate(&mut self, tree: DynamicOnceTreeSet<I>) -> ForestAssimilationResult<I> {
+        for (i, owned_tree) in self.trees.iter_mut().enumerate() {
+            if std::mem::discriminant(&tree) == std::mem::discriminant(&owned_tree) {
+                *owned_tree = tree;
+                return ForestAssimilationResult::<I>::PlacedAt(i);
+            }
+        }
+
+        ForestAssimilationResult::<I>::FallenTree(tree)
+    }
+
+    fn reproduce_structure(&self) -> Self {
+        let mut trees = Vec::new();
+
+        for tree in &self.trees {
+            trees.push(tree.duplicate_structure());
+        }
+
+        Self { trees }
+    }
+
+    fn new_with_dynamic_tree(&self, tree: DynamicOnceTreeSet<I>) -> Self {
+        let mut me = self.reproduce_structure();
+        let assimilation_result = me.assimilate(tree);
+
+        match assimilation_result {
+            ForestAssimilationResult::FallenTree(fallen) => me.trees[0].ensure_exists(|| fallen.iter()),
+            ForestAssimilationResult::PlacedAt(index)    => me.trees[0].ensure_exists(|| me.trees[index].iter())
+        }
+
+        me
+    }
+}
+
+impl<I> BinaryMaybe4TreeOperations<I>
+for IndexingForest4<I>
+where I: Identifier {
+
+    fn intersect(&self, other: &Self) -> Self {
+        self.binary_operation(
+            other,
+            |me, you| me.intersect(&you),
+            |actual_tree| self.new_with_dynamic_tree(actual_tree),
+            |one_of_my_tree, one_of_your_tree| {
+                let mut tree = self.reproduce_structure();
+
+                for quad in one_of_my_tree.iter() {
+                    if one_of_your_tree.has(&quad).unwrap() {
+                        tree.insert(&quad);
+                    }
+                }
+
+                tree
+            }
+        )
+    }
+
+    fn union(&self, other: &Self) -> Self {
+        self.binary_operation(
+            other,
+            |me, you| me.union(&you),
+            |actual_tree| self.new_with_dynamic_tree(actual_tree),
+            |one_of_my_tree, one_of_your_tree| {
+                let mut tree = self.reproduce_structure();
+
+                for quad in one_of_my_tree.iter() {
+                    tree.insert(&quad);
+                }
+
+                for quad in one_of_your_tree.iter() {
+                    tree.insert(&quad);
+                }
+
+                tree
+            }
+        )
+    }
+
+    fn difference(&self, other: &Self) -> Self {
+        self.binary_operation(
+            other,
+            |me, you| me.difference(&you),
+            |actual_tree| self.new_with_dynamic_tree(actual_tree),
+            |one_of_my_tree, one_of_your_tree| {
+                let mut tree = self.reproduce_structure();
+
+                for quad in one_of_my_tree.iter() {
+                    if !one_of_your_tree.has(&quad).unwrap() {
+                        tree.insert(&quad);
+                    }
+                }
+
+                tree
+            }
+        )
+    }
+
+    fn contains(&self, other: &Self) -> Option<bool> {
+        Some(self.binary_operation(
+            other,
+            |me, you| me.contains(&you),
+            |result| result.unwrap(),
+            |one_of_my_tree, one_of_your_tree| {
+                for quad in one_of_my_tree.iter() {
+                    if !one_of_your_tree.has(&quad).unwrap() {
+                        return false;
+                    }
+                }
+
+                true
+            }
+        ))
+    }
+}
+
 
 #[cfg(test)]
 mod test {
